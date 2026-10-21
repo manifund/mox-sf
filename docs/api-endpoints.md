@@ -241,6 +241,14 @@ Create day pass checkout.
 - **Body:** `{ "stripeCustomerId": "cus_xxx", "userName": "...", "userEmail": "..." }`
 - **Response:** `{ "url": "https://checkout.stripe.com/..." }`
 
+#### GET / POST `/portal/api/migrate-membership-prices`
+One-off migration of legacy month-to-month Core/Resident subscriptions to the Nov 1, 2026 monthly prices. See [docs/workflows/price-migration.md](workflows/price-migration.md) — run it **on** Nov 1, not before.
+
+- **Auth:** Staff
+- **Query:** `?apply=true` on `POST` performs the Stripe updates; `GET` and a bare `POST` are dry runs
+- **Response:** `{ "apply", "runAt", "summary": { "migrate", "skip", "manual", "applied", "failed" }, "emailed", "targets", "rows", "report" }`
+- **Details:** Resolves target Prices by `lookup_key` (`membership_<tier>_monthly`), updates with `proration_behavior: 'none'` so the new rate starts at each member's next renewal, leaves discounts/pause/trial untouched, and emails the report to team@moxsf.com
+
 ---
 
 ### Discord Integration
