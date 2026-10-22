@@ -73,6 +73,9 @@ checkout route logs a warning if the two ever disagree.
 
 Private offices are quoted by hand (the Office column links to email).
 
+Existing members can move between the two intervals from the portal; see
+`docs/workflows/billing-interval-switch.md`.
+
 ## Tier to Forkable Club Mapping
 
 ### Via Stripe (subscription purchase)

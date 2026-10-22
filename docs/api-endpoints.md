@@ -133,13 +133,37 @@ Get subscription details.
   {
     "subscription": {
       "tier": "Core",
-      "rate": "$99/month",
+      "rate": "$595/month",
       "renewalDate": "2025-02-20",
       "status": "active",
-      "isPaused": false
+      "isPaused": false,
+      "plan": {
+        "tierId": "core",
+        "interval": "monthly",
+        "rate": "$595/month",
+        "canSwitchTo": "quarterly",
+        "switchRate": "$1,350 every 3 months",
+        "switchNote": null,
+        "pendingSwitch": null
+      }
     }
   }
   ```
+- **Details:** `plan` is built by `app/lib/membership-plan.ts`. `canSwitchTo` is the interval the member can move to from the portal (null when blocked; `switchNote` then carries the member-facing reason, or null when there is nothing to show). `pendingSwitch` (`{ interval, effectiveDate, rate }`) is set while a switch is scheduled. See `docs/workflows/billing-interval-switch.md`.
+
+#### POST `/portal/api/switch-billing-interval`
+Schedule a move between month-to-month and quarterly billing for the member's current tier.
+
+- **Auth:** User (staff "view as" acts on the viewed member)
+- **Body:** `{ "interval": "quarterly" | "monthly" }`
+- **Response:** `{ "success": true, "interval": "quarterly", "rate": "$1,350 every 3 months", "effectiveDate": "2025-03-01T00:00:00.000Z" }`
+- **Details:** Takes effect at the end of the current paid period via a Stripe Subscription Schedule, never mid-cycle. Returns 400 with a member-facing message when the subscription can't switch (paused, cancelling, discounted, past due, non-membership product, legacy interval), 409 if a switch is already scheduled. Notifies staff on Discord and emails the member (and the acting admin).
+
+#### DELETE `/portal/api/switch-billing-interval`
+Cancel a scheduled billing plan change that hasn't taken effect yet.
+
+- **Auth:** User
+- **Details:** Releases the Subscription Schedule, leaving the subscription on its current price. Notifies staff and emails the member.
 
 #### POST `/portal/api/pause-subscription`
 Pause subscription.

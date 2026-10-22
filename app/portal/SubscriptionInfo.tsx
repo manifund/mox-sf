@@ -2,9 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import {
+  type BillingInterval,
+  MEMBERSHIP_TIERS,
+  type MembershipTierId,
+  quarterlySavingsPercent,
+} from '@/app/lib/membership-pricing'
 
 interface SubscriptionInfoProps {
   stripeCustomerId: string | null
+}
+
+interface PlanData {
+  tierId: MembershipTierId | null
+  interval: BillingInterval | 'other' | null
+  rate: string
+  canSwitchTo: BillingInterval | null
+  switchRate: string | null
+  switchNote: string | null
+  pendingSwitch: {
+    interval: BillingInterval | 'other'
+    effectiveDate: string
+    rate: string
+  } | null
 }
 
 interface SubscriptionData {
@@ -14,6 +34,21 @@ interface SubscriptionData {
   status: string
   pausedUntil?: string | null
   isPaused?: boolean
+  plan?: PlanData
+}
+
+const INTERVAL_LABEL: Record<BillingInterval | 'other', string> = {
+  monthly: 'month-to-month',
+  quarterly: 'quarterly',
+  other: 'a different',
+}
+
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 }
 
 interface CancelledData {
@@ -36,6 +71,19 @@ export default function SubscriptionInfo({
   const [pauseReason, setPauseReason] = useState('')
   const [pauseLoading, setPauseLoading] = useState(false)
   const [pauseError, setPauseError] = useState<string | null>(null)
+  const [showSwitchForm, setShowSwitchForm] = useState(false)
+  const [switchLoading, setSwitchLoading] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
+
+  const refreshSubscription = async () => {
+    const subResponse = await fetch(
+      `/portal/api/subscription?customerId=${stripeCustomerId}`
+    )
+    const subData = await subResponse.json()
+    if (subData.subscription) {
+      setSubscription(subData.subscription)
+    }
+  }
 
   const getDefaultResumeDate = () => {
     const date = new Date()
@@ -182,6 +230,49 @@ export default function SubscriptionInfo({
     }
   }
 
+  const handleSwitch = async (interval: BillingInterval) => {
+    setSwitchError(null)
+    setSwitchLoading(true)
+    try {
+      const response = await fetch('/portal/api/switch-billing-interval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interval }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        await refreshSubscription()
+        setShowSwitchForm(false)
+      } else {
+        setSwitchError(data.error || 'failed to change billing plan')
+      }
+    } catch (err) {
+      setSwitchError('failed to change billing plan')
+    } finally {
+      setSwitchLoading(false)
+    }
+  }
+
+  const handleCancelSwitch = async () => {
+    setSwitchError(null)
+    setSwitchLoading(true)
+    try {
+      const response = await fetch('/portal/api/switch-billing-interval', {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+      if (response.ok) {
+        await refreshSubscription()
+      } else {
+        setSwitchError(data.error || 'failed to cancel billing plan change')
+      }
+    } catch (err) {
+      setSwitchError('failed to cancel billing plan change')
+    } finally {
+      setSwitchLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -234,9 +325,43 @@ export default function SubscriptionInfo({
     : null
   const isIndefinitePause = isPaused && !pausedUntilDate
 
+  const plan = subscription.plan
+  const pendingSwitch = plan?.pendingSwitch ?? null
+  const canSwitchTo = plan?.canSwitchTo ?? null
+  const tierConfig = plan?.tierId ? MEMBERSHIP_TIERS[plan.tierId] : null
+  const switchLabel =
+    canSwitchTo === 'quarterly' && tierConfig
+      ? `switch to quarterly billing (save ${quarterlySavingsPercent(tierConfig)}%)`
+      : canSwitchTo
+        ? `switch to ${INTERVAL_LABEL[canSwitchTo]} billing`
+        : null
+  const planLabel =
+    plan?.interval && plan.interval !== 'other'
+      ? ` · ${INTERVAL_LABEL[plan.interval]}`
+      : ''
+
   return (
     <>
       <h3>subscription</h3>
+
+      {pendingSwitch && (
+        <div className="alert warning">
+          <p>
+            <strong>
+              switching to {INTERVAL_LABEL[pendingSwitch.interval]} billing on{' '}
+              {longDate(pendingSwitch.effectiveDate)}.
+            </strong>{' '}
+            from then on you'll be billed {pendingSwitch.rate}. nothing changes
+            before that date.
+          </p>
+          <p style={{ marginTop: '10px' }}>
+            <button onClick={handleCancelSwitch} disabled={switchLoading}>
+              {switchLoading ? 'cancelling...' : 'cancel this change'}
+            </button>
+          </p>
+          {switchError && <p className="error">{switchError}</p>}
+        </div>
+      )}
 
       {isPaused && (
         <div className="alert warning">
@@ -255,7 +380,8 @@ export default function SubscriptionInfo({
       )}
 
       <p>
-        <strong>{subscription.tier}</strong> · {subscription.rate} · renews {formattedDate}
+        <strong>{subscription.tier}</strong>
+        {planLabel} · {subscription.rate} · renews {formattedDate}
       </p>
 
       <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
@@ -267,12 +393,62 @@ export default function SubscriptionInfo({
           {billingLoading ? 'loading...' : 'manage billing / change tier'}
         </button>
 
+        {switchLabel && canSwitchTo && (
+          <button
+            onClick={() => {
+              setSwitchError(null)
+              setShowSwitchForm(!showSwitchForm)
+            }}
+          >
+            {showSwitchForm ? 'cancel' : switchLabel}
+          </button>
+        )}
+
         {!isPaused && (
           <button onClick={() => setShowPauseForm(!showPauseForm)}>
             {showPauseForm ? 'cancel' : 'pause subscription'}
           </button>
         )}
       </div>
+
+      {plan?.switchNote && (
+        <p style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}>
+          {plan.switchNote}
+        </p>
+      )}
+
+      {showSwitchForm && canSwitchTo && plan && (
+        <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc' }}>
+          <h3 style={{ marginTop: 0 }}>
+            switch to {INTERVAL_LABEL[canSwitchTo]} billing
+          </h3>
+          <p>
+            starting {formattedDate}
+            {canSwitchTo === 'monthly' ? ' (the end of your current quarter)' : ''},
+            you'll be billed <strong>{plan.switchRate}</strong> instead of{' '}
+            {subscription.rate}.
+            {canSwitchTo === 'quarterly'
+              ? ' quarterly billing covers three months at a time and renews every three months.'
+              : ''}
+          </p>
+          <p style={{ fontSize: '0.9em', color: '#666' }}>
+            nothing changes before then, and you can cancel the switch from
+            this page any time before it takes effect.
+          </p>
+
+          {switchError && <p className="error">{switchError}</p>}
+
+          <button
+            onClick={() => handleSwitch(canSwitchTo)}
+            disabled={switchLoading}
+            className="primary"
+          >
+            {switchLoading
+              ? 'scheduling...'
+              : `confirm switch to ${INTERVAL_LABEL[canSwitchTo]}`}
+          </button>
+        </div>
+      )}
 
       {showPauseForm && (
         <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc' }}>

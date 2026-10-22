@@ -1,5 +1,6 @@
 import { getSession } from '@/app/lib/session'
 import { stripe } from '@/app/lib/stripe'
+import { describePlan } from '@/app/lib/membership-plan'
 
 export async function GET(request: Request) {
   try {
@@ -96,9 +97,8 @@ export async function GET(request: Request) {
     const currentPeriodEnd = (priceItem as any).current_period_end
     const renewalDate = new Date(currentPeriodEnd * 1000)
 
-    // Calculate the rate (convert from cents to dollars)
-    const amount = price.unit_amount ? price.unit_amount / 100 : 0
-    const interval = price.recurring?.interval || 'month'
+    // Tier/interval, whether the member can switch intervals, pending switch
+    const plan = await describePlan(subscription)
 
     // Check if subscription is paused
     let pausedUntil: string | null = null
@@ -111,11 +111,12 @@ export async function GET(request: Request) {
     return Response.json({
       subscription: {
         tier: product.name,
-        rate: `$${amount}/${interval}`,
+        rate: plan.rate,
         renewalDate: renewalDate.toISOString(),
         status: subscription.status,
         pausedUntil: pausedUntil,
         isPaused: !!subscription.pause_collection,
+        plan,
       },
     })
   } catch (error) {

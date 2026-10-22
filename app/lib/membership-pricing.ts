@@ -17,6 +17,9 @@ export interface MembershipTier {
   quarterlyMonthlyCents: number
   // Price with no commitment, billed monthly.
   monthlyCents: number
+  // The Stripe Product every Price for this tier lives under. The webhook and
+  // the active-members page derive tier from product, so Prices must stay here.
+  stripeProductId: string
   stripeLookupKeys: Record<BillingInterval, string>
 }
 
@@ -29,6 +32,7 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
     name: 'Core',
     quarterlyMonthlyCents: 45000,
     monthlyCents: 59500,
+    stripeProductId: 'prod_RpkYg9EMJoi5oi',
     stripeLookupKeys: {
       quarterly: 'membership_core_quarterly',
       monthly: 'membership_core_monthly',
@@ -39,6 +43,7 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
     name: 'Resident',
     quarterlyMonthlyCents: 85000,
     monthlyCents: 99500,
+    stripeProductId: 'prod_RpkufjD9E3esG5',
     stripeLookupKeys: {
       quarterly: 'membership_resident_quarterly',
       monthly: 'membership_resident_monthly',
@@ -57,6 +62,22 @@ export function isMembershipTierId(value: unknown): value is MembershipTierId {
 
 export function isBillingInterval(value: unknown): value is BillingInterval {
   return value === 'quarterly' || value === 'monthly'
+}
+
+/** The tier whose Stripe Product this is, or null for Friend/day-pass/etc. */
+export function tierFromStripeProductId(
+  productId: string | null | undefined
+): MembershipTier | null {
+  if (!productId) return null
+  return (
+    Object.values(MEMBERSHIP_TIERS).find((t) => t.stripeProductId === productId) ??
+    null
+  )
+}
+
+/** The other billing interval. */
+export function otherInterval(interval: BillingInterval): BillingInterval {
+  return interval === 'quarterly' ? 'monthly' : 'quarterly'
 }
 
 /** Monthly-equivalent price for a tier at a given billing interval. */
