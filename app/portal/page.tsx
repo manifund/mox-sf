@@ -1,5 +1,6 @@
 import { getSession, isCurrentlyStaff } from '@/app/lib/session'
 import { isActiveMember, canIssueGuestDayPass } from '@/app/lib/membership'
+import { weeklyGuestPassAllowance } from '@/app/lib/guest-passes'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
@@ -8,6 +9,7 @@ import VerkadaPin from './VerkadaPin'
 import AdminViewAsSelector from './AdminViewAsSelector'
 import MembershipStatus from './MembershipStatus'
 import MyDayPasses from './MyDayPasses'
+import GuestPasses from './GuestPasses'
 import SubscriptionInfo from './SubscriptionInfo'
 import MyRequests from './MyRequests'
 import { getUserProfile } from './profile'
@@ -45,6 +47,9 @@ export default async function DashboardPage() {
   const canDayPass = profile
     ? canIssueGuestDayPass({ status: profile.status, tier: profile.tier })
     : false
+  const guestAllowance = profile
+    ? weeklyGuestPassAllowance({ status: profile.status, tier: profile.tier })
+    : 0
 
   if (!profile) {
     return (
@@ -160,15 +165,19 @@ export default async function DashboardPage() {
         </>
       )}
 
-      {/* Day Pass — paying members only */}
-      {canDayPass && (
+      {/* Guest passes — free weekly allotment by tier, paid fallback */}
+      {(guestAllowance !== 0 || canDayPass) && (
         <>
           <hr />
           <section>
-            <h2>guest day passes</h2>
-            <p>
-              <Link href="/portal/buy-day-pass">buy a day pass for a guest</Link>
-            </p>
+            <h2>guest passes</h2>
+            {guestAllowance !== 0 ? (
+              <GuestPasses key={effectiveUserId} canBuyPass={canDayPass} />
+            ) : (
+              <p>
+                <Link href="/portal/buy-day-pass">buy a day pass for a guest</Link>
+              </p>
+            )}
           </section>
         </>
       )}

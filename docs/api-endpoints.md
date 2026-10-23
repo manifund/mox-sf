@@ -39,6 +39,21 @@ Weekly cron job to rotate Verkada door codes.
   ```
 - **Details:** Updates Verkada weekly access code, renames Discord channel, posts notification
 
+### POST `/guest/api/validate`
+What the guest unlock page should show for a token.
+
+- **Auth:** None (12-char token; throttled per IP)
+- **Body:** `{ "token": "k7Qp2mX9bT4w" }`
+- **Response:** `{ "status": "active" | "upcoming" | "expired" | "revoked" | "not-found", "guestName", "hostFirstName", "validDate" }`
+
+### POST `/guest/api/unlock`
+Open the front door for a valid guest pass.
+
+- **Auth:** None (token; throttled per token)
+- **Body:** `{ "token": "k7Qp2mX9bT4w" }`
+- **Response:** `{ "success": true }` or `{ "success": false, "reason": "expired" | "not-yet" | "revoked" | "limit" | "throttled" | "not-found" | "verkada-error" }`
+- **Details:** Checks the pass window (8am–11pm Pacific on Valid Date), the unlock cap, and that the host still has an allowance; then calls Verkada `admin_unlock`, bumps Unlock Count, stamps First Used, and posts to Discord #notifications.
+
 ### POST `/api/membership-checkout`
 Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
 
@@ -160,6 +175,27 @@ Create Stripe billing portal session.
 - **Auth:** User
 - **Body:** `{ "stripeCustomerId": "cus_xxx" }`
 - **Response:** `{ "url": "https://billing.stripe.com/..." }`
+
+#### GET `/portal/api/guest-passes`
+Weekly guest-pass allowance and the member's passes for this week onward.
+
+- **Auth:** User
+- **Response:** `{ "allowance": 4 | null, "remaining": 2 | null, "weekStart", "weekEnd", "today", "maxDaysAhead": 7, "passes": [{ id, token, guestName, validDate, state, unlockCount, firstUsedAt, link }] }`
+- **Details:** Allowance comes from `weeklyGuestPassAllowance()` (`app/lib/guest-passes.ts`); `null` means unlimited (Staff). See `docs/workflows/member-guest-passes.md`.
+
+#### POST `/portal/api/guest-passes`
+Issue a free guest pass (an unlock link) for a named guest.
+
+- **Auth:** User
+- **Body:** `{ "guestName": "Priya Natarajan", "guestEmail": "priya@example.com", "validDate"?: "2026-10-14" }` (date defaults to today, Pacific; up to 7 days out)
+- **Response:** `{ "pass": { ...summary, "link": "https://moxsf.com/guest/<token>" }, "remaining": 1 }`
+- **Errors:** 400 missing name, invalid email, host's own email, or bad date; 403 tier has no allowance; 409 `{ "code": "quota" }` when the week's allowance is used.
+
+#### POST `/portal/api/guest-passes/revoke`
+Revoke a guest pass. Host or staff only.
+
+- **Auth:** User (own pass) or Staff
+- **Body:** `{ "passId": "rec123" }`
 
 #### POST `/portal/api/create-day-pass-checkout`
 Create day pass checkout.

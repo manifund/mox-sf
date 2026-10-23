@@ -128,10 +128,21 @@ Guest day pass and week pass management.
 | `Status` | singleSelect | Pass status | ✅ Activation flow |
 | `Date Purchased` | createdTime | Purchase timestamp | |
 | `Date Activated` | date | When pass was activated | ✅ Activation |
+| `Issued By` | multipleRecordLinks | Member who bought or issued the pass | ✅ Portal, guest passes |
+| `Issued By Email` | lookup | Issuer's email (from Issued By); lets the app list a host's passes | ✅ Guest passes |
+| `Guest Name` | singleLineText | Guest Pass only: who the pass is for. No People record is created for the guest. | ✅ Guest passes |
+| `Guest Email` | email | Guest Pass only: the guest's email, so Mox can reach them if needed | ✅ Guest passes |
+| `Token` | singleLineText | Guest Pass only: 12-char token in the `/guest/<token>` unlock link | ✅ Guest passes |
+| `Valid Date` | date | Guest Pass only: the Pacific day the pass works (8am–11pm); counts against that week's allowance | ✅ Guest passes |
+| `Unlock Count` | number | Guest Pass only: door unlocks via the link (capped at 10) | ✅ Guest passes |
+| `First Used` | dateTime | Guest Pass only: first unlock | ✅ Guest passes |
 
-**Pass Type options:** Day Pass, Happy Hour Pass, Week Pass
+**Pass Type options:** Day Pass, Happy Hour Pass, Week Pass, Guest Pass
 
-**Status options:** Unused, Activated, Expired
+**Status options:** Unused, Activated, Expired, Revoked
+
+The app writes `Guest Pass` and `Revoked` with `typecast: true`, so Airtable
+adds those select options automatically on first use.
 
 ---
 

@@ -13,6 +13,7 @@ import {
   type BillingInterval,
   type MembershipTierId,
 } from '@/app/lib/membership-pricing'
+import { WEEKLY_GUEST_PASS_ALLOWANCE } from '@/app/lib/guest-passes'
 
 // Columns of the comparison table: the two self-serve tiers plus offices,
 // which are quoted by hand.
@@ -57,7 +58,11 @@ const FEATURE_ROWS: FeatureRow[] = [
   },
   {
     label: 'Guest passes',
-    cells: { core: '1 / day', resident: '2 / day', office: '2 / day / pp' },
+    cells: {
+      core: `${WEEKLY_GUEST_PASS_ALLOWANCE.Core} / week`,
+      resident: `${WEEKLY_GUEST_PASS_ALLOWANCE.Resident} / week`,
+      office: `${WEEKLY_GUEST_PASS_ALLOWANCE['Private Office']} / week / pp`,
+    },
   },
   {
     label: 'Onsite storage',
