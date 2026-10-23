@@ -1,4 +1,15 @@
 import { Metadata } from 'next'
+import {
+  MEMBERSHIP_TIERS,
+  OFFICE_CONTACT_EMAIL,
+  OFFICE_DEPOSIT_MONTHS,
+  OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT,
+  OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT,
+  OFFICE_SIZES,
+  QUARTER_MONTHS,
+  formatDollars,
+  officeMissionAlignedCents,
+} from '@/app/lib/membership-pricing'
 
 export const metadata: Metadata = {
   title: 'Office Space | Mox',
@@ -25,7 +36,105 @@ function Link({
   )
 }
 
+function OfficePricingGrid() {
+  const smallest = OFFICE_SIZES[0]
+  return (
+    <div className="bg-background-surface dark:bg-background-subtle-dark p-4 sm:p-5 mb-4">
+      <p className="text-sm font-semibold text-text-tertiary dark:text-text-tertiary-dark mb-1">
+        Pricing
+      </p>
+      <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
+        Starting at {formatDollars(smallest.quarterlyMonthlyCents)}/month for a{' '}
+        {smallest.people}-person office
+      </p>
+      <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark mb-4">
+        {formatDollars(
+          officeMissionAlignedCents(smallest.quarterlyMonthlyCents)
+        )}
+        /month for mission-aligned teams
+      </p>
+
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="text-xs uppercase tracking-wider text-text-tertiary dark:text-text-tertiary-dark border-b border-brown-200 dark:border-gray-500">
+            <th scope="col" className="py-2 pr-3 text-left font-semibold">
+              Office size
+            </th>
+            <th scope="col" className="py-2 px-3 text-right font-semibold">
+              Standard
+            </th>
+            <th
+              scope="col"
+              className="py-2 pl-3 text-right font-semibold text-amber-900 dark:text-amber-400"
+            >
+              Mission-aligned
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-brown-200 dark:divide-gray-500">
+          {OFFICE_SIZES.map((size) => (
+            <tr key={size.people}>
+              <th
+                scope="row"
+                className="py-2.5 pr-3 text-left font-medium whitespace-nowrap text-text-primary dark:text-text-primary-dark"
+              >
+                {size.people} people
+              </th>
+              <td className="py-2.5 px-3 text-right tabular-nums text-text-primary dark:text-text-primary-dark">
+                {formatDollars(size.quarterlyMonthlyCents)}
+                <span className="text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+              <td className="py-2.5 pl-3 text-right tabular-nums font-semibold text-amber-900 dark:text-amber-400">
+                {formatDollars(
+                  officeMissionAlignedCents(size.quarterlyMonthlyCents)
+                )}
+                <span className="font-normal text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <ul className="mt-4 space-y-1.5 text-sm text-text-tertiary dark:text-text-tertiary-dark">
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Quarterly contracts, billed {QUARTER_MONTHS} months up front plus a{' '}
+            {OFFICE_DEPOSIT_MONTHS}-month deposit.
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Month-to-month available at +{OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}
+            %.
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Teams doing mission-aligned work get{' '}
+            {OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT}% off.{' '}
+            <Link
+              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Private office at Mox`}
+            >
+              Email {OFFICE_CONTACT_EMAIL}
+            </Link>{' '}
+            to ask whether your team qualifies.
+          </span>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
 export default function OfficesPage() {
+  const resident = MEMBERSHIP_TIERS.resident
+
   return (
     <div className="min-h-screen bg-background-page dark:bg-background-page-dark text-text-primary dark:text-text-primary-dark">
       {/* Hero Section */}
@@ -67,7 +176,7 @@ export default function OfficesPage() {
                 Private Offices
               </h2>
               <p className="text-lg text-text-secondary dark:text-text-secondary-dark mb-2 font-semibold">
-                For teams of 2-6 who need dedicated, secure workspace.
+                For teams of 4-8 who need dedicated, secure workspace.
               </p>
               <p className="text-base text-text-tertiary dark:text-text-tertiary-dark mb-6 leading-relaxed">
                 Private offices give your team a focused environment while
@@ -127,17 +236,7 @@ export default function OfficesPage() {
                 </li>
               </ul>
 
-              <div className="bg-background-surface dark:bg-background-subtle-dark p-4 mb-4">
-                <p className="text-sm font-semibold text-text-tertiary dark:text-text-tertiary-dark mb-1">
-                  Pricing
-                </p>
-                <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                  Starting at $3,200/month for 4-person capacity
-                </p>
-                <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark">
-                  Additional team members: $800/month per person
-                </p>
-              </div>
+              <OfficePricingGrid />
 
               <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark italic">
                 <strong>Good fit for:</strong> Early-stage startups, research
@@ -218,7 +317,19 @@ export default function OfficesPage() {
                   Pricing
                 </p>
                 <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                  $800/month per desk
+                  {formatDollars(resident.quarterlyMonthlyCents)}/month per desk
+                </p>
+                <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark">
+                  On a quarterly plan; {formatDollars(resident.monthlyCents)}
+                  /month month-to-month. That&apos;s our {resident.name}{' '}
+                  membership, which you can{' '}
+                  <a
+                    href="/join"
+                    className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline decoration-dotted underline-offset-2"
+                  >
+                    join directly
+                  </a>
+                  .
                 </p>
               </div>
 
@@ -380,9 +491,12 @@ export default function OfficesPage() {
                 What's the commitment period?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Standard agreements are month-to-month with 30 days notice. For
-                teams interested in longer-term stability, we can discuss
-                multi-month or annual commitments with locked pricing.
+                Office contracts run quarterly, billed {QUARTER_MONTHS} months
+                up front plus a {OFFICE_DEPOSIT_MONTHS}-month deposit. If you
+                need more flexibility, month-to-month is available at +
+                {OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%. For teams wanting
+                longer-term stability, we can discuss annual commitments with
+                locked pricing.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
@@ -400,8 +514,10 @@ export default function OfficesPage() {
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
                 Reach out to Robin Goins at{' '}
-                <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link> to ask
-                a question or set up a tour.
+                <Link href={`mailto:${OFFICE_CONTACT_EMAIL}`}>
+                  {OFFICE_CONTACT_EMAIL}
+                </Link>{' '}
+                to ask a question or set up a tour.
               </p>
             </div>
           </div>
@@ -414,13 +530,13 @@ export default function OfficesPage() {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:robin@moxsf.com?subject=Office Space Inquiry"
+              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Office Space Inquiry`}
               className="px-8 py-4 bg-amber-900 dark:bg-amber-900 text-white font-semibold hover:bg-amber-800 dark:hover:bg-amber-800 transition-colors text-center"
             >
               Inquire about office space
             </a>
             <a
-              href="mailto:robin@moxsf.com?subject=Office Tour Request"
+              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Office Tour Request`}
               className="px-8 py-4 bg-background-surface dark:bg-background-subtle-dark border border-amber-900 dark:border-amber-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-background-accent dark:hover:bg-background-subtle-dark transition-colors text-center"
             >
               Schedule a tour
