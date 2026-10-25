@@ -81,6 +81,8 @@ export type SeasonQueryOptions = {
    * Summer '26 uses its own `MSS 26 Status`; defaults to the general `Status`.
    */
   statusField?: string
+  /** Which `Type` values to show. Defaults to Public only. */
+  types?: Array<'Public' | 'Members' | 'Private'>
 }
 
 function firstString(value: unknown): string | undefined {
@@ -171,8 +173,10 @@ function mapRecord(record: AirtableRecord<SeasonFields>): SeasonEvent | null {
 export async function getSeasonEvents({
   tag,
   statusField = 'Status',
+  types = ['Public'],
 }: SeasonQueryOptions): Promise<SeasonQueryResult> {
-  const filterByFormula = `AND(FIND(${airtableStringLiteral(tag)}, ARRAYJOIN({Tags}, ",")), {Type} = "Public", ${airtableFieldRef(statusField)} = "Confirmed")`
+  const typeFilter = `OR(${types.map((type) => `{Type} = ${airtableStringLiteral(type)}`).join(', ')})`
+  const filterByFormula = `AND(FIND(${airtableStringLiteral(tag)}, ARRAYJOIN({Tags}, ",")), ${typeFilter}, ${airtableFieldRef(statusField)} = "Confirmed")`
   const records = await getRecords<SeasonFields>(Tables.Events, {
     filterByFormula,
     sort: [{ field: 'Start Date', direction: 'asc' }],
