@@ -20,6 +20,7 @@ export default function PortalNav() {
     pathname?.startsWith('/portal') ||
     pathname?.startsWith('/lobby') ||
     pathname?.startsWith('/summerseason') ||
+    pathname?.startsWith('/gef') ||
     pathname?.startsWith('/tasks') // task board has its own header
 
   useEffect(() => {
