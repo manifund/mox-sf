@@ -48,6 +48,31 @@ flowchart TB
     D3 -->|API failure| D4
 ```
 
+## Pricing and Checkout
+
+Membership prices live in `app/lib/membership-pricing.ts` and are rendered by
+`app/components/MembershipPricingTable.tsx` on `/join` (invited visitors) and
+`/portal/renew` (lapsed members). Each tier has a quarterly rate (billed every
+3 months up front) and a month-to-month rate; the table toggles between them.
+
+Clicking a tier calls `POST /api/membership-checkout`, which finds the Stripe
+Price by `lookup_key` and opens Stripe Checkout with a 7-day trial. The lookup
+keys must exist on active Prices under the existing membership Products so the
+webhook's product → tier mapping below keeps working:
+
+| Lookup key | Product | Amount |
+|------------|---------|--------|
+| `membership_core_quarterly` | prod_RpkYg9EMJoi5oi (Core) | $1,350 every 3 months |
+| `membership_core_monthly` | prod_RpkYg9EMJoi5oi (Core) | $595 monthly |
+| `membership_resident_quarterly` | prod_RpkufjD9E3esG5 (Resident) | $2,550 every 3 months |
+| `membership_resident_monthly` | prod_RpkufjD9E3esG5 (Resident) | $995 monthly |
+
+To change a price: create the new Price in Stripe, move the lookup key to it,
+and update the amount in `membership-pricing.ts` so the table matches. The
+checkout route logs a warning if the two ever disagree.
+
+Private offices are quoted by hand (the Office column links to email).
+
 ## Tier to Forkable Club Mapping
 
 ### Via Stripe (subscription purchase)

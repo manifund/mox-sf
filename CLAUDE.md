@@ -6,6 +6,7 @@ This project uses Bun as its package manager. Use `bun install`
 - **`docs/api-endpoints.md`** - API route documentation
 - **`docs/discord-integration.md`** - Discord bot setup and integration
 - **`docs/deployment.md`** - Deployment process
+- **`support-bot/README.md`** - The Discord building-support bot (#report-an-issue). A separate Node service with its own npm tooling, not part of the Next.js app
 - **`docs/workflows/`** - Detailed workflow docs
 
 Please help keep these up to date.
@@ -41,11 +42,15 @@ At any time, if you are reaching an mcp-tool-use error with chrome devtools, you
 
 
 ## Git Workflow
-I am a bit forgetful, and sometimes don't keep branches organized well myself, or may ask you to do things unrelated to the current branch. Thus, it is important that every time you start a new feature or task, you:
+When you start a new feature or task:
 
 1. Check the current branch with `git branch --show-current`
-2. If on `main` or `master`, create a new feature branch before making changes
+2. If on `main` or `master`, use judgment about whether to branch:
+   - **Small or routine changes** (copy edits, find-and-replace, config tweaks, single-file fixes) — just commit on `main`. A branch is overhead here.
+   - **Big or risky changes** (large refactors, new features, schema/migration work, anything worth reviewing as a PR) — create a feature branch first. If it's a close call, say so and ask rather than branching silently.
 3. If on a branch that has a nondescript name, or doesn't seem related to the current task (e.g., working on "discord-bot" branch but asked to build a payments feature), ask the user to confirm whether to:
    - Continue on the current branch
    - Create a new branch from main
    - Switch to an existing branch
+
+Committing is not the same as pushing — only push when asked.

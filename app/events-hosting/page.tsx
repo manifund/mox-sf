@@ -495,7 +495,7 @@ export default function EventHostingPage() {
             something exceptional.
           </p>
           <a
-            href="mailto:rachel@moxsf.com?subject=Event%20Inquiry"
+            href="mailto:robin@moxsf.com?subject=Event%20Inquiry"
             className="inline-block px-8 py-4 bg-brand dark:bg-brand text-white font-semibold text-lg hover:bg-brand-dark dark:hover:bg-brand-dark transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Inquire About Hosting
@@ -845,10 +845,10 @@ export default function EventHostingPage() {
               <p className="text-text-secondary dark:text-text-secondary-dark">
                 <strong>Email:</strong>{' '}
                 <a
-                  href="mailto:rachel@moxsf.com"
+                  href="mailto:robin@moxsf.com"
                   className="text-brand dark:text-brand-dark-mode hover:text-brand-dark dark:hover:text-amber-600 underline"
                 >
-                  rachel@moxsf.com
+                  robin@moxsf.com
                 </a>
               </p>
               <p className="text-text-secondary dark:text-text-secondary-dark">
@@ -858,7 +858,7 @@ export default function EventHostingPage() {
             </div>
 
             <a
-              href="mailto:rachel@moxsf.com?subject=Event%20Inquiry&body=Hi!%20I'm%20interested%20in%20hosting%20an%20event%20at%20Mox.%0A%0AEvent%20Date:%20%0AExpected%20Attendance:%20%0AEvent%20Type:%20%0AAdditional%20Details:%20"
+              href="mailto:robin@moxsf.com?subject=Event%20Inquiry&body=Hi!%20I'm%20interested%20in%20hosting%20an%20event%20at%20Mox.%0A%0AEvent%20Date:%20%0AExpected%20Attendance:%20%0AEvent%20Type:%20%0AAdditional%20Details:%20"
               className="inline-block w-full px-8 py-4 bg-brand dark:bg-brand text-white font-semibold hover:bg-brand-dark dark:hover:bg-brand-dark transition-all duration-200"
             >
               Send Event Inquiry

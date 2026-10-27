@@ -41,11 +41,19 @@ interface PersonFields {
   Photo?: { url: string; filename: string }[]
   Tier?: string
   Status?: string
+  Program?: string[]
   'Work thing'?: string | null
   'Work thing URL'?: string | null
   'Fun thing'?: string | null
   'Fun thing URL'?: string | null
+  'Job status'?: string | null
+  Hiring?: boolean
+  LinkedIn?: string | null
+  'Career notes'?: string | null
+  'Event digest'?: boolean
 }
+
+const JOB_STATUSES = ['Looking now', 'Open to offers', 'Not looking']
 
 export async function POST(request: Request) {
   try {
@@ -56,7 +64,9 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData()
-    const userId = formData.get('userId') as string
+    // Ignore any client-supplied userId: only the session's own record (or
+    // the record a staff member is viewing-as) may be edited.
+    const userId = session.viewingAsUserId || session.userId
     const name = formData.get('name') as string
     const website = formData.get('website') as string
     const discordUsername = formData.get('discordUsername') as string | null
@@ -66,6 +76,11 @@ export async function POST(request: Request) {
     const workThingUrl = formData.get('workThingUrl') as string | null
     const funThing = formData.get('funThing') as string | null
     const funThingUrl = formData.get('funThingUrl') as string | null
+    const jobStatus = formData.get('jobStatus') as string | null
+    const hiring = formData.get('hiring')
+    const linkedin = formData.get('linkedin') as string | null
+    const careerNotes = formData.get('careerNotes') as string | null
+    const eventDigest = formData.get('eventDigest')
 
     // Validate name
     if (!name || name.trim().length === 0) {
@@ -108,6 +123,23 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validate career fields (staff-only data, but still user-submitted)
+    const trimmedJobStatus = jobStatus?.trim() || ''
+    if (trimmedJobStatus && !JOB_STATUSES.includes(trimmedJobStatus)) {
+      return Response.json({ error: 'Invalid job status' }, { status: 400 })
+    }
+    const trimmedLinkedin = linkedin?.trim() || ''
+    if (trimmedLinkedin && !isValidURL(trimmedLinkedin)) {
+      return Response.json({ error: 'Invalid LinkedIn URL' }, { status: 400 })
+    }
+    const trimmedCareerNotes = careerNotes?.trim() || ''
+    if (trimmedCareerNotes.length > 1000) {
+      return Response.json(
+        { error: 'Career notes are too long (max 1000 characters)' },
+        { status: 400 }
+      )
+    }
+
     // Prepare fields to update
     const fields: Partial<PersonFields> = {
       Name: name.trim(),
@@ -118,6 +150,13 @@ export async function POST(request: Request) {
       'Work thing URL': trimmedWorkThingUrl || null,
       'Fun thing': funThing?.trim() || null,
       'Fun thing URL': trimmedFunThingUrl || null,
+      // Career fields are STAFF-ONLY: stored in Airtable, surfaced only on
+      // /portal/admin/careers — never in the directory.
+      'Job status': trimmedJobStatus || null,
+      Hiring: hiring === 'true',
+      LinkedIn: trimmedLinkedin || null,
+      'Career notes': trimmedCareerNotes || null,
+      'Event digest': eventDigest === 'true',
     }
 
     // Update Airtable record (without photo - that's handled separately)
@@ -184,7 +223,9 @@ export async function POST(request: Request) {
 
         // Update Airtable with the ImgBB URL
         await updateRecord<PersonFields>(Tables.People, userId, {
-          Photo: [{ url: imageUrl, filename: photoFile.name || 'profile-photo.jpg' }],
+          Photo: [
+            { url: imageUrl, filename: photoFile.name || 'profile-photo.jpg' },
+          ],
         })
       } catch (photoError) {
         console.error('Error uploading photo:', photoError)
@@ -200,7 +241,12 @@ export async function POST(request: Request) {
     if (trimmedDiscord && isDiscordConfigured()) {
       const tier = data.fields.Tier || null
       const status = data.fields.Status || null
-      discordSyncResult = await syncDiscordRole(trimmedDiscord, tier, status)
+      discordSyncResult = await syncDiscordRole(
+        trimmedDiscord,
+        tier,
+        status,
+        data.fields.Program || []
+      )
     }
 
     return Response.json({

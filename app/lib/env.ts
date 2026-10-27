@@ -9,11 +9,16 @@
 // Cache for lazy-loaded values
 const cache = new Map<string, string>()
 
-// Get required env var (throws if missing), with lazy caching
+// Get required env var (throws if missing), with lazy caching.
+// With BUILD_WITHOUT_ENV=1 (set only in `next build` commands that run without
+// the app's env vars, e.g. deploys where secrets are runtime-only), a missing
+// var yields an inert placeholder instead of failing the build's page-data
+// collection. Runtime never sets the flag, so real requests still throw.
 function required(name: string): string {
   if (cache.has(name)) return cache.get(name)!
   const value = process.env[name]
   if (!value) {
+    if (process.env.BUILD_WITHOUT_ENV === '1') return `unset-${name}`
     throw new Error(`Missing required environment variable: ${name}`)
   }
   cache.set(name, value)
@@ -83,6 +88,26 @@ export const env = {
 
   // EAG Guest Code
   get EAG_GUEST_CODE() { return required('EAG_GUEST_CODE') },
+
+  // Task board — the Tasks/Claims tables live in their own base ("Mox ᴛᴀꜱᴋꜱ"),
+  // not the main Mox base. Same AIRTABLE_API_KEY.
+  get TASKS_AIRTABLE_BASE_ID() { return optional('TASKS_AIRTABLE_BASE_ID', 'appkShwDFk3Z3Yruc') },
+  // Optional dedicated token for the task-board base, when the main
+  // AIRTABLE_API_KEY has no access to it. Falls back to AIRTABLE_API_KEY.
+  get TASKS_AIRTABLE_API_KEY() { return optional('TASKS_AIRTABLE_API_KEY') },
+  // Task board — public Google sign-in for claimers (scoped to /tasks only).
+  get TASKS_GOOGLE_CLIENT_ID() { return optional('TASKS_GOOGLE_CLIENT_ID') },
+  get TASKS_GOOGLE_CLIENT_SECRET() { return optional('TASKS_GOOGLE_CLIENT_SECRET') },
+  // Same-day turnaround clock (hours); optional overrides.
+  get TASKS_NUDGE_HOURS() { return optional('TASKS_NUDGE_HOURS', '8') },
+  get TASKS_RELEASE_HOURS() { return optional('TASKS_RELEASE_HOURS', '24') },
+  // Comma-separated fallback organizer emails (staff are recognized via session).
+  get TASKS_ORGANIZER_EMAILS() { return optional('TASKS_ORGANIZER_EMAILS') },
+  // Public base URL for the board (used in email/Discord links).
+  get TASKS_BASE_URL() { return optional('TASKS_BASE_URL', 'https://tasks.moxsf.com') },
+
+  // Google studio connection: sensitive Production-only Vercel configuration.
+  get STUDIO_CALENDAR_CONNECTION() { return optional('STUDIO_CALENDAR_CONNECTION') },
 
   // Shared/public
   NODE_ENV,

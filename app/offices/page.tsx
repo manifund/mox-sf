@@ -399,13 +399,9 @@ export default function OfficesPage() {
                 Who should I talk to?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Reach out to Rachel Shu at{' '}
-                <Link href="mailto:rachel@moxsf.com">rachel@moxsf.com</Link> or
-                schedule a call at{' '}
-                <Link href="https://calendly.com/rachelshu/mox-30m">
-                  calendly.com/rachelshu/mox-30m
-                </Link>
-                .
+                Reach out to Robin Goins at{' '}
+                <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link> to ask
+                a question or set up a tour.
               </p>
             </div>
           </div>
@@ -418,15 +414,13 @@ export default function OfficesPage() {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:rachel@moxsf.com?subject=Office Space Inquiry"
+              href="mailto:robin@moxsf.com?subject=Office Space Inquiry"
               className="px-8 py-4 bg-amber-900 dark:bg-amber-900 text-white font-semibold hover:bg-amber-800 dark:hover:bg-amber-800 transition-colors text-center"
             >
               Inquire about office space
             </a>
             <a
-              href="https://calendly.com/rachelshu/mox-30m"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:robin@moxsf.com?subject=Office Tour Request"
               className="px-8 py-4 bg-background-surface dark:bg-background-subtle-dark border border-amber-900 dark:border-amber-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-background-accent dark:hover:bg-background-subtle-dark transition-colors text-center"
             >
               Schedule a tour

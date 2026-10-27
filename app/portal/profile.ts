@@ -15,6 +15,11 @@ interface ProfileFields {
   'Work thing URL'?: string
   'Fun thing'?: string
   'Fun thing URL'?: string
+  'Job status'?: string
+  Hiring?: boolean
+  LinkedIn?: string
+  'Career notes'?: string
+  'Event digest'?: boolean
 }
 
 export interface UserProfile {
@@ -32,6 +37,11 @@ export interface UserProfile {
   workThingUrl: string | null
   funThing: string | null
   funThingUrl: string | null
+  jobStatus: string | null
+  hiring: boolean
+  linkedin: string | null
+  careerNotes: string | null
+  eventDigest: boolean
 }
 
 export async function getUserProfile(
@@ -56,5 +66,10 @@ export async function getUserProfile(
     workThingUrl: fields['Work thing URL'] || null,
     funThing: fields['Fun thing'] || null,
     funThingUrl: fields['Fun thing URL'] || null,
+    jobStatus: fields['Job status'] || null,
+    hiring: fields.Hiring === true,
+    linkedin: fields.LinkedIn || null,
+    careerNotes: fields['Career notes'] || null,
+    eventDigest: fields['Event digest'] === true,
   }
 }

@@ -1,7 +1,9 @@
-import { isValidEmail } from '@/app/lib/airtable-helpers'
+import { escapeAirtableString, isValidEmail } from '@/app/lib/airtable-helpers'
+import { createRecord, findRecord, Tables } from '@/app/lib/airtable'
 import { sendEmail } from '@/app/lib/email'
 
-const RECIPIENT = 'carolina@moxsf.com'
+// Both people responsible for GEF admissions receive every website interest.
+const RECIPIENTS = ['carolina@moxsf.com', 'robin@moxsf.com']
 
 // Fields collected by the GEF interest form, in display order.
 const FIELDS: { key: string; label: string }[] = [
@@ -64,6 +66,41 @@ export async function POST(request: Request) {
     )
   }
 
+  // A submitted interest form is the pipeline entry point. Avoid creating a
+  // second person if the browser retries the same submission.
+  try {
+    const existing = await findRecord(
+      Tables.GefPipeline,
+      `LOWER({Email}) = LOWER('${escapeAirtableString(values.email)}')`,
+      { fields: ['Email'] }
+    )
+
+    if (!existing) {
+      await createRecord(
+        Tables.GefPipeline,
+        {
+          Name: values.name,
+          Email: values.email,
+          Country: values.country,
+          Focus: values.focus,
+          Background: values.background,
+          Proud: values.proud,
+          Intentions: values.intentions,
+          Stage: 'Interest received',
+          'First contact': new Date().toISOString().slice(0, 10),
+          Notes: 'Interest submitted via moxsf.com/gef.',
+        },
+        { typecast: true }
+      )
+    }
+  } catch (error) {
+    console.error('[GEF] Error saving website interest to the GEF pipeline:', error)
+    return Response.json(
+      { error: 'Something went wrong saving your interest. Please try again.' },
+      { status: 502 }
+    )
+  }
+
   const text = FIELDS.map(({ key, label }) => `${label}:\n${values[key]}`).join(
     '\n\n'
   )
@@ -84,7 +121,7 @@ export async function POST(request: Request) {
   let sent = false
   try {
     sent = await sendEmail({
-      to: RECIPIENT,
+      to: RECIPIENTS,
       from: 'Mox GEF <portal@account.moxsf.com>',
       replyTo: values.email,
       subject: `GEF interest: ${values.name}`,

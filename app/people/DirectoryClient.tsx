@@ -180,6 +180,30 @@ function CollapsedList({ people }: { people: Person[] }) {
   return (
     <div className="collapsed-list">
       {people.map((person) => {
+        // Source from the large thumbnail: Airtable's "small" is only 36px
+        // tall, which next/image downscales into a visibly soft avatar on
+        // retina. Names without a photo just render on their own, no
+        // placeholder.
+        const thumbs = person.photo?.[0]?.thumbnails
+        const photoUrl =
+          thumbs?.large?.url ?? thumbs?.full?.url ?? thumbs?.small?.url ?? null
+
+        const content = (
+          <>
+            {photoUrl && (
+              <Image
+                src={photoUrl}
+                alt=""
+                width={56}
+                height={56}
+                sizes="28px"
+                className="collapsed-photo"
+              />
+            )}
+            {person.name}
+          </>
+        )
+
         if (person.website) {
           return (
             <Link
@@ -188,13 +212,13 @@ function CollapsedList({ people }: { people: Person[] }) {
               target="_blank"
               className="collapsed-name"
             >
-              {person.name}
+              {content}
             </Link>
           )
         }
         return (
           <span key={person.id} className="collapsed-name">
-            {person.name}
+            {content}
           </span>
         )
       })}

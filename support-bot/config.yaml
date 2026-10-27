@@ -1,0 +1,218 @@
+# Mox Building Support Bot — config
+# Spec: mox-support-bot-spec.md v2.5
+# Last updated: 2026-09-22
+#
+# The bot REFUSES TO START while any value below is still <<PLACEHOLDER>>.
+#
+# Delivery model: ordinary tickets (P1/P2) never leave #report-an-issue —
+# the card is in the ticket thread and the owner is @-mentioned on it.
+# Only P0 breaks out to a team channel. Claudio and the contractors are
+# channel-based at every priority. DMs are for nudges only.
+
+guild_id: "1339404214081687675"
+
+channels:
+  report_an_issue:          "1555120759435829328"   # #report-an-issue (recreated 2026-10-01): the pinned button + every ticket thread
+  team_jake:                "1524930396280586352"   # P0 breakout for facilities + all safety
+  team_carolina:            "1524930080046845973"   # P0 breakout for door codes ONLY
+  team_claudio:             "1397625934445809745"   # all priorities
+  team_robin:               "1524930449820880936"   # configured, currently unrouted — see O2
+  mox_contractor_requests:  "1349140849363124296"
+  digest:                   "1552037616843624478"   # #issues-digest-staff — weekly digest + standing queue
+
+roles:
+  mox_staff: "1342558129606496277"
+
+users:
+  jake:     "247571828309098497"
+  # whit:   "447179794132631562"     # left Mox 2026-09-28 — facilities is Jake alone
+  claudio:  "1021582705068089415"
+  carolina: "508408654698119168"
+  robin:    "353959786045374474"     # no category routes to him today — see O2
+  jen:      "698382049136082996"     # ops alert DMs
+
+# ──────────────────────────────────────────────────────────────
+# Owners — `delivery` decides where the notification lands,
+# independently of who owns the ticket. See spec §7.5.
+# ──────────────────────────────────────────────────────────────
+#   delivery: thread   -> P1/P2 = @mention on the ticket card in #report-an-issue,
+#                         nothing posted elsewhere. P0 also posts to p0_channel_id.
+#   delivery: channel  -> every priority posts to channel_id.
+#   delivery: none     -> nothing, ever (P3 ideas).
+owners:
+  # Facilities is Jake alone since 2026-09-28 (Whit left). To bring a second
+  # person back, add an owner block and put them in `rota.facilities` below.
+  jake:
+    display_name: "Jake"
+    mention_user_ids: ["247571828309098497"]
+    delivery: thread
+    p0_channel_id: "1524930396280586352"          # #team-jake
+
+  # whit — removed 2026-09-28. Block kept for reference:
+  #   display_name: "Whit"
+  #   mention_user_ids: ["447179794132631562"]
+  #   delivery: thread
+  #   p0_channel_id: "1524930396280586352"
+
+  carolina:
+    display_name: "Carolina"
+    mention_user_ids: ["508408654698119168"]
+    delivery: thread
+    p0_channel_id: "1524930080046845973"          # #team-carolina — P0 only
+
+  # Configured but unrouted — no category maps here today. Add a line to
+  # category_owner to give Robin something.
+  robin:
+    display_name: "Robin"
+    mention_user_ids: ["353959786045374474"]
+    delivery: thread
+    p0_channel_id: "1524930449820880936"          # #team-robin
+
+  claudio:
+    display_name: "Claudio"
+    mention_user_ids: ["1021582705068089415"]
+    delivery: channel                              # P0, P1 and P2 all go here
+    channel_id: "1397625934445809745"
+
+  contractors:
+    display_name: "Mox Contractors"
+    mention_user_ids: []
+    delivery: channel
+    channel_id: "1349140849363124296"
+
+  all_staff:
+    display_name: "All staff"
+    mention_role_id: "1342558129606496277"
+    delivery: channel
+    channel_id: "1524930396280586352"
+
+  unassigned:
+    display_name: "Unassigned"
+    delivery: none                     # P3 ideas — board only, never carded
+
+# Tier 1. `time_based` resolves by the clock (claudio_hours below).
+# `ai_judgment` hands the decision to the model's suggested_owner — spec §4.4.2.
+category_owner:
+  safety:      all_staff
+  door_codes:  carolina        # the code. A broken door is `security` -> facilities.
+  plumbing:    facilities_rota
+  utilities:   facilities_rota
+  furniture:   facilities_rota
+  appliance:   facilities_rota
+  security:    facilities_rota
+  stocking:    time_based
+  cleaning:    time_based
+  cosmetic:    time_based
+  events:      claudio         # setup is scheduled work, not time-based
+  operations:  robin
+  space:       carolina
+  other:       ai_judgment
+
+# With two names: even ticket number -> first, odd -> second (stateless 50/50).
+# With one name every facilities ticket goes to that person. Whit left
+# 2026-09-28, so this is Jake alone; add a second name here to split again.
+rota:
+  facilities: [jake]
+  strategy: ticket_parity
+  p0_mention_all: true        # a P0 mentions both, whoever the rota picked
+
+triage:
+  # Below this, the category is ignored and the model's suggested_owner is used instead.
+  category_confidence_floor: 0.6
+  # Where a ticket goes when even the model can't tell, and on the keyword fallback path.
+  judgment_default_owner: carolina
+  prompt_path: prompts/triage.md
+
+# Stocking / cleaning / cosmetic only.
+# Inside this window -> Claudio. Outside (17:00–24:00) -> contractors.
+# Boundaries are exact: 16:59 Claudio, 17:00 contractors, 23:59 contractors, 00:00 Claudio.
+claudio_hours:
+  start: "00:00"
+  end:   "17:00"
+  days:  [mon, tue, wed, thu, fri, sat, sun]
+  tz:    "America/Los_Angeles"
+
+# DMs are sent ONLY here — never to deliver a ticket. One per rule, per ticket, ever.
+escalation:
+  p0_no_claim_minutes: 20            # DM each owner + reply on the P0 card tagging @mox staff
+  p1_no_claim_staffed_hours: 4       # one DM to each owner (channel owners get a channel reply)
+  p0_never_to_contractors: true      # a P0 that would route to contractors goes to facilities
+
+priority_timeout_seconds: 180        # stale pauses (duplicate offer, question redirect) resolve after this
+
+# Watch #ask-staff: when a message is clearly a building report, open a ticket for the author
+# with no form. Conservative by design; the bot's reply carries an Undo button. See prompts/chat-intake.md.
+chat_intake:
+  enabled: true
+  # Automatic pickup only here. Tags (@support-bot) work in every channel, including
+  # #members-general, which is deliberately tag-only: the bot never opens tickets there on its own.
+  channel_ids:
+    - "1461993251727740958"   # #ask-staff
+  # A member tagging @support-bot opens a ticket unless the gate is at least this sure it isn't a
+  # request at all ("@support-bot thanks!"). A tag from staff always opens one.
+  tag_decline_confidence: 0.9
+  min_confidence: 0.8                    # building problems: captured straight away above this
+  min_chars: 12
+  # Stocking and ideas: the bot can't see what's in storage, and staff usually answer these
+  # themselves. Wait, give staff the first word, and only step in when it's clear-cut.
+  cautious:
+    categories: [stocking]
+    include_ideas: true
+    min_confidence: 0.9                  # higher bar than building problems
+    wait_minutes: 15                     # a staff reply in the thread or as a reply in this window = bot stays out
+
+standing_queue:
+  channel_id: "1552037616843624478"  # #issues-digest-staff, pinned, edited in place (§9.4)
+  debounce_seconds: 5
+  max_rows: 25
+
+digest:
+  channel_id: "1552037616843624478"
+  cron: "0 9 * * 1"                  # Mondays 09:00 PT
+  # Open tickets are listed in full. Closed ones are summarised by Haiku:
+  # one sentence plus AT MOST four bullets, grouped by theme, not listed.
+  closed_summary: ai
+  closed_summary_max_bullets: 4
+  # Ideas stay unassigned by design — nobody owns the list. The digest keeps it
+  # visible instead: a count plus the age of the oldest, every Monday.
+  ideas_reviewer: null
+  ideas_show_count: true
+  ideas_show_oldest_age: true
+
+photos:
+  max_per_ticket: 5
+  max_bytes: 10485760
+  types: [image/png, image/jpeg, image/webp, image/gif]
+
+ops:
+  alert_user_id: "698382049136082996"
+  alert_rate_limit_per_hour: 1
+
+airtable:
+  # The Tickets table in the Mox base — replaces the Notion board (decided 2026-09-28).
+  # Schema was created 2026-09-28; the bot re-reads it on boot and fails loudly if a
+  # field it writes is missing. Token goes in .env as AIRTABLE_TOKEN.
+  base_id:  "appkHZ2UvU6SouT5y"
+  table_id: "tblu7WNEE8R6YBZHH"   # Tickets
+  view_id:  "viwRPKws8CuDcgLge"
+  board_url: "https://airtable.com/appkHZ2UvU6SouT5y/pagVjMYZRr3igzL70"   # Building Tickets interface, Queue board
+  first_ticket_number: 100
+
+# ──────────────────────────────────────────────────────────────
+# COMPLETE — no placeholders left. The bot can boot.
+#
+# Channel usage, to be explicit:
+#   team_jake      P0 facilities + ALL safety.          Never P1/P2.
+#   team_carolina  P0 door codes.                       Never P1/P2.
+#   team_robin     P0 operations.                       Never P1/P2.
+#   team_claudio   every priority (delivery: channel).
+#   mox_contractor_requests  every priority (delivery: channel).
+#
+# Everything else — every P1 and P2 for Jake, Carolina and Robin —
+# stays in #report-an-issue as an @mention on the ticket card.
+#
+# Every user, role and other channel ID is verified and collision-free:
+#   jake 247571828309098497 · (whit 447179794132631562 — departed)
+#   claudio 1021582705068089415 · carolina 508408654698119168
+#   robin 353959786045374474 · jen 698382049136082996
+# ──────────────────────────────────────────────────────────────

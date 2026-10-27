@@ -178,10 +178,10 @@ export default function GuestsPage() {
               bgColor="bg-white"
             />
             <PartnerCard
-              name="Tarbell"
-              url="https://www.tarbellfellowship.org/"
-              logoUrl="https://static.wixstatic.com/media/dbfe9b_2a27ec41f7b346089b2d5da7dea5a119~mv2.png/v1/fill/w_500,h_500,al_c/dbfe9b_2a27ec41f7b346089b2d5da7dea5a119~mv2.png"
-              bgColor="bg-[#123c75]"
+              name="ACX Grants"
+              url="https://manifund.org/acx-grants"
+              logoUrl="/logos/acx.jpg"
+              bgColor="bg-[#0b1530]"
             />
             <PartnerCard
               name="MIRI"
@@ -204,7 +204,7 @@ export default function GuestsPage() {
             <PartnerCard
               name="GovAI"
               url="https://governance.ai"
-              logoUrl="https://pbs.twimg.com/profile_images/1496090136051953665/EUXvM3eS_400x400.jpg"
+              logoUrl="/logos/govai.png"
               bgColor="bg-white"
             />
             <PartnerCard
@@ -216,7 +216,7 @@ export default function GuestsPage() {
             <PartnerCard
               name="Redwood"
               url="https://redwoodresearch.org"
-              logoUrl="https://www.openphilanthropy.org/wp-content/uploads/redwood-logo.jpg"
+              logoUrl="/logos/redwood.svg"
               bgColor="bg-white"
             />
             <PartnerCard
@@ -228,13 +228,13 @@ export default function GuestsPage() {
             <PartnerCard
               name="Palisade Research"
               url="https://palisaderesearch.org/"
-              logoUrl="https://palisaderesearch.org/assets/images/logos/palisade.svg"
+              logoUrl="/logos/palisade.svg"
               bgColor="bg-white"
             />
             <PartnerCard
               name="AI Impacts"
               url="https://aiimpacts.org/"
-              logoUrl="https://pbs.twimg.com/profile_images/601605260252024833/aeNPn9YV_400x400.png"
+              logoUrl="/logos/aiimpacts.png"
               bgColor="bg-[#2c97cc]"
             />
             <PartnerCard
@@ -246,13 +246,13 @@ export default function GuestsPage() {
             <PartnerCard
               name="Epoch"
               url="https://epoch.ai/"
-              logoUrl="https://pbs.twimg.com/profile_images/1866142753127616512/DYcE9bN1_400x400.jpg"
+              logoUrl="/logos/epoch.jpg"
               bgColor="bg-[#eaf5f4]"
             />
             <PartnerCard
               name="Timaeus"
               url="https://timaeus.co/"
-              logoUrl="https://timaeus.co/_astro/sun-1.fDKlafeL_1rjScY.webp"
+              logoUrl="/logos/timaeus.png"
               bgColor="bg-white"
             />
             <PartnerCard
@@ -395,10 +395,10 @@ export default function GuestsPage() {
               name="Xander Balwit, Asimov Press"
               quote="Austin and his staff have gone to great lengths to make Mox incredibly accommodating. Not only is the space already equipped with useful things like utensils, printers, and AV, but the operational staff are communicative, flexible, and incredibly helpful.... I definitely hope to find occasions to host more events at Mox down the line, and would highly recommend it to anyone I know who is looking for a slightly more casual, but exceedingly well-managed venue."
             />
-            <TestimonialCard
+            {/* <TestimonialCard
               name="Sawyer Bernath, Tarbell Fellowship"
               quote="Mox is a spacious and welcoming coworking space, with kind, helpful staff. We would be happy to host an event there again."
-            />
+            /> */}
           </div>
         </section>
 

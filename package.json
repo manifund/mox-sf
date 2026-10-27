@@ -13,6 +13,7 @@
     "scan-automations": "bun scripts/scan-automations.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@headlessui/react": "^2.2.1",
     "@vercel/analytics": "^1.5.0",
     "date-fns": "^4.1.0",

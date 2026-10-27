@@ -9,6 +9,7 @@ interface PersonFields {
   Name?: string
   Tier?: string
   Status?: string
+  Program?: string[]
   'Discord Username'?: string
   magic_link_token?: string
   token_expires?: string
@@ -125,11 +126,20 @@ async function clearTokenAndLinkDiscord(
     updates['Discord Username'] = discordUsername
   }
 
-  await updateRecord<PersonFields>(Tables.People, recordId, updates)
+  const updated = await updateRecord<PersonFields>(
+    Tables.People,
+    recordId,
+    updates
+  )
 
   // If we linked Discord, sync their role
   if (discordUsername && tier && status) {
-    await syncDiscordRole(discordUsername, tier, status)
+    await syncDiscordRole(
+      discordUsername,
+      updated.fields.Tier || null,
+      updated.fields.Status || null,
+      updated.fields.Program || []
+    )
     return true
   }
 

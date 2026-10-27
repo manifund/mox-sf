@@ -5,7 +5,8 @@ This document describes the Discord bot integration for member role management a
 ## Overview
 
 The Discord integration:
-- Syncs membership tiers from Airtable to Discord roles
+- Syncs membership tiers and configured program participant roles from Airtable to Discord
+- Reconciles every five minutes, including direct Airtable edits and members who join Discord after onboarding
 - Updates channel names to display door codes
 - Posts notifications about code rotations
 
@@ -45,8 +46,22 @@ DISCORD_PACKAGES_CHANNEL_ID    # Channel for notifications
 
 Located in [discord.ts](../app/lib/discord.ts):
 
-### `syncDiscordRole(discordUsername, tier, status)`
-Main sync function. Finds member, removes old tier roles, assigns new role based on tier.
+### `syncDiscordRole(discordUsername, tier, status, programIds, options)`
+Finds an exact username match and assigns the membership tier plus every configured
+program role linked through People.Program. Adds new roles before removing obsolete
+tier roles. Existing program roles, staff roles, and unrelated roles are preserved.
+Returns assignment/removal failures instead of silently reporting success.
+
+Program mappings are explicit Airtable record IDs to Discord role IDs in
+`PROGRAM_TO_ROLE` in `app/lib/discord-constants.ts`. This prevents a program name
+from accidentally granting a similarly named staff role. Current mappings include
+Iliad Intensive, Surplus, Frame Fellowships 1/2, Sentient Futures Residency, and
+Seldon Batches 1/2. Add a mapping when setting up a new program participant role.
+Unmapped program IDs are included in reconciliation results; no roles are created.
+
+Eligibility remains `Status = Joined` and a supported active membership tier.
+Program end dates do not revoke roles; membership status remains authoritative.
+Staff and inactive records are skipped, not stripped of roles.
 
 ### `findDiscordMember(username)`
 Searches guild for member by username. Returns Discord user ID if found.
@@ -69,13 +84,32 @@ Returns true if bot token and guild ID are set.
 Sync role for a single user.
 
 - **Auth:** User (own role) or Staff
-- **Body:** `{ discordUsername, tier, status, userId }`
+- **Body:** `{ userId }` (defaults to the signed-in member)
+- Reads username, tier, status, and linked programs from Airtable; ignores client-supplied role data.
 
 ### POST `/portal/api/bulk-sync-discord-roles`
 Sync roles for all members with Discord usernames.
 
 - **Auth:** Staff only
-- **Rate limiting:** 1.5s delay between requests
+- Shares the scheduled reconciliation implementation and returns per-record results.
+- Supports `?dry=1` to inspect planned changes without writes.
+- Fetches one paginated member snapshot and writes only changed roles; Discord rate limits are respected.
+
+### GET `/api/cron/sync-discord-roles`
+
+- **Schedule:** every five minutes, configured in `vercel.json`
+- **Auth:** `Authorization: Bearer {CRON_SECRET}`; rejects an unset secret
+- **Dry run:** `?dry=1`
+- **Timeout:** 300 seconds, stops processing after 240 seconds and reports pending records
+- **Results:** synced/changed/failed/skipped/pending counts, per-record details, unmapped program IDs
+- **Failures:** non-2xx for failed or incomplete execution; per-record mismatches are reported as skipped
+- **Identity:** exact current usernames only (case/whitespace/@ normalized); no fuzzy or display-name grants
+- **Duplicates:** multiple active Airtable records with the same username are skipped for review
+
+The scheduled run retries all eligible records, so correcting a username or joining
+Discord is picked up automatically. A successful run can include skipped accounts;
+inspect `results.skipped` for identity corrections. Authentication and API errors are
+logged. Program/profile syncs also run after profile updates and Discord linking.
 
 ### POST `/portal/api/update-discord`
 Bulk update Discord usernames in Airtable.
@@ -155,7 +189,7 @@ Bot role must be **higher** than the tier roles it manages.
 - Username may have changed (Discord allows this)
 
 **Rate limited:**
-- Bulk sync has built-in delays
+- Discord API calls respect rate-limit responses
 - Wait for retry-after period
 
 **Discord not configured:**

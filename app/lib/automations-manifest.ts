@@ -15,6 +15,33 @@ export interface AutomationManifestEntry {
 export const AUTOMATIONS: AutomationManifestEntry[] = 
 [
   {
+    "id": "cron/career-matching",
+    "filePath": "app/api/cron/career-matching/route.ts",
+    "routePath": "/api/cron/career-matching",
+    "type": "cron",
+    "cronSchedule": "0 17 * * 2",
+    "httpMethod": "GET",
+    "summary": "Weekly: Claude matches job seekers to open roles and emails suggestions to STAFF ONLY (members never receive this)."
+  },
+  {
+    "id": "cron/event-suggestions",
+    "filePath": "app/api/cron/event-suggestions/route.ts",
+    "routePath": "/api/cron/event-suggestions",
+    "type": "cron",
+    "cronSchedule": "0 17 * * 3",
+    "httpMethod": "GET",
+    "summary": "Weekly: emails opted-in members their top 3 upcoming events, picked by Claude from their profile interests."
+  },
+  {
+    "id": "cron/gef-weekly-digest",
+    "filePath": "app/api/cron/gef-weekly-digest/route.ts",
+    "routePath": "/api/cron/gef-weekly-digest",
+    "type": "cron",
+    "cronSchedule": "0 16 * * 1",
+    "httpMethod": "GET",
+    "summary": "Emails Carolina a Monday-morning summary of GEF fellow attendance for the past week, flagging fellows not seen in 7+ days."
+  },
+  {
     "id": "cron/room-availability",
     "filePath": "app/api/cron/room-availability/route.ts",
     "routePath": "/api/cron/room-availability",
@@ -31,6 +58,51 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "cronSchedule": "0 17 * * 1",
     "httpMethod": "GET",
     "summary": "Rotates weekly Verkada door code, updates Discord channel name and posts notification"
+  },
+  {
+    "id": "cron/scrape-roles",
+    "filePath": "app/api/cron/scrape-roles/route.ts",
+    "routePath": "/api/cron/scrape-roles",
+    "type": "cron",
+    "cronSchedule": "0 11 * * 1",
+    "httpMethod": "GET",
+    "summary": "Weekly: fetches each org's Careers URL, Claude extracts openings into the Roles table (new/verified/stale) for /jobs."
+  },
+  {
+    "id": "cron/sync-checkins",
+    "filePath": "app/api/cron/sync-checkins/route.ts",
+    "routePath": "/api/cron/sync-checkins",
+    "type": "cron",
+    "cronSchedule": "0 9 * * *",
+    "httpMethod": "GET",
+    "summary": "Nightly: pulls Verkada door-access events and writes one Attendance record per person per day (powers the GEF weekly digest)."
+  },
+  {
+    "id": "cron/sync-discord-roles",
+    "filePath": "app/api/cron/sync-discord-roles/route.ts",
+    "routePath": "/api/cron/sync-discord-roles",
+    "type": "cron",
+    "cronSchedule": "*/5 * * * *",
+    "httpMethod": "GET",
+    "summary": "Syncs Airtable membership tiers and program roles to Discord every five minutes; retries missing members after joining"
+  },
+  {
+    "id": "cron/tasks-digest",
+    "filePath": "app/api/cron/tasks-digest/route.ts",
+    "routePath": "/api/cron/tasks-digest",
+    "type": "cron",
+    "cronSchedule": "0 16 * * *",
+    "httpMethod": "GET",
+    "summary": "TODO: describe cron/tasks-digest"
+  },
+  {
+    "id": "cron/tasks-sweep",
+    "filePath": "app/api/cron/tasks-sweep/route.ts",
+    "routePath": "/api/cron/tasks-sweep",
+    "type": "cron",
+    "cronSchedule": "*/15 * * * *",
+    "httpMethod": "GET",
+    "summary": "TODO: describe cron/tasks-sweep"
   },
   {
     "id": "day-pass/activate/api",
@@ -86,7 +158,7 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/portal/api/bulk-sync-discord-roles",
     "type": "portal-action",
     "httpMethod": "POST",
-    "summary": "Staff-only bulk sync of all members' Discord roles to match their Airtable tiers"
+    "summary": "Staff-only bulk sync of Airtable membership tiers and program participant roles"
   },
   {
     "id": "portal/pause-subscription",
@@ -110,7 +182,7 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/portal/api/sync-discord-role",
     "type": "portal-action",
     "httpMethod": "POST",
-    "summary": "Syncs a single member's Discord role to match their Airtable tier"
+    "summary": "Syncs a member's tier and program roles from their authorized Airtable record"
   },
   {
     "id": "portal/unlock-door",

@@ -53,6 +53,7 @@ Configured in `vercel.json`:
 
 | Path | Schedule | Description |
 |------|----------|-------------|
+| `/api/cron/sync-discord-roles` | `*/5 * * * *` | Sync Airtable membership tiers and program roles to Discord |
 | `/api/cron/rotate-door-code` | `0 17 * * 1` (Mon 5PM UTC) | Weekly door code rotation |
 
 Cron jobs require `Authorization: Bearer {CRON_SECRET}` header.

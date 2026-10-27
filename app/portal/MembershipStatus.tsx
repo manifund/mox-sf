@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { MEMBERSHIP_TIERS, formatDollars } from '@/app/lib/membership-pricing'
 
 export default function MembershipStatus({
   status,
@@ -125,11 +126,16 @@ export default function MembershipStatus({
           </div>
 
           <p style={{ marginTop: '15px' }}>
-            <strong>Friend</strong> $160/mo · drop by up to 2x/week
+            <strong>Core</strong>{' '}
+            {formatDollars(MEMBERSHIP_TIERS.core.quarterlyMonthlyCents)}/mo
+            quarterly or {formatDollars(MEMBERSHIP_TIERS.core.monthlyCents)}{' '}
+            month-to-month · unlimited access, hot desk
             <br />
-            <strong>Core</strong> $380/mo · unlimited access, hot desk
-            <br />
-            <strong>Resident</strong> $780/mo · dedicated desk + monitor
+            <strong>Resident</strong>{' '}
+            {formatDollars(MEMBERSHIP_TIERS.resident.quarterlyMonthlyCents)}/mo
+            quarterly or{' '}
+            {formatDollars(MEMBERSHIP_TIERS.resident.monthlyCents)}{' '}
+            month-to-month · dedicated desk + monitor
           </p>
 
           <p style={{ marginTop: '15px' }}>
@@ -142,7 +148,7 @@ export default function MembershipStatus({
           </p>
 
           <p className="muted" style={{ marginTop: '15px' }}>
-            questions? <a href="mailto:rachel@moxsf.com">rachel@moxsf.com</a>
+            questions? <a href="mailto:robin@moxsf.com">robin@moxsf.com</a>
           </p>
         </>
       )}

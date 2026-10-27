@@ -1,5 +1,7 @@
 'use client'
 
+import MembershipPricingTable from '@/app/components/MembershipPricingTable'
+
 export default function RenewContent({
   firstName,
   email,
@@ -58,39 +60,23 @@ export default function RenewContent({
               <u className="underline-offset-2">Resident</u> option may be a
               better fit. This includes a dedicated desk where you can leave
               belongings, and external monitor.
-              <br /> <br />
-              Finally, if you're not usually in SF, or expect to be coming
-              infrequently, we'd love to have you as a{' '}
-              <u className="underline-offset-2">Friend</u>. Beyond all of our
-              public and members events, you're welcome to drop by up to twice a
-              week!
             </p>
           </section>
         </div>
       </div>
 
       {/* Pricing Table */}
-      <div className="bg-white pt-12 pb-16">
-        <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
-        {/* @ts-ignore */}
-        <stripe-pricing-table
-          pricing-table-id="prctbl_1SBTulRobJaZ7DVC19nKSvjs"
-          publishable-key="pk_live_51OwnuXRobJaZ7DVC4fdjfPGJOeJbVfXU5ILe4IZhkvuGhI86EimJfQKHMS1BCX3wuJTSXGnvToae5RmfswBPPM7b00D137jyzJ"
-          customer-email={email || undefined}
-        >
-          {/* @ts-ignore */}
-        </stripe-pricing-table>
-      </div>
+      <MembershipPricingTable mode="checkout" customerEmail={email} />
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8">
         <div className="max-w-4xl mx-auto px-6 text-center text-gray-500">
           Questions? Ping{' '}
           <a
-            href="mailto:rachel@moxsf.com"
+            href="mailto:robin@moxsf.com"
             className="text-amber-800 hover:text-amber-600 underline decoration-dotted underline-offset-2"
           >
-            rachel@moxsf.com
+            robin@moxsf.com
           </a>
         </div>
       </footer>

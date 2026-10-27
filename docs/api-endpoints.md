@@ -46,6 +46,14 @@ Weekly cron job to rotate Verkada door codes.
   ```
 - **Details:** Updates Verkada weekly access code, renames Discord channel, posts notification
 
+### POST `/api/membership-checkout`
+Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
+
+- **Auth:** None (reached by invite link before the person has a portal login)
+- **Body:** `{ "tier": "core" | "resident", "interval": "quarterly" | "monthly", "clientReferenceId"?: "rec123", "email"?: "..." }`
+- **Response:** `{ "url": "https://checkout.stripe.com/..." }`
+- **Details:** Looks up the Stripe Price by `lookup_key` (see `app/lib/membership-pricing.ts`), applies the 7-day trial, passes `clientReferenceId` as `client_reference_id`, and warns in logs if the Stripe amount differs from the configured price. Success redirects to `/portal/login?joined=1`.
+
 ### POST `/api/webhooks/stripe`
 Handle Stripe webhook events.
 

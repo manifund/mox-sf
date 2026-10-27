@@ -196,6 +196,17 @@ export async function getPrograms(): Promise<Map<string, Program>> {
   return programsMap
 }
 
+// Programs pinned to the top of the directory's Programs section, in this
+// order. Anything not listed keeps the default size-then-alphabetical sort.
+// Matched on the Airtable program name, so renaming a program here means
+// renaming it in Airtable too.
+const PINNED_PROGRAMS = ['Surplus']
+
+// Finished programs we no longer surface in the directory. Their Airtable
+// rows and participant rosters are left untouched — members of a hidden
+// program simply fall through into the regular Members section.
+const HIDDEN_PROGRAMS = ['FLF Fellowship', 'Seldon Batch 2']
+
 // Build sections data from people, orgs, and programs for DirectoryClient
 export function buildDirectoryData(
   people: Person[],
@@ -243,8 +254,8 @@ export function buildDirectoryData(
   const membersWithoutProgram: Person[] = []
   members.forEach((person) => {
     const programId = person.program?.[0]
-    if (programId) {
-      const program = programsMap.get(programId)
+    const program = programId ? programsMap.get(programId) : undefined
+    if (programId && !(program && HIDDEN_PROGRAMS.includes(program.name))) {
       if (!programGroups.has(programId)) {
         programGroups.set(programId, { name: program?.name || 'Program', rooms: program?.rooms || [], people: [] })
       }
@@ -258,8 +269,20 @@ export function buildDirectoryData(
   const sortGroups = (a: { name: string; people: Person[] }, b: { name: string; people: Person[] }) =>
     b.people.length !== a.people.length ? b.people.length - a.people.length : a.name.localeCompare(b.name)
 
+  // Pinned programs lead, in PINNED_PROGRAMS order; the rest fall back to the
+  // shared size-then-alphabetical sort.
+  const pinnedRank = (name: string) => {
+    const i = PINNED_PROGRAMS.indexOf(name)
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i
+  }
+
   const sortedOrgs = Array.from(officesByOrg.entries()).sort(([, a], [, b]) => sortGroups(a, b))
-  const sortedPrograms = Array.from(programGroups.entries()).sort(([, a], [, b]) => sortGroups(a, b))
+  const sortedPrograms = Array.from(programGroups.entries()).sort(([, a], [, b]) => {
+    const rankA = pinnedRank(a.name)
+    const rankB = pinnedRank(b.name)
+    if (rankA !== rankB) return rankA - rankB
+    return sortGroups(a, b)
+  })
 
   // Convert maps to plain objects for client component
   const orgsLookup: Record<string, { name: string }> = {}

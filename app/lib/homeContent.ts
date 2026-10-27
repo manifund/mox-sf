@@ -50,7 +50,7 @@ export const defaultContent: HomeContent = {
     'Mox offers all the infrastructure you need for deep work, a rich community atmosphere, and events that you\'ll find meaningful.',
   ctaButtons: {
     primary: { text: 'Apply for membership', href: '/membership' },
-    secondary: { text: 'Inquire about offices', href: 'mailto:rachel@moxsf.com' },
+    secondary: { text: 'Inquire about offices', href: 'mailto:robin@moxsf.com' },
     tertiary: { text: 'Buy a day pass', href: '/day-pass' },
   },
   eventsTitle: 'Events',
@@ -60,7 +60,7 @@ export const defaultContent: HomeContent = {
   galleryTitle: 'The Space',
   gallerySubtitle: 'A glimpse into our home',
   footerText: 'A project of Manifund',
-  footerContact: 'rachel@moxsf.com',
+  footerContact: 'robin@moxsf.com',
 }
 
 export const punkContent: HomeContent = {
@@ -89,7 +89,7 @@ export const punkContent: HomeContent = {
     'Space for your sh*t! Deep work vibes! A community that actually gives a damn! Events that don\'t suck!',
   ctaButtons: {
     primary: { text: 'GET IN', href: '/membership' },
-    secondary: { text: 'Office space??', href: 'mailto:rachel@moxsf.com' },
+    secondary: { text: 'Office space??', href: 'mailto:robin@moxsf.com' },
     tertiary: { text: 'Day pass', href: '/day-pass' },
   },
   eventsTitle: 'THINGS GOING ON',
@@ -99,7 +99,7 @@ export const punkContent: HomeContent = {
   galleryTitle: 'THE SPACE',
   gallerySubtitle: 'Look at this sick space',
   footerText: 'Powered by Manifund',
-  footerContact: 'rachel@moxsf.com',
+  footerContact: 'robin@moxsf.com',
 }
 
 export const dinosaurContent: HomeContent = {
@@ -123,7 +123,7 @@ export const dinosaurContent: HomeContent = {
     'A prehistoric space for modern work! Community! Events! Everything a dinosaur needs to thrive in the 21st century!',
   ctaButtons: {
     primary: { text: 'Join the herd!', href: '/membership' },
-    secondary: { text: 'Inquire about caves', href: 'mailto:rachel@moxsf.com' },
+    secondary: { text: 'Inquire about caves', href: 'mailto:robin@moxsf.com' },
     tertiary: { text: 'Day pass for dinos', href: '/day-pass' },
   },
   eventsTitle: 'Dinosaur Gatherings',
@@ -133,7 +133,7 @@ export const dinosaurContent: HomeContent = {
   galleryTitle: 'The Habitat',
   gallerySubtitle: 'Where dinosaurs roam',
   footerText: 'A project of Manifund',
-  footerContact: 'rachel@moxsf.com',
+  footerContact: 'robin@moxsf.com',
 }
 
 export const oldeContent: HomeContent = {
@@ -158,7 +158,7 @@ export const oldeContent: HomeContent = {
     'A moſt Noble Hall for Deep Contemplation, a Brotherhood of Learned Perſons, and Gatherings of Great Purpoſe. All manner of Accomodations for ye Purſuit of Excellence.',
   ctaButtons: {
     primary: { text: 'Petition for Memberſhip', href: '/membership' },
-    secondary: { text: 'Enquire About Chambers', href: 'mailto:rachel@moxsf.com' },
+    secondary: { text: 'Enquire About Chambers', href: 'mailto:robin@moxsf.com' },
     tertiary: { text: 'Day Paſs for Viѕitors', href: '/day-pass' },
   },
   eventsTitle: 'Gatherings & Feaſts',
@@ -168,7 +168,7 @@ export const oldeContent: HomeContent = {
   galleryTitle: 'Ye Guild Hall',
   gallerySubtitle: 'A Glimſe into Our Noble Eſtabliſhment',
   footerText: 'A Venture of ye Manifund',
-  footerContact: 'rachel@moxsf.com',
+  footerContact: 'robin@moxsf.com',
 }
 
 export const csContent: HomeContent = {
@@ -193,7 +193,7 @@ export const csContent: HomeContent = {
     'Mox provides workspace infrastructure, collaborative environment, and regular seminars. Suitable for individual research and group projects.',
   ctaButtons: {
     primary: { text: 'Application Form', href: '/membership' },
-    secondary: { text: 'Contact for Office Space', href: 'mailto:rachel@moxsf.com' },
+    secondary: { text: 'Contact for Office Space', href: 'mailto:robin@moxsf.com' },
     tertiary: { text: 'Day Pass Information', href: '/day-pass' },
   },
   eventsTitle: 'Seminars and Meetings',
@@ -203,5 +203,5 @@ export const csContent: HomeContent = {
   galleryTitle: 'Facility Photos',
   gallerySubtitle: 'Laboratory and workspace images',
   footerText: 'Supported by Manifund',
-  footerContact: 'rachel@moxsf.com',
+  footerContact: 'robin@moxsf.com',
 }

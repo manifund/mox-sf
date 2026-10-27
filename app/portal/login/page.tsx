@@ -117,6 +117,15 @@ function LoginPageContent() {
 
       <h1>member portal</h1>
 
+      {searchParams.get('joined') === '1' && (
+        <div className="alert info">
+          <p>
+            welcome to mox! your membership is set up. sign in below with the
+            email you used at checkout to finish your profile.
+          </p>
+        </div>
+      )}
+
       <p>sign in to edit your profile and manage your membership.</p>
 
       <hr />

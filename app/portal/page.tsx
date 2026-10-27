@@ -9,8 +9,10 @@ import AdminViewAsSelector from './AdminViewAsSelector'
 import MembershipStatus from './MembershipStatus'
 import MyDayPasses from './MyDayPasses'
 import SubscriptionInfo from './SubscriptionInfo'
+import MyRequests from './MyRequests'
 import { getUserProfile } from './profile'
 import { fetchUserDayPasses } from './dayPasses'
+import { fetchUserRequests, requestFormUrl } from './requests'
 
 // Disable caching - session data (view-as) must be fresh on every request
 export const dynamic = 'force-dynamic'
@@ -30,7 +32,12 @@ export default async function DashboardPage() {
 
   const effectiveUserId = session.viewingAsUserId || session.userId
   const profile = await getUserProfile(effectiveUserId)
-  const dayPasses = profile ? await fetchUserDayPasses(profile.email) : []
+  const [dayPasses, requests] = profile
+    ? await Promise.all([
+        fetchUserDayPasses(profile.email),
+        fetchUserRequests(profile.email),
+      ])
+    : [[], []]
 
   const activeMember = profile
     ? isActiveMember({ status: profile.status, tier: profile.tier })
@@ -135,6 +142,16 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      <hr />
+
+      {/* Tickets & requests to the ops team */}
+      <section>
+        <MyRequests
+          requests={requests}
+          formUrl={requestFormUrl(profile.name, profile.email)}
+        />
+      </section>
+
       {/* Active members' day passes below membership info */}
       {activeMember && dayPasses.length > 0 && (
         <>
@@ -161,6 +178,15 @@ export default async function DashboardPage() {
         <>
           <hr />
           <section>
+            <h2>studio calendar</h2>
+            <p>
+              <Link href="/portal/studio">
+                view studio availability and schedule
+              </Link>
+            </p>
+          </section>
+          <hr />
+          <section>
             <h2>book a room</h2>
             <p>
               <Link href="/portal/book-room">
@@ -184,7 +210,11 @@ export default async function DashboardPage() {
       <section>
         <h2>profile</h2>
         <p>
-          <Link href="/portal/profile/edit">edit your profile</Link>
+          <Link href="/portal/profile/edit">edit your profile</Link>{' '}
+          <span className="muted">
+            — photo, directory listing, career &amp; job status (private),
+            weekly event picks
+          </span>
         </p>
       </section>
 

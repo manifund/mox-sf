@@ -6,6 +6,7 @@ import {
   TIER_TO_ROLE,
   ALL_TIER_ROLE_IDS,
   ACTIVE_TIERS,
+  PROGRAM_TO_ROLE,
   DISCORD_CHANNELS,
 } from './discord-constants'
 
@@ -46,7 +47,7 @@ async function discordFetch(
   return fetch(url, { ...options, headers })
 }
 
-interface DiscordMember {
+export interface DiscordMember {
   user: {
     id: string
     username: string
@@ -56,12 +57,15 @@ interface DiscordMember {
   roles: string[]
 }
 
-interface SyncResult {
+export interface SyncResult {
   success: boolean
   error?: string
   discordUserId?: string
   roleAssigned?: string
   previousRoles?: string[]
+  programRoles?: string[]
+  rolesAdded?: string[]
+  dryRun?: boolean
 }
 
 /**
@@ -75,11 +79,11 @@ export async function findDiscordMember(
     return null
   }
 
-  const normalizedUsername = username.toLowerCase().trim()
+  const normalizedUsername = normalizeDiscordUsername(username)
 
   try {
     // Search for member by query (Discord API v10)
-    const searchUrl = `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/search?query=${encodeURIComponent(normalizedUsername)}&limit=10`
+    const searchUrl = `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/search?query=${encodeURIComponent(normalizedUsername)}&limit=1000`
 
     const response = await discordFetch(searchUrl)
 
@@ -172,59 +176,86 @@ export async function removeRole(
   }
 }
 
-/**
- * Sync a member's Discord role based on their Airtable tier
- */
+/** Normalize pasted handles without guessing display names or similar accounts. */
+export function normalizeDiscordUsername(username: string): string {
+  return username.trim().replace(/^@/, '').replace(/\\_/g, '_').toLowerCase()
+}
+
+/** Full, paginated snapshot avoids a separate search for every Airtable record. */
+export async function listDiscordMembers(): Promise<DiscordMember[]> {
+  const members: DiscordMember[] = []
+  let after = '0'
+  while (true) {
+    const response = await discordFetch(
+      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`
+    )
+    if (!response.ok)
+      throw new Error(`Failed to list Discord members: ${response.status}`)
+    const page: DiscordMember[] = await response.json()
+    members.push(...page)
+    if (page.length < 1000) return members
+    after = page[page.length - 1].user.id
+  }
+}
+
+/** Sync tier plus selected program roles. Program and staff roles are never removed. */
 export async function syncDiscordRole(
   discordUsername: string,
   tier: string | null,
-  status: string | null
+  status: string | null,
+  programIds: string[] = [],
+  options: { member?: DiscordMember; dryRun?: boolean } = {}
 ): Promise<SyncResult> {
-  // Only sync for active members (Staff excluded - managed manually)
-  const isActive = status === 'Joined' && tier && ACTIVE_TIERS.includes(tier)
+  if (status !== 'Joined' || !tier || !ACTIVE_TIERS.includes(tier)) {
+    return { success: false, error: 'User is not an active member' }
+  }
 
-  if (!isActive) {
+  const member = options.member || (await findDiscordMember(discordUsername))
+  if (
+    !member ||
+    normalizeDiscordUsername(member.user.username) !==
+      normalizeDiscordUsername(discordUsername)
+  ) {
     return {
       success: false,
-      error: 'User is not an active member',
+      error: `Discord user "${discordUsername}" not found in server; check their current username`,
     }
   }
 
-  // Find the Discord member
-  const member = await findDiscordMember(discordUsername)
-  if (!member) {
-    return {
-      success: false,
-      error: `Discord user "${discordUsername}" not found in server`,
-    }
-  }
-
-  // Get the target role for this tier
   const targetRoleId = TIER_TO_ROLE[tier]
-  if (!targetRoleId) {
+  if (!targetRoleId)
     return {
       success: false,
       error: `No Discord role configured for tier: ${tier}`,
     }
-  }
-
-  // Remove any existing tier roles (except the one we're assigning)
+  const programRoles = [
+    ...new Set(programIds.map((id) => PROGRAM_TO_ROLE[id]).filter(Boolean)),
+  ]
+  const rolesToAdd = [targetRoleId, ...programRoles].filter(
+    (id) => !member.roles.includes(id)
+  )
   const rolesToRemove = ALL_TIER_ROLE_IDS.filter(
-    (r) => r !== targetRoleId && member.roles.includes(r)
+    (id) => id !== targetRoleId && member.roles.includes(id)
   )
 
-  for (const roleId of rolesToRemove) {
-    await removeRole(member.user.id, roleId)
-  }
-
-  // Assign the new role if they don't already have it
-  if (!member.roles.includes(targetRoleId)) {
-    const assigned = await assignRole(member.user.id, targetRoleId)
-    if (!assigned) {
-      return {
-        success: false,
-        error: 'Failed to assign Discord role',
-        discordUserId: member.user.id,
+  if (!options.dryRun) {
+    // Add first: a failed assignment must not strip existing membership access.
+    for (const roleId of rolesToAdd) {
+      if (!(await assignRole(member.user.id, roleId))) {
+        return {
+          success: false,
+          error: `Failed to assign Discord role ${roleId}`,
+          discordUserId: member.user.id,
+        }
+      }
+    }
+    for (const roleId of rolesToRemove) {
+      if (!(await removeRole(member.user.id, roleId))) {
+        return {
+          success: false,
+          error: `Failed to remove old Discord tier role ${roleId}`,
+          discordUserId: member.user.id,
+        }
       }
     }
   }
@@ -233,7 +264,10 @@ export async function syncDiscordRole(
     success: true,
     discordUserId: member.user.id,
     roleAssigned: targetRoleId,
+    programRoles,
+    rolesAdded: rolesToAdd,
     previousRoles: rolesToRemove,
+    dryRun: !!options.dryRun,
   }
 }
 

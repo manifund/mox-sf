@@ -19,6 +19,9 @@ export const DISCORD_CHANNELS = {
   PACKAGES: '1409615290353844397',
   NOTIFICATIONS: '1465054507816980523',
   ROOM_AVAILABILITY: '1466343013146951774',
+  // Task board completions/approvals. The Mox bot (DISCORD_BOT_TOKEN) must have
+  // View Channel + Read Message History here for the ✅-approval sweep to work.
+  TASKS: '1523782328118149130',
 } as const
 
 // Message ID for the room availability status message that gets edited
@@ -46,3 +49,15 @@ export const ACTIVE_TIERS = [
   'Program',
   'Guest Program',
 ]
+
+// Explicit Airtable Program record -> Discord participant role mappings.
+// Keep staff/organizer roles manual. IDs survive program and role renames.
+export const PROGRAM_TO_ROLE: Record<string, string> = {
+  recn4q015cMNH5ODe: '1554241448285835265', // Iliad Intensive -> Iliad
+  recCAtlMZI1ufnVp7: '1528179642509430916', // Surplus
+  recxogXh8sAENNXAH: '1546698924255871007', // Frame Fellowship #2
+  recdwSj2sFAjDYVKZ: '1464541828656271472', // Frame Fellowship #1
+  recjB8frjHMLgF9Hm: '1509657231832907786', // Sentient Futures Residency
+  recaIlkSkyZKHQ0s2: '1395888939553919180', // Seldon Batch 2
+  recw9GcgF3DwVsxO1: '1395888939553919180', // Seldon Batch 1
+}

@@ -4,6 +4,15 @@ import type { NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
 
+  // Permit a design preview locally without weakening production access.
+  if (
+    process.env.NODE_ENV === 'development' &&
+    path === '/portal/studio' &&
+    request.nextUrl.searchParams.get('preview') === '1'
+  ) {
+    return NextResponse.next()
+  }
+
   // Don't protect API routes or public routes
   if (
     path.startsWith('/portal/api') ||

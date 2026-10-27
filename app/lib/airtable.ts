@@ -13,14 +13,45 @@ export const Tables = {
   RoomBookings: 'Room Bookings',
   Floors: 'Floors',
   Staff: 'tblbmm9NRs5ANd6IV',
+  // Door-presence records written by the sync-checkins cron (NOT the same as
+  // "Check-ins", which is the staff 1:1 conversation tracker).
+  Attendance: 'Attendance',
+  CheckIns: 'Check-ins',
+  // The live admissions pipeline. Website interest starts here — not in a
+  // separate intake table.
+  GefPipeline: 'GEF | Global Experts Fellowship',
+  // Legacy standalone intake table; retained only for historical reads.
+  GefApplications: 'GEF Applications',
+  Roles: 'Roles',
+  // Filled by the moxsf.com/request Airtable form; shown in the portal.
+  OperationsRequests: 'tbl77SjSdonCzvVMr',
+  // Public task board (app/tasks, served at tasks.moxsf.com). These live in
+  // their own base (env.TASKS_AIRTABLE_BASE_ID), not the main Mox base.
+  Tasks: 'Tasks',
+  TaskClaims: 'Claims',
+  TaskComments: 'Task Comments',
 } as const
 
 export type TableName = (typeof Tables)[keyof typeof Tables]
+
+// Tables that live in the dedicated task-board base rather than the main base.
+const TASKS_BASE_TABLES: readonly TableName[] = [
+  Tables.Tasks,
+  Tables.TaskClaims,
+  Tables.TaskComments,
+]
+
+function baseIdFor(table: TableName): string {
+  return TASKS_BASE_TABLES.includes(table)
+    ? env.TASKS_AIRTABLE_BASE_ID
+    : env.AIRTABLE_BASE_ID
+}
 
 // Generic type for Airtable records - use Record<string, unknown> for flexibility
 export interface AirtableRecord<T = Record<string, unknown>> {
   id: string
   fields: T
+  createdTime?: string
 }
 
 /**
@@ -39,21 +70,31 @@ export interface QueryOptions {
   revalidate?: number
 }
 
-// Common headers for all requests
-function getHeaders(): HeadersInit {
+// Common headers for all requests. The task-board tables can use their own
+// token (TASKS_AIRTABLE_API_KEY) when the main key has no access to that base.
+function getHeaders(table: TableName): HeadersInit {
+  const key = TASKS_BASE_TABLES.includes(table)
+    ? env.TASKS_AIRTABLE_API_KEY || env.AIRTABLE_API_KEY
+    : env.AIRTABLE_API_KEY
   return {
-    Authorization: `Bearer ${env.AIRTABLE_API_KEY}`,
+    Authorization: `Bearer ${key}`,
     'Content-Type': 'application/json',
   }
 }
 
 // Build URL with query params for list operations
-function buildListUrl(table: TableName, options: QueryOptions, offset?: string): string {
-  const base = `${AIRTABLE_API_URL}/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}`
+function buildListUrl(
+  table: TableName,
+  options: QueryOptions,
+  offset?: string
+): string {
+  const base = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}`
   const params: string[] = []
 
   if (options.filterByFormula) {
-    params.push(`filterByFormula=${encodeURIComponent(options.filterByFormula)}`)
+    params.push(
+      `filterByFormula=${encodeURIComponent(options.filterByFormula)}`
+    )
   }
   if (options.maxRecords) {
     params.push(`maxRecords=${options.maxRecords}`)
@@ -96,7 +137,7 @@ export async function getRecords<T = Record<string, unknown>>(
     const url = buildListUrl(table, options, offset)
 
     const res = await fetch(url, {
-      headers: getHeaders(),
+      headers: getHeaders(table),
       ...(options.revalidate
         ? { next: { revalidate: options.revalidate } }
         : { cache: 'no-store' as const }),
@@ -116,6 +157,7 @@ export async function getRecords<T = Record<string, unknown>>(
       records.push({
         id: record.id,
         fields: record.fields as T,
+        createdTime: record.createdTime,
       })
     }
 
@@ -142,10 +184,10 @@ export async function getRecord<T = Record<string, unknown>>(
   recordId: string
 ): Promise<AirtableRecord<T> | null> {
   try {
-    const url = `${AIRTABLE_API_URL}/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}/${recordId}`
+    const url = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}/${recordId}`
 
     const res = await fetch(url, {
-      headers: getHeaders(),
+      headers: getHeaders(table),
       cache: 'no-store',
       signal: AbortSignal.timeout(5000),
     })
@@ -155,7 +197,10 @@ export async function getRecord<T = Record<string, unknown>>(
         return null
       }
       const errorData = await res.json().catch(() => ({}))
-      console.error(`Error fetching record ${recordId} from ${table}:`, errorData)
+      console.error(
+        `Error fetching record ${recordId} from ${table}:`,
+        errorData
+      )
       return null
     }
 
@@ -181,14 +226,18 @@ export async function getRecord<T = Record<string, unknown>>(
 export async function updateRecord<T = Record<string, unknown>>(
   table: TableName,
   recordId: string,
-  fields: Partial<T>
+  fields: Partial<T>,
+  options: { typecast?: boolean } = {}
 ): Promise<AirtableRecord<T>> {
-  const url = `${AIRTABLE_API_URL}/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}/${recordId}`
+  const url = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}/${recordId}`
 
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: getHeaders(),
-    body: JSON.stringify({ fields }),
+    headers: getHeaders(table),
+    body: JSON.stringify({
+      fields,
+      ...(options.typecast ? { typecast: true } : {}),
+    }),
   })
 
   if (!res.ok) {
@@ -214,14 +263,18 @@ export async function updateRecord<T = Record<string, unknown>>(
  */
 export async function createRecord<T = Record<string, unknown>>(
   table: TableName,
-  fields: Partial<T>
+  fields: Partial<T>,
+  options: { typecast?: boolean } = {}
 ): Promise<AirtableRecord<T>> {
-  const url = `${AIRTABLE_API_URL}/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}`
+  const url = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}`
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({ fields }),
+    headers: getHeaders(table),
+    body: JSON.stringify({
+      fields,
+      ...(options.typecast ? { typecast: true } : {}),
+    }),
   })
 
   if (!res.ok) {
@@ -236,6 +289,49 @@ export async function createRecord<T = Record<string, unknown>>(
     id: data.id,
     fields: data.fields as T,
   }
+}
+
+/**
+ * Creates multiple records, batching 10 per request (the Airtable API limit).
+ * This operation is NOT cached.
+ *
+ * @param table - Table name
+ * @param records - Field sets for the new records
+ * @returns The created records, in input order
+ */
+export async function createRecords<T = Record<string, unknown>>(
+  table: TableName,
+  records: Partial<T>[],
+  options: { typecast?: boolean } = {}
+): Promise<AirtableRecord<T>[]> {
+  const url = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}`
+  const created: AirtableRecord<T>[] = []
+
+  for (let i = 0; i < records.length; i += 10) {
+    const batch = records.slice(i, i + 10)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: getHeaders(table),
+      body: JSON.stringify({
+        records: batch.map((fields) => ({ fields })),
+        ...(options.typecast ? { typecast: true } : {}),
+      }),
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(
+        `Airtable create error: ${res.status} ${res.statusText} - ${JSON.stringify(errorData)}`
+      )
+    }
+
+    const data = await res.json()
+    for (const record of data.records || []) {
+      created.push({ id: record.id, fields: record.fields as T })
+    }
+  }
+
+  return created
 }
 
 /**
@@ -282,12 +378,15 @@ export async function findRecord<T = Record<string, unknown>>(
  * @param recordId - Airtable record ID
  * @returns true if deleted, false if not found
  */
-export async function deleteRecord(table: TableName, recordId: string): Promise<boolean> {
-  const url = `${AIRTABLE_API_URL}/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}/${recordId}`
+export async function deleteRecord(
+  table: TableName,
+  recordId: string
+): Promise<boolean> {
+  const url = `${AIRTABLE_API_URL}/${baseIdFor(table)}/${encodeURIComponent(table)}/${recordId}`
 
   const res = await fetch(url, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: getHeaders(table),
   })
 
   if (!res.ok) {

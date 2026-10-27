@@ -9,6 +9,10 @@ import { getPeople, getOrgs, getPrograms, getStaff, buildDirectoryData } from '.
 import DirectoryClient from './people/DirectoryClient'
 import './people/people.css'
 
+// Without this hint next/image serves a 3840px variant at every viewport.
+const CARD_IMAGE_SIZES =
+  '(min-width: 1024px) 420px, (min-width: 768px) 192px, 100vw'
+
 async function HomepageDirectory() {
   let people: Awaited<ReturnType<typeof getPeople>> = []
   let orgsMap: Awaited<ReturnType<typeof getOrgs>> = new Map()
@@ -125,9 +129,10 @@ export default async function Component() {
               <Image
                 src="/images/014.jpg"
                 alt="Mox events"
-                width={2016}
-                height={1512}
+                width={4032}
+                height={3024}
                 priority
+                sizes={CARD_IMAGE_SIZES}
                 className="w-full md:w-48 lg:w-full h-48 md:h-auto lg:h-48 object-cover flex-shrink-0"
               />
               <div className="p-4 sm:p-6 flex flex-col flex-1">
@@ -153,9 +158,10 @@ export default async function Component() {
               <Image
                 src="/images/023.jpg"
                 alt="Mox community"
-                width={2016}
-                height={1512}
+                width={2000}
+                height={1333}
                 priority
+                sizes={CARD_IMAGE_SIZES}
                 className="w-full md:w-48 lg:w-full h-48 md:h-auto lg:h-48 object-cover flex-shrink-0"
               />
               <div className="p-4 sm:p-6 flex flex-col flex-1">
@@ -173,10 +179,8 @@ export default async function Component() {
                     'Musicians',
                     'Community builders',
                     'Hackers',
-                    'Thinkers',
-                    'Figgie players',
-                    'd/accs',
-                    'Members of technical and untechnical staff',
+                    'Designers',
+                    'Gamers',
                   ].map((label) => (
                     <div
                       key={label}
@@ -205,9 +209,10 @@ export default async function Component() {
               <Image
                 src="/images/003.jpg"
                 alt="Mox space"
-                width={2016}
-                height={1512}
+                width={1512}
+                height={1009}
                 priority
+                sizes={CARD_IMAGE_SIZES}
                 className="w-full md:w-48 lg:w-full h-48 md:h-auto lg:h-48 object-cover flex-shrink-0"
               />
               <div className="p-4 sm:p-6 flex flex-col flex-1">
@@ -275,16 +280,19 @@ export default async function Component() {
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             <a
-              href="https://www.tarbellfellowship.org/"
+              href="https://manifund.org/acx-grants"
               target="_blank"
               rel="noopener noreferrer"
-              className="aspect-[3/1] bg-[#123c75] hover:bg-[#0f2f5c] transition-all duration-200 flex items-center justify-center overflow-hidden p-3"
+              className="aspect-[3/1] bg-[#0b1530] hover:bg-[#081025] transition-all duration-200 flex items-center justify-center overflow-hidden p-3 gap-3"
             >
               <img
-                src="https://static.wixstatic.com/media/dbfe9b_2a27ec41f7b346089b2d5da7dea5a119~mv2.png/v1/fill/w_500,h_500,al_c/dbfe9b_2a27ec41f7b346089b2d5da7dea5a119~mv2.png"
-                alt="Tarbell logo"
-                className="h-full w-auto object-contain scale-250"
+                src="/logos/acx.jpg"
+                alt="ACX Grants logo"
+                className="h-full w-auto object-contain"
               />
+              <span className="text-2xl text-white uppercase font-sans tracking-wide">
+                ACX Grants
+              </span>
             </a>
 
             <a
@@ -336,7 +344,7 @@ export default async function Component() {
               className="aspect-[3/1] bg-[#2c97cc] hover:bg-[#2383b3] transition-all duration-200 flex items-center justify-center p-3 gap-2"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/601605260252024833/aeNPn9YV_400x400.png"
+                src="/logos/aiimpacts.png"
                 alt="AI Impacts logo"
                 className="h-full w-auto object-contain"
               />
@@ -368,7 +376,7 @@ export default async function Component() {
               className="aspect-[3/1] bg-[#eaf5f4] hover:bg-[#d5e8e6] transition-all duration-200 flex items-center justify-center p-3 gap-2"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/1866142753127616512/DYcE9bN1_400x400.jpg"
+                src="/logos/epoch.jpg"
                 alt="Epoch logo"
                 className="h-full w-auto object-contain"
               />
@@ -429,9 +437,9 @@ export default async function Component() {
               className="aspect-[3/1] bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-all duration-200 flex items-center justify-center p-3 gap-2 border border-gray-200 dark:border-gray-600"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/1496090136051953665/EUXvM3eS_400x400.jpg"
+                src="/logos/govai.png"
                 alt="GovAI logo"
-                className="h-full w-auto object-contain dark:invert dark:mix-blend-plus-lighter mix-blend-multiply object-contain scale-150"
+                className="h-full w-auto object-contain dark:invert"
               />
               <span className="text-2xl text-gray-900 dark:text-white uppercase font-sans tracking-wide">
                 GovAI
@@ -461,9 +469,9 @@ export default async function Component() {
               className="aspect-[3/1] bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-all duration-200 flex items-center justify-center p-3 gap-2 border border-gray-200 dark:border-gray-600"
             >
               <img
-                src="https://www.openphilanthropy.org/wp-content/uploads/redwood-logo.jpg"
+                src="/logos/redwood.svg"
                 alt="Redwood logo"
-                className="h-full w-auto object-contain dark:invert dark:mix-blend-plus-lighter"
+                className="h-full w-auto object-contain dark:brightness-0 dark:invert"
               />
               <span className="text-2xl text-gray-900 dark:text-white uppercase font-sans tracking-wide">
                 Redwood
@@ -477,7 +485,7 @@ export default async function Component() {
               className="aspect-[3/1] bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-all duration-200 flex items-center justify-center p-3 gap-2 border border-gray-200 dark:border-gray-600"
             >
               <img
-                src="https://palisaderesearch.org/assets/images/logos/palisade.svg"
+                src="/logos/palisade.svg"
                 alt="Palisade Research logo"
                 className="h-full w-auto object-contain dark:invert"
               />
@@ -556,7 +564,7 @@ export default async function Component() {
           </p>
           <p className="text-gray-500 dark:text-gray-400">
             Questions? Contact{' '}
-            <Link href="mailto:rachel@moxsf.com">rachel@moxsf.com</Link>
+            <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link>
           </p>
         </div>
       </footer>

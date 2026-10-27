@@ -190,3 +190,4 @@ flowchart TB
 | [Subscription Pause](./pause-subscription-flow.md) | User action | Stripe → Email |
 | [Door Code Rotation](./door-code-rotation.md) | Weekly cron | Verkada → Discord |
 | [Discord Role Sync](./discord-role-sync.md) | Profile update | Airtable → Discord |
+| [Active Members Roster](./active-members.md) | Page view (ISR) | Airtable + Stripe |

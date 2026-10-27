@@ -1,0 +1,25 @@
+{"what":"toilet on 4 won't flush","where":"4th floor bathroom","kind":"issue","category":"plumbing","owner":"facilities"}
+{"what":"wifi is down, nobody on 3 can work","where":"3rd floor","kind":"issue","category":"utilities","owner":"facilities"}
+{"what":"water pouring through the ceiling","where":"3F lounge","kind":"issue","category":"safety","owner":"all_staff"}
+{"what":"coffee machine won't turn on","where":"4th floor kitchen","kind":"issue","category":"appliance","owner":"facilities"}
+{"what":"out of mugs and paper towels","where":"4F kitchen","kind":"issue","category":"stocking","owner":"claudio"}
+{"what":"we need more HDMI cables","where":"meeting room B","kind":"issue","category":"stocking","owner":"claudio"}
+{"what":"bathrooms are dirty","where":"2F","kind":"issue","category":"cleaning","owner":"claudio"}
+{"what":"stock room is a mess","where":"stock room","kind":"issue","category":"cleaning","owner":"claudio"}
+{"what":"my door code isn't working for 302","where":"Office 302","kind":"issue","category":"door_codes","owner":"carolina"}
+{"what":"the lock on 302 is broken","where":"Office 302","kind":"issue","category":"security","owner":"facilities"}
+{"what":"my monitor arm is broken","where":"Office 210","kind":"issue","category":"furniture","owner":"facilities"}
+{"what":"ugly scuff on the stairwell wall","where":"stairwell between 2 and 3","kind":"issue","category":"cosmetic","owner":"claudio"}
+{"what":"need 40 chairs set up in the lounge Thursday","where":"lounge","kind":"issue","category":"events","owner":"claudio"}
+{"what":"the Zapier that posts to Slack has stopped","where":"n/a","kind":"issue","category":"operations","owner":"robin"}
+{"what":"should we start charging for evening events?","where":"n/a","kind":"issue","category":"operations","owner":"robin"}
+{"what":"the lounge feels cluttered and unwelcoming","where":"lounge","kind":"issue","category":"space","owner":"carolina"}
+{"what":"new members can't find anything, signage is bad","where":"whole building","kind":"issue","category":"space","owner":"carolina"}
+{"what":"someone left a bike blocking the 2F corridor","where":"2F corridor","kind":"issue","category":"other","owner":"carolina"}
+{"what":"a member keeps taking calls on speaker in the quiet room","where":"quiet room","kind":"issue","category":"other","owner":"carolina"}
+{"what":"can we stock vegan protein bars?","where":"kitchen","kind":"idea","category":"stocking","owner":"unassigned"}
+{"what":"we should get CO2 monitors","where":"every floor","kind":"idea","category":"utilities","owner":"unassigned"}
+{"what":"would be nice to have a standing desk","where":"Office 210","kind":"idea","category":"furniture","owner":"unassigned"}
+{"what":"do you do parties here?","where":"n/a","kind":"question","category":null,"owner":null}
+{"what":"can I bring my plant from home?","where":"my desk","kind":"question","category":null,"owner":null}
+{"what":"we're incorporating a nonprofit, do you provide a CA address?","where":"n/a","kind":"question","category":null,"owner":null}

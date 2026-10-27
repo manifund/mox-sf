@@ -1,0 +1,63 @@
+/* /active-members — dense roster built on the /people directory styles */
+
+.active-members .muted {
+  max-width: 80ch;
+}
+
+.tier-stats {
+  border-collapse: collapse;
+  margin-bottom: 30px;
+  font-size: 0.95em;
+}
+
+.tier-stats th,
+.tier-stats td {
+  text-align: left;
+  padding: 4px 24px 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tier-stats th {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.tier-stats .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 0;
+  padding-left: 24px;
+}
+
+.tier-stats tr.total td {
+  font-weight: bold;
+  border-bottom: 2px solid var(--border-dark);
+}
+
+.section-count {
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+.active-members .directory-section {
+  margin-bottom: 28px;
+}
+
+.active-members .program-section {
+  margin-bottom: 12px;
+}
+
+.active-members .program-header {
+  margin-bottom: 6px;
+  padding: 5px 10px;
+}
+
+.active-members .placeholder-note {
+  margin: 0 0 4px 10px;
+  font-style: italic;
+}

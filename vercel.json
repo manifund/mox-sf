@@ -7,6 +7,38 @@
     {
       "path": "/api/cron/room-availability",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/sync-checkins",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/gef-weekly-digest",
+      "schedule": "0 16 * * 1"
+    },
+    {
+      "path": "/api/cron/scrape-roles",
+      "schedule": "0 11 * * 1"
+    },
+    {
+      "path": "/api/cron/career-matching",
+      "schedule": "0 17 * * 2"
+    },
+    {
+      "path": "/api/cron/event-suggestions",
+      "schedule": "0 17 * * 3"
+    },
+    {
+      "path": "/api/cron/tasks-sweep",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/tasks-digest",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/sync-discord-roles",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

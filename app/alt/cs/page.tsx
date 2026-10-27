@@ -161,7 +161,7 @@ export default function CSPage() {
               </a>
             </li>
             <li>
-              <a href="mailto:rachel@moxsf.com" className={styles.link}>
+              <a href="mailto:robin@moxsf.com" className={styles.link}>
                 Contact Us
               </a>
             </li>

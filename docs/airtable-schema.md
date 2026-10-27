@@ -49,6 +49,11 @@ Primary table for user/member management.
 | `Events` | multipleRecordLinks | Events attended/hosted | |
 | `Day Passes` | multipleRecordLinks | Purchased day passes | |
 | `Created` | createdTime | Record creation date | |
+| `Job status` | singleSelect | **STAFF-ONLY.** Looking now / Open to offers / Not looking | ✅ Profile career section, careers admin |
+| `Hiring` | checkbox | **STAFF-ONLY.** Member says they're hiring | ✅ Profile career section, careers admin |
+| `LinkedIn` | url | **STAFF-ONLY.** | ✅ Profile career section, careers admin |
+| `Career notes` | multilineText | **STAFF-ONLY.** Free-text for staff | ✅ Profile career section, careers admin |
+| `Event digest` | checkbox | Opt-in to weekly personalized event email | ✅ Profile, event-suggestions cron |
 
 **Tier options:** Staff, Volunteer, Private Office, Program, Resident, Core, Friend, Courtesy, Guest Program, Paused
 
@@ -101,6 +106,9 @@ Organization/company management.
 | `People` | multipleRecordLinks | Organization members | |
 | `Rooms` | multipleRecordLinks | Assigned offices | |
 | `Notes` | multilineText | Internal notes | |
+| `Hiring` | checkbox | Org is actively hiring | ✅ Careers admin |
+| `Careers URL` | url | Careers page, scraped weekly into Roles | ✅ scrape-roles cron |
+| `About` | multilineText | Public 1-2 sentence blurb on /jobs; auto-generated from Website when empty (never overwrites hand edits) | ✅ /jobs, scrape-roles cron |
 
 **Status options:** Tried once, To reach out, Normal membership, Guest program, Joined, Declined, Tried twice, In contact, Short-term, Left
 
@@ -170,6 +178,83 @@ Per-floor metadata used by the `/floorplans` public page.
 | `Images` | multipleAttachments | Photos of the floor (shown alongside SVG floorplan) | ✅ Floorplans page |
 
 The SVG floorplans themselves are stored as static files in `/public/floorplans/Floor N.svg`.
+
+---
+
+### Attendance
+
+Door-presence tracking: one record per person per Pacific day. Written by the
+`sync-checkins` cron from Verkada door-access events; read by the weekly GEF
+digest. Not to be confused with **Check-ins** (the pre-existing staff 1:1
+conversation tracker, not used by the app).
+
+| Field | Type | Description | Used by App |
+|-------|------|-------------|-------------|
+| `Name` | singleLineText | "Person — date", set by the sync cron | ✅ Sync cron |
+| `Person` | multipleRecordLinks | Link to People | ✅ Sync cron, GEF digest |
+| `Date` | date | The Pacific-time day this record covers | ✅ Sync cron, GEF digest |
+| `First seen` | dateTime | First door event that day | ✅ Sync cron |
+| `Last seen` | dateTime | Last door event that day | ✅ Sync cron |
+| `Source` | singleSelect | Verkada, Day Pass, Manual | ✅ Sync cron |
+
+---
+
+### Roles
+
+Open roles in and around the Mox community, shown publicly at `/jobs`. Fed by
+the weekly `scrape-roles` cron (LLM-extracts openings from member orgs'
+`Careers URL` pages) and manual entry.
+
+| Field | Type | Description | Used by App |
+|-------|------|-------------|-------------|
+| `Title` | singleLineText | Role title | ✅ /jobs, scraper |
+| `Org` | multipleRecordLinks | Link to Orgs (stealth orgs never shown publicly) | ✅ /jobs, scraper |
+| `Company` | singleLineText | Company name for non-member orgs | ✅ /jobs |
+| `URL` | url | Job posting link | ✅ /jobs |
+| `Location` | singleLineText | | ✅ /jobs |
+| `Tags` | multipleSelects | AI Safety, Research, Engineering, Policy, Operations, Comms, Design, Other | ✅ /jobs, matching |
+| `Status` | singleSelect | Open (shown), Stale, Filled, Closed | ✅ /jobs, scraper |
+| `Source` | singleSelect | Careers page, Manual, Member | ✅ Scraper (only touches its own) |
+| `Posted` | date | First seen | ✅ Scraper |
+| `Last verified` | date | Last seen on the careers page | ✅ Scraper |
+| `Notes` | multilineText | | |
+| `Description` | multilineText | Expandable summary on /jobs ("- " lines render as bullets); auto-extracted from the posting page | ✅ /jobs, scraper |
+| `Salary` | singleLineText | As listed on the posting (auto-extracted) | ✅ /jobs, scraper |
+| `Deadline` | date | Application deadline if listed (auto-extracted) | ✅ /jobs, scraper |
+
+---
+
+### GEF Applications
+
+Global Expert Fellowship interest-form submissions from `/gef`.
+
+| Field | Type | Description | Used by App |
+|-------|------|-------------|-------------|
+| `Name` | singleLineText | Applicant name | ✅ GEF form |
+| `Email` | email | Applicant email | ✅ GEF form |
+| `Country` | singleLineText | Current country | ✅ GEF form |
+| `Focus area` | singleLineText | Primary focus area | ✅ GEF form |
+| `Background` | multilineText | Background | ✅ GEF form |
+| `Proud of` | multilineText | Work they are proud of | ✅ GEF form |
+| `Intentions` | multilineText | What they would work on in SF | ✅ GEF form |
+| `Status` | singleSelect | New, Reviewing, Interviewing, Accepted, Rejected | ✅ GEF form (sets "New") |
+
+---
+
+### Operations Requests
+
+Tickets submitted through the Airtable form at `/request` (one request per
+submission). The portal's "tickets & requests" section lists a member's own
+requests, matched on `Your Email`. Referenced by table ID (`tbl77SjSdonCzvVMr`).
+
+| Field | Type | Description | Used by App |
+|-------|------|-------------|-------------|
+| `Name (first and last)` | singleLineText | Primary field; prefilled from the portal link | ✅ Portal (prefill) |
+| `Your Email` | email | Prefilled from the portal link | ✅ Portal (prefill, lookup) |
+| `Request Details` | richText | First line shown as the ticket summary | ✅ Portal |
+| `Request Category` | multipleSelects | Building Issues, Food & Drink, Events Setup or other A/V, Program-related, Security & Safety, Other | ✅ Portal |
+| `Status` | singleSelect | New, In progress, Done, Won't do (staff-only; blank shows as "new") | ✅ Portal |
+| `Request Location`, `Room`, `Location Details`, `Time sensitive?`, `Date Needed By`, ... | | Form fields for staff | |
 
 ---
 

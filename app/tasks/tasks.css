@@ -1,0 +1,1179 @@
+/*
+ * Task board design system (tasks.moxsf.com) — recovered from the July 2026
+ * standalone mox-tasks app and scoped under .tasksui so it never leaks into
+ * the rest of moxsf.com. Neutral gray surfaces, Playfair display headings,
+ * Fira Sans UI, amber reserved for links & accents (gold in dark mode).
+ * See docs/tasks-board.md.
+ */
+/* Theme matched to moxsf.com: neutral gray surfaces (gray-50 light /
+   gray-900 dark), Lora serif body, Playfair Display headings, and amber
+   reserved for links & accents (amber-900 in light, gold amber-400 in dark). */
+.tasksui {
+  --paper: #f9fafb;
+  --card: #ffffff;
+  --ink: #111827;
+  --muted: #6b7280;
+  --faint: #9ca3af;
+  --line: #e5e7eb;
+  --accent: #78350f;
+  --accent-hover: #451a03;
+  --on-accent: #ffffff;
+  --accent-soft: #fef3c7;
+  --accent-soft-text: #78350f;
+  --header-bg: rgba(249, 250, 251, 0.85);
+  --prose-text: #374151;
+  --green: #065f46;
+  --green-bg: #d1fae5;
+  --amber: #92400e;
+  --amber-bg: #fef3c7;
+  --blue: #1e40af;
+  --blue-bg: #dbeafe;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 8px 24px -12px rgba(17, 24, 39, 0.12);
+  --shadow-hover: 0 2px 4px rgba(17, 24, 39, 0.05), 0 16px 32px -12px rgba(17, 24, 39, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui {
+    --paper: #111827;
+    --card: #1f2937;
+    --ink: #f3f4f6;
+    --muted: #9ca3af;
+    --faint: #6b7280;
+    --line: #374151;
+    --accent: #fbbf24;
+    --accent-hover: #fcd34d;
+    --on-accent: #111827;
+    --accent-soft: #78350f;
+    --accent-soft-text: #fcd34d;
+    --header-bg: rgba(17, 24, 39, 0.8);
+    --prose-text: #d1d5db;
+    --green: #6ee7b7;
+    --green-bg: #064e3b;
+    --amber: #fbbf24;
+    --amber-bg: #78350f;
+    --blue: #93c5fd;
+    --blue-bg: #1e3a8a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 16px 32px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.tasksui *, .tasksui *::before, .tasksui *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+
+.tasksui {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  /* The board's background must cover the whole viewport (the site body under
+     it is light); footer pins to the bottom on short pages. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasksui main {
+  flex: 1;
+}
+
+.tasksui h1, .tasksui h2, .tasksui h3 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.tasksui a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tasksui button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.tasksui .container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- header ---------- */
+
+.tasksui .site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--header-bg);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tasksui .header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.tasksui .wordmark {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tasksui .wordmark span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.tasksui .site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tasksui .nav-link {
+  font-size: 14.5px;
+  font-weight: 550;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+.tasksui .nav-link:hover {
+  color: var(--ink);
+}
+
+.tasksui .inline-form {
+  display: inline-flex;
+}
+
+/* ---------- buttons ---------- */
+
+.tasksui .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: all 0.15s;
+}
+
+.tasksui .btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tasksui .btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.tasksui .btn-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tasksui .btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+  padding: 7px 16px;
+  font-size: 14px;
+}
+
+.tasksui .btn-ghost:hover {
+  color: var(--ink);
+  border-color: var(--faint);
+}
+
+.tasksui .btn-block {
+  width: 100%;
+}
+
+.tasksui .btn-quiet {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tasksui .btn-quiet:hover {
+  color: var(--ink);
+}
+
+/* ---------- hero ---------- */
+
+.tasksui .hero {
+  padding: 72px 0 44px;
+}
+
+.tasksui .hero h1 {
+  font-size: clamp(38px, 6vw, 56px);
+  max-width: 14em;
+}
+
+.tasksui .hero p {
+  margin-top: 16px;
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 34em;
+}
+
+.tasksui .hero .open-count {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+/* ---------- sections & grid ---------- */
+
+.tasksui .section {
+  padding: 12px 0 48px;
+}
+
+.tasksui .section-title {
+  font-size: 14px;
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 18px;
+}
+
+.tasksui .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+/* ---------- cards ---------- */
+
+.tasksui .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.tasksui .task-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+/* The title link stretches over the whole card; chips stack above it */
+.tasksui .card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.task-card .chips,
+.tasksui .task-card .claimed-by {
+  position: relative;
+  z-index: 1;
+}
+
+.tasksui .task-card .chips {
+  margin-top: auto;
+  width: fit-content;
+}
+
+.tasksui .task-card .chips .chip:hover {
+  filter: brightness(0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .task-card .chips .chip:hover {
+    filter: brightness(1.2);
+  }
+}
+
+.tasksui .task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.tasksui .task-card h3 {
+  font-size: 21px;
+}
+
+.tasksui .task-card > p {
+  font-size: 14.5px;
+  color: var(--muted);
+  flex: 1;
+}
+
+.tasksui .card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tasksui .effort {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--green);
+  background: var(--green-bg);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.tasksui .task-card.is-claimed {
+  opacity: 0.72;
+}
+
+.tasksui .task-card.is-claimed .effort {
+  color: var(--amber);
+  background: var(--amber-bg);
+}
+
+.tasksui .claimed-by {
+  font-size: 13px;
+  color: var(--amber);
+  font-weight: 550;
+}
+
+.tasksui .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tasksui .chip {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2.5px 10px;
+  background: var(--paper);
+}
+
+.tasksui .chip-floor {
+  color: var(--accent-soft-text);
+  border-color: transparent;
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.tasksui .chip-active {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.tasksui .filter-note {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 14px;
+  color: var(--muted);
+  margin: -8px 0 16px;
+}
+
+.tasksui .filter-note .filter-tag {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.tasksui .filter-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tasksui .filter-note a:hover {
+  color: var(--ink);
+}
+
+/* Skill color coding — mirrors moxsf.com's category chip palette */
+.chip[data-skill] { border-color: transparent; font-weight: 600; }
+.chip[data-skill="Space & setup"] { background: #ccfbf1; color: #115e59; }
+.chip[data-skill="Errand"] { background: #fef3c7; color: #92400e; }
+.chip[data-skill="Design"] { background: #f3e8ff; color: #6b21a8; }
+.chip[data-skill="Writing"] { background: #dbeafe; color: #1e40af; }
+.chip[data-skill="Tech"] { background: #cffafe; color: #155e75; }
+.chip[data-skill="Events"] { background: #ffe4e6; color: #9f1239; }
+.chip[data-skill="Ops & admin"] { background: #ffedd5; color: #9a3412; }
+
+@media (prefers-color-scheme: dark) {
+  .chip[data-skill="Space & setup"] { background: #134e4a; color: #5eead4; }
+  .chip[data-skill="Errand"] { background: #78350f; color: #fcd34d; }
+  .chip[data-skill="Design"] { background: #581c87; color: #d8b4fe; }
+  .chip[data-skill="Writing"] { background: #1e3a8a; color: #93c5fd; }
+  .chip[data-skill="Tech"] { background: #164e63; color: #67e8f9; }
+  .chip[data-skill="Events"] { background: #881337; color: #fda4af; }
+  .chip[data-skill="Ops & admin"] { background: #7c2d12; color: #fdba74; }
+}
+
+.tasksui .photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.tasksui .photo-grid a {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.tasksui .photo-grid img {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  transition: transform 0.2s;
+}
+
+.tasksui .photo-grid a:hover img {
+  transform: scale(1.03);
+}
+
+.tasksui .badge {
+  font-size: 12px;
+  font-weight: 650;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.badge-open { color: var(--green); background: var(--green-bg); }
+.badge-claimed { color: var(--amber); background: var(--amber-bg); }
+.badge-review { color: var(--blue); background: var(--blue-bg); }
+.badge-done { color: var(--muted); background: var(--line); }
+
+/* ---------- done strip ---------- */
+
+.tasksui .done-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tasksui .done-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+.tasksui .done-item .who {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tasksui .empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  font-size: 15px;
+}
+
+/* ---------- task detail ---------- */
+
+.tasksui .task-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 40px;
+  padding: 40px 0 80px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .tasksui .task-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tasksui .back-link {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--muted);
+  margin: 24px 0 0;
+}
+
+.back-link:hover { color: var(--ink); }
+
+.tasksui .task-detail h1 {
+  font-size: clamp(30px, 4.5vw, 42px);
+  margin: 10px 0 12px;
+}
+
+.tasksui .task-detail .lede {
+  font-size: 17.5px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.tasksui .meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.tasksui .detail-section {
+  margin-bottom: 28px;
+}
+
+.tasksui .detail-section h2 {
+  font-size: 15px;
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+
+.tasksui .prose p {
+  margin-bottom: 12px;
+  color: var(--prose-text);
+}
+
+.tasksui .prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tasksui .done-criteria {
+  background: var(--green-bg);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.done-criteria p { color: var(--green); }
+.done-criteria p:last-child { margin-bottom: 0; }
+
+.tasksui .link-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tasksui .link-list a {
+  color: var(--accent);
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- action card ---------- */
+
+.tasksui .action-card {
+  position: sticky;
+  top: 88px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tasksui .action-card h2 {
+  font-size: 20px;
+}
+
+.tasksui .action-card .hint {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.tasksui .action-card .error {
+  font-size: 13.5px;
+  color: #a33;
+  background: #fbe9e7;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .action-card .error {
+    color: #fecaca;
+    background: #7f1d1d;
+  }
+}
+
+.tasksui textarea, .tasksui input[type="text"], .tasksui select {
+  font: inherit;
+  font-size: 14.5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  width: 100%;
+  resize: vertical;
+}
+
+.tasksui textarea:focus, .tasksui input:focus, .tasksui select:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* ---------- floor map ---------- */
+
+.tasksui .floormap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 10px;
+}
+
+.tasksui .floormap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tasksui .fm-nonroom {
+  fill: color-mix(in srgb, var(--line) 45%, transparent);
+  stroke: none;
+}
+
+.tasksui .fm-room {
+  fill: color-mix(in srgb, var(--accent) 8%, transparent);
+  stroke: var(--faint);
+  stroke-width: 2;
+  transition: fill 0.12s;
+}
+
+.tasksui .floormap svg[style*="crosshair"] .fm-room:hover {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.tasksui .fm-room-active {
+  fill: color-mix(in srgb, var(--accent) 17%, transparent);
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.tasksui .fm-pin-halo {
+  fill: var(--accent);
+  opacity: 0.22;
+}
+
+.tasksui .fm-pin-dot {
+  fill: var(--accent);
+  stroke: var(--on-accent);
+  stroke-width: 3;
+}
+
+.tasksui .floormap-caption {
+  margin: 8px 2px 2px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tasksui .map-clear {
+  margin-left: 10px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--muted);
+}
+
+/* ---------- add-task modal ---------- */
+
+.tasksui .btn-sm {
+  padding: 7px 16px;
+  font-size: 14px;
+}
+
+/* The form portals to document.body with class="tasksui modal-backdrop", so
+   the backdrop is the .tasksui element itself, not a descendant — match both. */
+.tasksui .modal-backdrop,
+.tasksui.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+  z-index: 50;
+  display: flex;
+  /* row, explicitly: the base .tasksui rule is a column flexbox */
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 6vh 16px 32px;
+  overflow-y: auto;
+  animation: tasksui-fade-in 0.15s ease;
+}
+
+.tasksui .modal-panel {
+  width: 100%;
+  max-width: 560px;
+  padding: 26px;
+  animation: tasksui-slide-down 0.22s ease;
+}
+
+@keyframes tasksui-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tasksui-slide-down {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tasksui .modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.tasksui .modal-head h2 {
+  font-size: 24px;
+}
+
+.tasksui .modal-close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--muted);
+  padding: 2px 8px;
+}
+
+.tasksui .modal-close:hover { color: var(--ink); }
+
+.tasksui .task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-form label,
+.tasksui .skill-picker .picker-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.tasksui .task-form .file-label {
+  flex-direction: row;
+  font-weight: 500;
+}
+
+.tasksui .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tasksui .skill-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tasksui .chip-toggle {
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 4px 12px;
+}
+
+.tasksui .chip-toggle:not(.chip-on):hover {
+  border-color: var(--faint);
+  color: var(--ink);
+}
+
+.tasksui .chip-toggle.chip-on {
+  border-color: transparent;
+}
+
+.tasksui .task-form .error {
+  font-size: 13.5px;
+  color: #a33;
+  background: #fbe9e7;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .task-form .error {
+    color: #fecaca;
+    background: #7f1d1d;
+  }
+}
+
+.tasksui .file-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.file-label:hover { border-color: var(--faint); }
+.file-label input { display: none; }
+.file-label.has-file { color: var(--green); border-color: var(--green); background: var(--green-bg); }
+
+.tasksui .divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 4px 0;
+}
+
+/* ---------- me page ---------- */
+
+.page-pad { padding: 48px 0 80px; }
+
+.page-pad > h1 { font-size: 36px; margin-bottom: 6px; }
+.page-pad > .sub { color: var(--muted); margin-bottom: 36px; }
+
+.tasksui .my-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.my-task h3 { font-size: 19px; }
+.my-task .when { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.my-task-right { display: flex; align-items: center; gap: 12px; }
+
+/* ---------- footer ---------- */
+
+.tasksui .site-footer {
+  border-top: 1px solid var(--line);
+  padding: 32px 0 48px;
+  margin-top: 40px;
+}
+
+.tasksui .site-footer .container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tasksui .site-footer a {
+  color: var(--accent);
+}
+
+/* ---------- wordmark logo (deployed July design; not in the recovered css) ---------- */
+
+.tasksui .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasksui .wordmark-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .wordmark-logo {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+/* ---------- volunteer / contractor tabs ---------- */
+
+.tasksui .tabs {
+  display: flex;
+  gap: 26px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 36px;
+}
+
+.tasksui .tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 2px 12px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s;
+}
+
+.tasksui .tab:hover {
+  color: var(--ink);
+}
+
+.tasksui .tab-active {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.tasksui .tab .tab-count {
+  font-weight: 500;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+/* ---------- floor groups ---------- */
+
+.tasksui .floor-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.tasksui .floor-group-title {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.tasksui .floor-group-title .count {
+  font-weight: 500;
+  color: var(--faint);
+}
+
+/* ---------- priority dots (glow cue: blue low, amber medium, red high) ---------- */
+
+.tasksui .card-top-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasksui .effort-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasksui .repeat-mark {
+  font-size: 13px;
+}
+
+.tasksui .prio-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+}
+
+.tasksui .prio-low {
+  background: #3b82f6;
+  box-shadow: 0 0 6px 1px rgba(59, 130, 246, 0.55);
+}
+
+.tasksui .prio-medium {
+  background: #f59e0b;
+  box-shadow: 0 0 6px 1px rgba(245, 158, 11, 0.55);
+}
+
+.tasksui .prio-high {
+  background: #ef4444;
+  box-shadow: 0 0 7px 2px rgba(239, 68, 68, 0.6);
+  animation: tasksui-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tasksui-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.tasksui .prio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ---------- task type (contractor chip + form picker) ---------- */
+
+.tasksui .chip-contractor {
+  border-color: transparent;
+  font-weight: 600;
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .chip-contractor {
+    background: #7c2d12;
+    color: #fdba74;
+  }
+}
+
+.tasksui .chip-toggle[data-type="Volunteer"].chip-on {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.tasksui .chip-toggle[data-type="Contractor"].chip-on {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tasksui .chip-toggle[data-type="Contractor"].chip-on {
+    background: #7c2d12;
+    color: #fdba74;
+  }
+}
+
+/* ---------- existing reference photos in the edit form ---------- */
+
+.tasksui .kept-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tasksui .kept-photo {
+  position: relative;
+}
+
+.tasksui .kept-photo img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+.tasksui .kept-photo button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tasksui .fm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------- task conversation ---------- */
+
+.tasksui .comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.tasksui .comment {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+}
+
+.tasksui .comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.tasksui .comment-author {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.tasksui .comment-when {
+  font-size: 12.5px;
+  color: var(--faint);
+}
+
+.tasksui .comment .prose p {
+  font-size: 14.5px;
+  margin-bottom: 8px;
+}
+
+.tasksui .comment .prose p:last-child {
+  margin-bottom: 0;
+}
+
+.tasksui .comments-empty {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.tasksui .comments-empty a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tasksui .comment-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.tasksui .comment-form textarea {
+  width: 100%;
+}
+
+.tasksui .comment-form .error {
+  align-self: stretch;
+}
