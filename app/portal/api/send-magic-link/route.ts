@@ -103,6 +103,10 @@ export async function POST(request: Request) {
       `,
     })
 
+    if (emailResult.error) {
+      throw new Error(`Login email rejected: ${emailResult.error.message}`)
+    }
+
     return Response.json({
       success: true,
       message: 'Login link sent! Check your email.',

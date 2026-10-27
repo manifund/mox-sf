@@ -5,7 +5,7 @@
   "description": "Mox building support bot \u2014 Discord intake, Haiku triage, Notion mirror",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.23.4"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",

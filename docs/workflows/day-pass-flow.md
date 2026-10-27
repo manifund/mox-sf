@@ -119,3 +119,24 @@ When a day pass is purchased, the customer receives an email with:
 - **Missing customer email**: Logged but not retried
 - **Airtable creation fails**: Logged, email not sent
 - **Email send fails**: Logged but record still created
+
+## Fulfillment failures and recovery
+
+The paid-pass webhook returns HTTP 500 on Airtable or activation-email errors so
+Stripe can retry. New passes use the existing Notes field to track delivery:
+`day-pass-activation:pending` until the email provider accepts the message, then
+`day-pass-activation:sent`. Do not edit these markers while fulfillment is pending.
+Retries resume pending email delivery without creating another pass. Existing
+passes without a pending marker are left alone, including manually restored
+passes identified by a Stripe payment intent ID. If the delivery-status write
+fails after email acceptance, a retry may send another email; it does not issue
+another pass. Concurrent webhook deliveries still depend on the existing
+lookup-before-create deduplication (Airtable does not enforce uniqueness).
+
+The production Airtable token requires `data.records:read` and
+`data.records:write`, access to the Mox base, and a token owner who can edit it.
+A successful read does not verify write access. Permission failures also break
+login-token persistence, event creation, room bookings, and pass activation.
+After restoring the credential, reconcile Stripe purchases against Day Passes
+before replaying historical events: earlier code acknowledged failed purchases
+with HTTP 200, so Stripe will not automatically redeliver those failures.

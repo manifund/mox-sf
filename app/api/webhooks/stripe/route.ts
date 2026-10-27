@@ -5,6 +5,7 @@ import { getDayPassActivationEmail } from '@/app/lib/emails/day-pass-activation'
 import {
   Tables,
   createRecord,
+  updateRecord,
   findRecord,
   escapeAirtableString,
 } from '@/app/lib/airtable';
@@ -98,7 +99,10 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error(`[Stripe Webhook] Error handling ${event.type}:`, error);
-    // Return 200 to prevent Stripe from retrying - we'll log the error
+    // Paid day passes must be retried if fulfillment or delivery fails.
+    if (event.type === 'checkout.session.completed') {
+      return Response.json({ error: 'Processing failed' }, { status: 500 });
+    }
     return Response.json({ received: true, error: 'Processing failed' });
   }
 
@@ -182,12 +186,20 @@ async function handleDayPassPurchase(session: Stripe.Checkout.Session) {
 
   const sessionId = session.id;
 
-  // Dedupe: Stripe occasionally redelivers the same event.
+  // Track email delivery separately so retries can finish partial fulfillment.
+  // Also recognize manually restored passes keyed by payment intent.
+  const paymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id;
+  const sessionFilter = `{Name}="${escapeAirtableString(sessionId)}"`;
+  const filter = paymentIntentId
+    ? `OR(${sessionFilter},{Name}="${escapeAirtableString(paymentIntentId)}")`
+    : sessionFilter;
   const existing = await findRecord(
     Tables.DayPasses,
-    `{Name}="${escapeAirtableString(sessionId)}"`
+    filter
   );
-  if (existing) {
+  if (existing && existing.fields.Notes !== 'day-pass-activation:pending') {
     console.log('[Stripe Webhook] Session already processed, skipping');
     return;
   }
@@ -197,7 +209,12 @@ async function handleDayPassPurchase(session: Stripe.Checkout.Session) {
       (resolved.issuedByPersonId ? ` (issued by ${resolved.issuedByPersonId})` : '')
   );
 
-  const result = await createDayPassRecord({
+  const result = existing
+    ? { recordId: existing.id, personId: await findOrCreatePerson({
+        customerName: resolved.recipientName,
+        customerEmail: resolved.recipientEmail,
+      }) }
+    : await createDayPassRecord({
     paymentId: sessionId,
     recipientName: resolved.recipientName,
     recipientEmail: resolved.recipientEmail,
@@ -205,8 +222,7 @@ async function handleDayPassPurchase(session: Stripe.Checkout.Session) {
     issuedByPersonId: resolved.issuedByPersonId,
   });
   if (!result) {
-    console.error('[Stripe Webhook] Failed to create Airtable record');
-    return;
+    throw new Error('Failed to create Airtable day pass record');
   }
 
   const baseUrl = env.NEXT_PUBLIC_BASE_URL;
@@ -220,6 +236,10 @@ async function handleDayPassPurchase(session: Stripe.Checkout.Session) {
     passType: resolved.passLabel,
     passDescription: resolved.passDescription,
     activationLink,
+  });
+
+  await updateRecord(Tables.DayPasses, result.recordId, {
+    Notes: 'day-pass-activation:sent',
   });
 
   console.log(
@@ -257,7 +277,7 @@ async function findOrCreatePerson({
     return newPerson.id;
   } catch (error) {
     console.error('[Stripe Webhook] Error in findOrCreatePerson:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -284,6 +304,7 @@ async function createDayPassRecord({
       Name: paymentId,
       'Pass Type': passType,
       Status: 'Unused',
+      Notes: 'day-pass-activation:pending',
     };
 
     if (personId) fields['User'] = [personId];
@@ -294,7 +315,7 @@ async function createDayPassRecord({
     return { recordId: record.id, personId };
   } catch (error) {
     console.error('[Stripe Webhook] Error creating day pass record:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -326,11 +347,14 @@ async function sendActivationEmail({
       text,
     });
 
-    console.log('[Stripe Webhook] Sent activation email:', result);
+    if (result.error) {
+      throw new Error(`Activation email rejected: ${result.error.message}`);
+    }
+    console.log('[Stripe Webhook] Sent activation email:', result.data?.id);
     return result;
   } catch (error) {
     console.error('[Stripe Webhook] Error sending email:', error);
-    return null;
+    throw error;
   }
 }
 

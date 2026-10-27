@@ -85,7 +85,9 @@ export default function GefLanding() {
       <div className={styles.grain} aria-hidden="true" />
       <header className={styles.siteHeader} aria-label="Primary navigation">
         <a className={styles.brand} href="#top" aria-label="Mox Global Expert Fellowship home">
-          <span className={styles.brandMark}>Mox</span>
+          <span className={styles.brandLogo}>
+            <img src="/images/mox_logo_text.svg" alt="Mox" />
+          </span>
           <span>Global Expert Fellowship</span>
         </a>
         <nav aria-label="Page sections">
