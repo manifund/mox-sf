@@ -39,20 +39,20 @@ function PartnerCard({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex flex-col items-center gap-4 hover:bg-slate-200 p-4"
+      className="flex flex-col items-center gap-3 hover:bg-slate-100 p-4 rounded-lg transition-colors"
     >
       {logoUrl ? (
         <img
           src={logoUrl}
           alt={`${name} logo`}
-          className={`w-36 h-36 ${bgColor} p-3 object-contain`}
+          className={`w-36 h-36 ${bgColor} p-3 object-contain rounded-lg`}
         />
       ) : (
-        <div className="w-36 h-36 bg-black border border-gray-200 flex items-center justify-center text-gray-400 text-xs font-mono mr-4 overflow-hidden">
+        <div className="w-36 h-36 bg-black border border-gray-200 flex items-center justify-center text-gray-400 text-xs font-mono rounded-lg overflow-hidden">
           {logoPlaceholder}
         </div>
       )}
-      <h3 className="text-xl font-bold font-merriweather text-gray-900">
+      <h3 className="text-base font-bold font-merriweather text-gray-900 text-center">
         {name}
       </h3>
     </a>
@@ -170,7 +170,7 @@ export default function GuestProgramPage() {
           <h2 className="text-3xl font-bold mb-8 text-center font-display">
             Our partners include
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
             <PartnerCard
               name="Lightcone"
               url="https://www.lightconeinfrastructure.com//"
