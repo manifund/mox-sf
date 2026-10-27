@@ -22,6 +22,9 @@ export const DISCORD_CHANNELS = {
   // Task board completions/approvals. The Mox bot (DISCORD_BOT_TOKEN) must have
   // View Channel + Read Message History here for the ✅-approval sweep to work.
   TASKS: '1523782328118149130',
+  // Public welcome post when a membership subscription starts. Same channel
+  // the retired "On new Mox subscription" Zap posted to.
+  NEW_MEMBERS: '1339404215700947000',
 } as const
 
 // Message ID for the room availability status message that gets edited

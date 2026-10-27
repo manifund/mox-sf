@@ -52,8 +52,13 @@ Handle Stripe webhook events.
 
 - **Auth:** Stripe signature
 - **Handles:**
-  - `checkout.session.completed` - Day pass purchases
-  - `customer.subscription.created` - New subscriptions (triggers Forkable onboarding)
+  - `checkout.session.completed` (mode `payment`) - Day pass purchases
+  - `checkout.session.completed` (mode `subscription`) - Membership joined: sets People `Status=Joined`, `Tier`, `Stripe Customer ID`; sends welcome email; posts to Discord
+  - `customer.subscription.created` - Forkable meal-club onboarding (best effort)
+  - `invoice.payment_failed` - Staff Discord heads-up; no access change
+  - `customer.subscription.updated` - `past_due → unpaid`: `Status=Payment Issue`, door access removed; `unpaid/past_due → active`: back to `Joined`
+  - `customer.subscription.deleted` - `Status=Cancelled`, door access removed (skipped if the customer still has another live subscription)
+- **Failure handling:** membership and day-pass handlers are idempotent; on error the route returns 500 so Stripe retries, and posts a 🚨 alert to the staff Discord channel. See [member-onboarding.md](./workflows/member-onboarding.md).
 
 ---
 

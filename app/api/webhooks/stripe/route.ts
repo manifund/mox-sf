@@ -17,8 +17,25 @@ import {
   FORKABLE_CLUBS,
   parseFullName,
 } from '@/app/lib/forkable';
+import {
+  MEMBERSHIP_PRODUCTS,
+  alertWebhookFailure,
+  handleMembershipCheckout,
+  handlePaymentFailed,
+  handleSubscriptionDeleted,
+  handleSubscriptionUpdated,
+} from '@/app/lib/stripe-membership';
 
 const resend = new Resend(env.RESEND_API_KEY);
+
+// Events whose handlers write to Airtable or send mail. A failure returns 500
+// so Stripe retries (handlers are idempotent) and staff get a Discord alert.
+const RETRYABLE_EVENTS = new Set<string>([
+  'checkout.session.completed',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.payment_failed',
+]);
 
 // Map Stripe product IDs to pass types
 const DAY_PASS_PRODUCTS: Record<
@@ -40,22 +57,6 @@ const DAY_PASS_PRODUCTS: Record<
     description: 'Full week of access',
     durationDays: 7,
   },
-};
-
-// Map Stripe product IDs to membership tiers
-const MEMBERSHIP_PRODUCTS: Record<
-  string,
-  { tier: string; forkableClubIds: number[] }
-> = {
-  prod_RpkYg9EMJoi5oi: {
-    tier: 'Core',
-    forkableClubIds: [FORKABLE_CLUBS.MOX_MEMBERS],
-  },
-  prod_RpkufjD9E3esG5: {
-    tier: 'Resident',
-    forkableClubIds: [FORKABLE_CLUBS.MOX_RESIDENTS],
-  },
-  prod_Rq9VzfM9QoJwPD: { tier: 'Friend', forkableClubIds: [] }, // No Forkable access
 };
 
 export async function POST(request: Request) {
@@ -84,14 +85,39 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleDayPassPurchase(
-          event.data.object as Stripe.Checkout.Session
-        );
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        // Membership subscriptions (from /join and /portal/renew) and one-off
+        // day passes share this event; the mode tells them apart.
+        if (session.mode === 'subscription') {
+          await handleMembershipCheckout(session);
+        } else {
+          await handleDayPassPurchase(session);
+        }
         break;
+      }
 
       case 'customer.subscription.created':
         await handleNewSubscription(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          event.data.previous_attributes as
+            | Partial<Stripe.Subscription>
+            | undefined
+        );
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription
+        );
+        break;
+
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.Invoice);
         break;
 
       default:
@@ -99,8 +125,13 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error(`[Stripe Webhook] Error handling ${event.type}:`, error);
-    // Paid day passes must be retried if fulfillment or delivery fails.
-    if (event.type === 'checkout.session.completed') {
+    // Paid day passes and membership lifecycle changes must be retried if
+    // fulfillment, delivery, or the Airtable write fails.
+    if (RETRYABLE_EVENTS.has(event.type)) {
+      if (event.type !== 'checkout.session.completed' ||
+          (event.data.object as Stripe.Checkout.Session).mode === 'subscription') {
+        await alertWebhookFailure(event.type, event.id, error);
+      }
       return Response.json({ error: 'Processing failed' }, { status: 500 });
     }
     return Response.json({ received: true, error: 'Processing failed' });
