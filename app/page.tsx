@@ -344,7 +344,7 @@ export default async function Component() {
               className="aspect-[3/1] bg-[#2c97cc] hover:bg-[#2383b3] transition-all duration-200 flex items-center justify-center p-3 gap-2"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/601605260252024833/aeNPn9YV_400x400.png"
+                src="/logos/aiimpacts.png"
                 alt="AI Impacts logo"
                 className="h-full w-auto object-contain"
               />
@@ -376,7 +376,7 @@ export default async function Component() {
               className="aspect-[3/1] bg-[#eaf5f4] hover:bg-[#d5e8e6] transition-all duration-200 flex items-center justify-center p-3 gap-2"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/1866142753127616512/DYcE9bN1_400x400.jpg"
+                src="/logos/epoch.jpg"
                 alt="Epoch logo"
                 className="h-full w-auto object-contain"
               />
@@ -437,9 +437,9 @@ export default async function Component() {
               className="aspect-[3/1] bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-all duration-200 flex items-center justify-center p-3 gap-2 border border-gray-200 dark:border-gray-600"
             >
               <img
-                src="https://pbs.twimg.com/profile_images/1496090136051953665/EUXvM3eS_400x400.jpg"
+                src="/logos/govai.png"
                 alt="GovAI logo"
-                className="h-full w-auto object-contain dark:invert dark:mix-blend-plus-lighter mix-blend-multiply object-contain scale-150"
+                className="h-full w-auto object-contain dark:invert"
               />
               <span className="text-2xl text-gray-900 dark:text-white uppercase font-sans tracking-wide">
                 GovAI

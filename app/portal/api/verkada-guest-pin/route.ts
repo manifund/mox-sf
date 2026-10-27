@@ -86,7 +86,7 @@ export async function GET() {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const guestUserId = env.VERKADA_GUEST_USER_ID
+    const guestUserId = env.VERKADA_GUEST_USER_ID.trim()
     if (!guestUserId) {
       return Response.json({ pin: null, hasAccess: false })
     }

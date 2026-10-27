@@ -81,18 +81,20 @@
   text-decoration: none;
 }
 
-.brandMark {
+.brandLogo {
   align-items: center;
-  aspect-ratio: 1;
-  background: var(--gold);
+  background: var(--vellum);
   border-radius: 999px;
-  color: var(--ink);
-  display: inline-flex;
-  font-family: var(--display);
-  font-size: 14px;
-  font-weight: 800;
+  display: flex;
   justify-content: center;
-  width: 42px;
+  padding: 4px 10px;
+}
+
+.brandLogo img {
+  display: block;
+  height: 26px;
+  object-fit: contain;
+  width: 68px;
 }
 
 .brand span:last-child,
@@ -259,11 +261,15 @@
   margin: 0;
 }
 
-.primaryAction {
+.gefPage .primaryAction {
   text-decoration: none;
 }
 
-.primaryAction {
+.gefPage .primaryAction span {
+  color: inherit;
+}
+
+.gefPage .primaryAction {
   align-items: center;
   background: var(--vellum);
   border-radius: 999px;
