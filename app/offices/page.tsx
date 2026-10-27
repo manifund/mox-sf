@@ -3,6 +3,7 @@ import {
   MEMBERSHIP_TIERS,
   OFFICE_CONTACT_EMAIL,
   OFFICE_DEPOSIT_MONTHS,
+  OFFICE_EOI_FORM_URL,
   OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT,
   OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT,
   OFFICE_NOTICE_MONTHS,
@@ -45,14 +46,14 @@ function OfficePricingGrid() {
         Pricing
       </p>
       <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-        Starting at {formatDollars(smallest.standardMonthlyCents)}/month for a{' '}
-        {smallest.people}-person office
-      </p>
-      <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark mb-4">
+        Starting at{' '}
         {formatDollars(
           officeMissionAlignedCents(smallest.standardMonthlyCents)
         )}
-        /month for mission-aligned teams
+        /month for a {smallest.people}-person office, for mission-aligned teams
+      </p>
+      <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark mb-4">
+        {formatDollars(smallest.standardMonthlyCents)}/month standard rate
       </p>
 
       <table className="w-full text-sm border-collapse">
@@ -132,12 +133,8 @@ function OfficePricingGrid() {
           <span>
             Teams doing mission-aligned work get{' '}
             {OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT}% off.{' '}
-            <Link
-              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Private office at Mox`}
-            >
-              Email {OFFICE_CONTACT_EMAIL}
-            </Link>{' '}
-            to ask whether your team qualifies.
+            <Link href={OFFICE_EOI_FORM_URL}>Tell us about your team</Link> and
+            we&apos;ll let you know whether you qualify.
           </span>
         </li>
       </ul>
@@ -167,9 +164,6 @@ export default function OfficesPage() {
           <p className="text-lg text-text-tertiary dark:text-text-tertiary-dark leading-relaxed max-w-3xl mx-auto">
             Mox offers private offices and dedicated desk space for teams
             working on AI safety, frontier technology, and important problems.
-            You'll work alongside 150 members including researchers from
-            Anthropic, OpenAI, and METR, plus founders, policymakers, and
-            independent researchers.
           </p>
         </div>
       </div>
@@ -544,10 +538,10 @@ export default function OfficesPage() {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Office Space Inquiry`}
+              href={OFFICE_EOI_FORM_URL}
               className="px-8 py-4 bg-amber-900 dark:bg-amber-900 text-white font-semibold hover:bg-amber-800 dark:hover:bg-amber-800 transition-colors text-center"
             >
-              Inquire about office space
+              Express interest in an office
             </a>
             <a
               href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Office Tour Request`}

@@ -54,6 +54,9 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
 // mission-aligned work get a flat discount.
 export const OFFICE_PER_PERSON_MONTHLY_CENTS = 125000
 export const OFFICE_CONTACT_EMAIL = 'robin@moxsf.com'
+// Airtable "Mox | New Office - EOI" form; submissions land in the Orgs table.
+export const OFFICE_EOI_FORM_URL =
+  'https://airtable.com/appkHZ2UvU6SouT5y/pagUHw8dM9CX2W6h1/form'
 export const OFFICE_NOTICE_MONTHS = 3
 export const OFFICE_DEPOSIT_MONTHS = 1
 export const OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT = 25
