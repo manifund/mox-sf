@@ -489,8 +489,7 @@ export default function OfficesPage() {
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
                 Yes, within reason. We accommodate teams working with hardware,
-                prototyping equipment, or specialized needs. Hazardous materials
-                require prior approval and proper storage protocols.
+                prototyping equipment, or specialized needs.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
@@ -512,8 +511,9 @@ export default function OfficesPage() {
                 Do you offer tours?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Yes! Schedule a tour or come to one of our open events to see
-                the space and meet the community.
+                We give tours to teams we think are a strong fit, after they
+                fill out the office interest form. In the meantime, our open
+                events are a good way to see the space and meet the community.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
