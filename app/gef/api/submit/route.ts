@@ -2,7 +2,8 @@ import { escapeAirtableString, isValidEmail } from '@/app/lib/airtable-helpers'
 import { createRecord, findRecord, Tables } from '@/app/lib/airtable'
 import { sendEmail } from '@/app/lib/email'
 
-const RECIPIENT = 'carolina@moxsf.com'
+// Both people responsible for GEF admissions receive every website interest.
+const RECIPIENTS = ['carolina@moxsf.com', 'robin@moxsf.com']
 
 // Fields collected by the GEF interest form, in display order.
 const FIELDS: { key: string; label: string }[] = [
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
   let sent = false
   try {
     sent = await sendEmail({
-      to: RECIPIENT,
+      to: RECIPIENTS,
       from: 'Mox GEF <portal@account.moxsf.com>',
       replyTo: values.email,
       subject: `GEF interest: ${values.name}`,
