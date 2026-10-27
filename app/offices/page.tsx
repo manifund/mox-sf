@@ -5,10 +5,11 @@ import {
   OFFICE_DEPOSIT_MONTHS,
   OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT,
   OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT,
+  OFFICE_NOTICE_MONTHS,
   OFFICE_SIZES,
-  QUARTER_MONTHS,
   formatDollars,
   officeMissionAlignedCents,
+  officeMonthToMonthCents,
 } from '@/app/lib/membership-pricing'
 
 export const metadata: Metadata = {
@@ -44,12 +45,12 @@ function OfficePricingGrid() {
         Pricing
       </p>
       <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-        Starting at {formatDollars(smallest.quarterlyMonthlyCents)}/month for a{' '}
+        Starting at {formatDollars(smallest.standardMonthlyCents)}/month for a{' '}
         {smallest.people}-person office
       </p>
       <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark mb-4">
         {formatDollars(
-          officeMissionAlignedCents(smallest.quarterlyMonthlyCents)
+          officeMissionAlignedCents(smallest.standardMonthlyCents)
         )}
         /month for mission-aligned teams
       </p>
@@ -62,6 +63,9 @@ function OfficePricingGrid() {
             </th>
             <th scope="col" className="py-2 px-3 text-right font-semibold">
               Standard
+            </th>
+            <th scope="col" className="py-2 px-3 text-right font-semibold">
+              Month-to-month
             </th>
             <th
               scope="col"
@@ -81,14 +85,22 @@ function OfficePricingGrid() {
                 {size.people} people
               </th>
               <td className="py-2.5 px-3 text-right tabular-nums text-text-primary dark:text-text-primary-dark">
-                {formatDollars(size.quarterlyMonthlyCents)}
+                {formatDollars(size.standardMonthlyCents)}
+                <span className="text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-right tabular-nums text-text-secondary dark:text-text-secondary-dark">
+                {formatDollars(
+                  officeMonthToMonthCents(size.standardMonthlyCents)
+                )}
                 <span className="text-text-tertiary dark:text-text-tertiary-dark">
                   /mo
                 </span>
               </td>
               <td className="py-2.5 pl-3 text-right tabular-nums font-semibold text-amber-900 dark:text-amber-400">
                 {formatDollars(
-                  officeMissionAlignedCents(size.quarterlyMonthlyCents)
+                  officeMissionAlignedCents(size.standardMonthlyCents)
                 )}
                 <span className="font-normal text-text-tertiary dark:text-text-tertiary-dark">
                   /mo
@@ -103,15 +115,16 @@ function OfficePricingGrid() {
         <li className="flex items-start gap-2">
           <span className="text-gray-600 dark:text-gray-400">•</span>
           <span>
-            Quarterly contracts, billed {QUARTER_MONTHS} months up front plus a{' '}
-            {OFFICE_DEPOSIT_MONTHS}-month deposit.
+            Standard rates are on a 90-day rolling contract: billed monthly,
+            with {OFFICE_NOTICE_MONTHS} months&apos; notice before you move out,
+            plus a {OFFICE_DEPOSIT_MONTHS}-month deposit.
           </span>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-gray-600 dark:text-gray-400">•</span>
           <span>
-            Month-to-month available at +{OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}
-            %.
+            Month-to-month, with no notice period, is +
+            {OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%.
           </span>
         </li>
         <li className="flex items-start gap-2">
@@ -322,12 +335,12 @@ export default function OfficesPage() {
                 <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark">
                   On a quarterly plan; {formatDollars(resident.monthlyCents)}
                   /month month-to-month. That&apos;s our {resident.name}{' '}
-                  membership, which you can{' '}
+                  membership;{' '}
                   <a
                     href="/join"
                     className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline decoration-dotted underline-offset-2"
                   >
-                    join directly
+                    apply here
                   </a>
                   .
                 </p>
@@ -491,12 +504,13 @@ export default function OfficesPage() {
                 What's the commitment period?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Office contracts run quarterly, billed {QUARTER_MONTHS} months
-                up front plus a {OFFICE_DEPOSIT_MONTHS}-month deposit. If you
-                need more flexibility, month-to-month is available at +
-                {OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%. For teams wanting
-                longer-term stability, we can discuss annual commitments with
-                locked pricing.
+                Office contracts are 90-day rolling: you&apos;re billed monthly
+                and agree to give {OFFICE_NOTICE_MONTHS} months&apos; notice
+                before moving out, plus a {OFFICE_DEPOSIT_MONTHS}-month deposit.
+                If you need more flexibility, month-to-month with no notice
+                period is available at +{OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%.
+                For teams wanting longer-term stability, we can discuss annual
+                commitments with locked pricing.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">

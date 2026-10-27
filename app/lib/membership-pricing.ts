@@ -47,25 +47,27 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
 }
 
 // Private offices are quoted by headcount and handled by hand rather than
-// through checkout. The quarterly rate is per person per month; OFFICE_SIZES
-// is the grid /offices shows. Quarterly contracts are billed QUARTER_MONTHS
-// months up front plus a deposit; month-to-month costs a flat markup; teams
-// doing mission-aligned work get a flat discount.
+// through checkout. The standard rate is per person per month on a 90-day
+// rolling contract: billed monthly, with OFFICE_NOTICE_MONTHS months' notice
+// before moving out, plus a deposit. OFFICE_SIZES is the grid /offices shows.
+// Month-to-month (no notice commitment) costs a flat markup; teams doing
+// mission-aligned work get a flat discount.
 export const OFFICE_PER_PERSON_MONTHLY_CENTS = 125000
 export const OFFICE_CONTACT_EMAIL = 'robin@moxsf.com'
+export const OFFICE_NOTICE_MONTHS = 3
 export const OFFICE_DEPOSIT_MONTHS = 1
 export const OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT = 25
 export const OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT = 20
 
 export interface OfficeSize {
   people: number
-  // Standard monthly rate on a quarterly contract.
-  quarterlyMonthlyCents: number
+  // Standard monthly rate on the 90-day rolling contract.
+  standardMonthlyCents: number
 }
 
 export const OFFICE_SIZES: OfficeSize[] = [4, 5, 6, 8].map((people) => ({
   people,
-  quarterlyMonthlyCents: people * OFFICE_PER_PERSON_MONTHLY_CENTS,
+  standardMonthlyCents: people * OFFICE_PER_PERSON_MONTHLY_CENTS,
 }))
 
 /** Office rate with the mission-aligned discount applied. */
