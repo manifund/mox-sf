@@ -19,6 +19,8 @@ export type Org = {
   name: string
   stealth: boolean
   rooms: string[]
+  // Org Status is "Joined" — i.e. a current tenant, not a reachout/left org
+  active: boolean
 }
 
 export type Program = {
@@ -126,11 +128,12 @@ interface OrgFields {
   Name?: string
   Stealth?: boolean
   'Room #'?: string[]
+  Status?: string
 }
 
 export async function getOrgs(): Promise<Map<string, Org>> {
   const records = await findRecords<OrgFields>(Tables.Orgs, '', {
-    fields: ['Name', 'Stealth', 'Room #'],
+    fields: ['Name', 'Stealth', 'Room #', 'Status'],
     revalidate: 300,
   })
 
@@ -141,6 +144,7 @@ export async function getOrgs(): Promise<Map<string, Org>> {
       name: record.fields.Name || '',
       stealth: record.fields.Stealth || false,
       rooms: record.fields['Room #'] || [],
+      active: record.fields.Status === 'Joined',
     })
   }
   return orgsMap
@@ -225,15 +229,32 @@ export function buildDirectoryData(
       return (a.person?.name || '').localeCompare(b.person?.name || '')
     })
 
+  // Orgs that currently rent an office at Mox. Anyone linked to one of these
+  // belongs in the Offices section, whatever their Tier says — tiers drift
+  // (e.g. an office employee left on "Core"), and that shouldn't split a
+  // company's team across sections. Stealth orgs are excluded so their
+  // members keep falling through to the regular sections, same as before.
+  const officeOrgIds = new Set(
+    Array.from(orgsMap.values())
+      .filter((org) => org.active && !org.stealth && org.rooms.length > 0)
+      .map((org) => org.id)
+  )
+  const inOffice = (p: Person) =>
+    p.tier === 'Private Office' ||
+    (!!p.org?.[0] && officeOrgIds.has(p.org[0]))
+
   const privateOffices = sortPeopleByCompleteness(
-    people.filter((p) => p.tier === 'Private Office')
+    people.filter(
+      (p) =>
+        p.tier !== 'Staff' && !staffByPersonId.has(p.id) && inOffice(p)
+    )
   )
   const members = sortPeopleByCompleteness(
     people.filter(
       (p) =>
         p.tier !== 'Staff' &&
-        p.tier !== 'Private Office' &&
-        !staffByPersonId.has(p.id)
+        !staffByPersonId.has(p.id) &&
+        !inOffice(p)
     )
   )
 
