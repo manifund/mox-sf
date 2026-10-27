@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   GUEST_PASS_MAX_UNLOCKS,
+  canRevokeGuestPass,
   guestPassState,
   isIssuableDate,
   passWindow,
@@ -122,6 +123,17 @@ describe('guestPassState and unlockBlocker', () => {
     expect(
       unlockBlocker({ ...pass, unlockCount: GUEST_PASS_MAX_UNLOCKS }, during)
     ).toBe('limit')
+  })
+})
+
+describe('canRevokeGuestPass', () => {
+  it('allows revoking only while the pass is unused', () => {
+    const pass = { status: 'Unused', validDate: '2026-10-14', unlockCount: 0 }
+    expect(canRevokeGuestPass(pass)).toBe(true)
+    expect(canRevokeGuestPass({ ...pass, unlockCount: 1 })).toBe(false)
+    expect(
+      canRevokeGuestPass({ ...pass, status: 'Revoked', unlockCount: 0 })
+    ).toBe(false)
   })
 })
 

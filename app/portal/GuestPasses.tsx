@@ -73,6 +73,8 @@ function PassCard({
   const badgeClass =
     label === 'used' ? 'success' : label === 'not used yet' ? 'info' : ''
   const canShare = pass.state === 'active' || pass.state === 'upcoming'
+  // A used pass is a record of a visit; it can't be taken back.
+  const canRevoke = canShare && !used
 
   return (
     <div className="guest-pass">
@@ -93,22 +95,25 @@ function PassCard({
           <button type="button" className="small" onClick={copy}>
             {copied ? 'copied' : 'copy link'}
           </button>
-          <button
-            type="button"
-            className="small danger"
-            disabled={revoking}
-            onClick={async () => {
-              if (!window.confirm(`revoke ${pass.guestName}'s pass?`)) return
-              setRevoking(true)
-              try {
-                await onRevoke(pass.id)
-              } finally {
-                setRevoking(false)
-              }
-            }}
-          >
-            {revoking ? '...' : 'revoke'}
-          </button>
+          {canRevoke && (
+            <button
+              type="button"
+              className="small danger"
+              disabled={revoking}
+              onClick={async () => {
+                if (!window.confirm(`revoke ${pass.guestName}'s pass?`))
+                  return
+                setRevoking(true)
+                try {
+                  await onRevoke(pass.id)
+                } finally {
+                  setRevoking(false)
+                }
+              }}
+            >
+              {revoking ? '...' : 'revoke'}
+            </button>
+          )}
         </div>
       )}
     </div>

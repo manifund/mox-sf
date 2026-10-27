@@ -103,6 +103,16 @@ export function unlockBlocker(
   return null
 }
 
+/**
+ * Whether a pass can still be revoked. Once the guest has opened the door
+ * the pass is a record of a visit, not a key, so it stays as it is.
+ */
+export function canRevokeGuestPass(
+  pass: GuestPassLike & { unlockCount: number }
+): boolean {
+  return pass.status !== 'Revoked' && pass.unlockCount === 0
+}
+
 /** Passes left this week given the allowance and passes already dated in it. */
 export function remainingThisWeek(
   allowance: number | null,

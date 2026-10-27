@@ -217,8 +217,10 @@ created for the guest.
    with a note that this week's allotment is used up.
 6. **Private Office allowance:** proposed: per person, counted against the
    individual member who issues the pass.
-7. **Revocation:** proposed: the host can revoke from the portal; staff can
-   revoke any pass from the admin area.
+7. **Revocation:** the host can revoke from the portal; staff can revoke any
+   pass. **Decided (2026-10-27):** only unused passes can be revoked. Once the
+   guest has unlocked the door the pass is a record of a visit and keeps
+   counting against the week's allowance.
 
 ## Rough effort
 

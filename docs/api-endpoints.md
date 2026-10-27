@@ -192,7 +192,7 @@ Issue a free guest pass (an unlock link) for a named guest.
 - **Errors:** 400 missing name, invalid email, host's own email, or bad date; 403 tier has no allowance; 409 `{ "code": "quota" }` when the week's allowance is used.
 
 #### POST `/portal/api/guest-passes/revoke`
-Revoke a guest pass. Host or staff only.
+Revoke a guest pass. Host or staff only. Only unused passes can be revoked; a pass the guest has already used returns 409.
 
 - **Auth:** User (own pass) or Staff
 - **Body:** `{ "passId": "rec123" }`

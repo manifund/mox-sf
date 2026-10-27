@@ -5,7 +5,7 @@ import {
   revokeGuestPass,
   type GuestPassFields,
 } from '@/app/lib/guest-passes-server'
-import { GUEST_PASS_TYPE } from '@/app/lib/guest-passes'
+import { GUEST_PASS_TYPE, canRevokeGuestPass } from '@/app/lib/guest-passes'
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +27,13 @@ export async function POST(request: Request) {
     const ownsPass = pass.hostId === hostId
     if (!ownsPass && !(await isCurrentlyStaff(session.userId))) {
       return Response.json({ error: 'Not your pass' }, { status: 403 })
+    }
+
+    if (!canRevokeGuestPass(pass)) {
+      return Response.json(
+        { error: "this pass was already used, so it can't be revoked" },
+        { status: 409 }
+      )
     }
 
     await revokeGuestPass(pass.id)
