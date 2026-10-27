@@ -21,6 +21,8 @@ export default function PortalNav() {
     pathname?.startsWith('/lobby') ||
     pathname?.startsWith('/summerseason') ||
     pathname?.startsWith('/gef') ||
+    pathname?.startsWith('/guest') || // guest pass unlock page
+    pathname?.startsWith('/door') || // event door unlock page
     pathname?.startsWith('/tasks') // task board has its own header
 
   useEffect(() => {
@@ -76,10 +78,7 @@ export default function PortalNav() {
   }
 
   return (
-    <nav
-      className="fixed right-0 z-50 p-4"
-      style={{ top: bannerHeight }}
-    >
+    <nav className="fixed right-0 z-50 p-4" style={{ top: bannerHeight }}>
       {session.isLoggedIn ? (
         <div className="flex items-center gap-2">
           {weeklyCode && (
