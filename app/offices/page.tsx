@@ -536,18 +536,12 @@ export default function OfficesPage() {
           <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-400 font-display mb-6">
             Ready to Join?
           </h2>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <a
               href={OFFICE_EOI_FORM_URL}
               className="px-8 py-4 bg-amber-900 dark:bg-amber-900 text-white font-semibold hover:bg-amber-800 dark:hover:bg-amber-800 transition-colors text-center"
             >
               Express interest in an office
-            </a>
-            <a
-              href={`mailto:${OFFICE_CONTACT_EMAIL}?subject=Office Tour Request`}
-              className="px-8 py-4 bg-background-surface dark:bg-background-subtle-dark border border-amber-900 dark:border-amber-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-background-accent dark:hover:bg-background-subtle-dark transition-colors text-center"
-            >
-              Schedule a tour
             </a>
           </div>
         </section>
