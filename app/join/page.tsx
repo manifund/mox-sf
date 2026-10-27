@@ -132,10 +132,11 @@ function JoinContent(props: {
             </h2>
             <p className="text-gray-700">
               We want Mox to be a place you're proud to show off to your friends
-              and family. All memberships come with some free allowances for
-              guests: 1x/day for Core, and 2x/day for Resident and Office
-              members. Beyond that, we ask that you or your
-              guest purchase a{' '}
+              and family. Every membership includes free guest passes each
+              week: 2 for Core, 4 for Resident, and 6 per person for Office
+              members. You create a pass from the member portal and send your
+              guest a link that opens the front door for the day. Beyond that,
+              we ask that you or your guest purchase a{' '}
               <a
                 href="/day-pass"
                 className="text-amber-800 hover:text-amber-600 underline decoration-dotted underline-offset-2"

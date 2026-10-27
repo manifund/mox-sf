@@ -475,3 +475,71 @@ html, body {
 .portal .inline-form input {
   flex: 1;
 }
+
+/* Guest passes */
+.portal .guest-pass-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.portal .guest-pass-form-row input {
+  flex: 1;
+  min-width: 0;
+}
+.portal .guest-pass-form-row button {
+  white-space: nowrap;
+}
+.portal button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--link-color);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+.portal button.link:hover {
+  color: var(--link-hover);
+}
+.portal .guest-pass-list {
+  margin-top: 15px;
+}
+.portal .guest-pass {
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.portal .guest-pass-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.portal .guest-pass-meta {
+  margin: 4px 0 0;
+  font-size: 0.9em;
+}
+.portal .guest-pass-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.portal .guest-pass-link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85em;
+  padding: 4px 6px;
+  background: var(--bg-secondary);
+}
+.portal .badge.success {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.portal .badge.info {
+  background: var(--alert-info-bg);
+}
