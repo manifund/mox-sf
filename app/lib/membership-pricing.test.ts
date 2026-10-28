@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   MEMBERSHIP_TIERS,
+  OFFICE_PER_PERSON_MONTHLY_CENTS,
+  OFFICE_SIZES,
   chargeCents,
   formatDollars,
   isBillingInterval,
   isMembershipTierId,
   monthlyPriceCents,
+  officeMissionAlignedCents,
+  officeMonthToMonthCents,
   quarterlySavingsPercent,
 } from './membership-pricing'
 
@@ -47,5 +51,27 @@ describe('membership pricing', () => {
       Object.values(t.stripeLookupKeys)
     )
     expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('prices offices by headcount from the per-person rate', () => {
+    expect(OFFICE_SIZES.map((s) => s.people)).toEqual([4, 5, 6, 8])
+    expect(OFFICE_SIZES.map((s) => s.standardMonthlyCents)).toEqual([
+      500000, 625000, 750000, 1000000,
+    ])
+    expect(OFFICE_SIZES[0].standardMonthlyCents).toBe(
+      4 * OFFICE_PER_PERSON_MONTHLY_CENTS
+    )
+  })
+
+  it('applies the mission-aligned discount and month-to-month markup', () => {
+    expect(
+      OFFICE_SIZES.map((s) => officeMissionAlignedCents(s.standardMonthlyCents))
+    ).toEqual([400000, 500000, 600000, 800000])
+    expect(
+      OFFICE_SIZES.map((s) => officeMonthToMonthCents(s.standardMonthlyCents))
+    ).toEqual([625000, 781250, 937500, 1250000])
+    expect(officeMonthToMonthCents(officeMissionAlignedCents(500000))).toBe(
+      500000
+    )
   })
 })

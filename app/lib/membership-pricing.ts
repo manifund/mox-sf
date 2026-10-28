@@ -46,10 +46,42 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
   },
 }
 
-// Private offices are quoted per person per month (quarterly rate for a
-// 4-person office) and handled by hand rather than through checkout.
+// Private offices are quoted by headcount and handled by hand rather than
+// through checkout. The standard rate is per person per month on a 90-day
+// rolling contract: billed monthly, with OFFICE_NOTICE_MONTHS months' notice
+// before moving out, plus a deposit. OFFICE_SIZES is the grid /offices shows.
+// Month-to-month (no notice commitment) costs a flat markup; teams doing
+// mission-aligned work get a flat discount.
 export const OFFICE_PER_PERSON_MONTHLY_CENTS = 125000
 export const OFFICE_CONTACT_EMAIL = 'robin@moxsf.com'
+// Airtable "Mox | New Office - EOI" form; submissions land in the Orgs table.
+export const OFFICE_EOI_FORM_URL =
+  'https://airtable.com/appkHZ2UvU6SouT5y/pagUHw8dM9CX2W6h1/form'
+export const OFFICE_NOTICE_MONTHS = 3
+export const OFFICE_DEPOSIT_MONTHS = 1
+export const OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT = 25
+export const OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT = 20
+
+export interface OfficeSize {
+  people: number
+  // Standard monthly rate on the 90-day rolling contract.
+  standardMonthlyCents: number
+}
+
+export const OFFICE_SIZES: OfficeSize[] = [4, 5, 6, 8].map((people) => ({
+  people,
+  standardMonthlyCents: people * OFFICE_PER_PERSON_MONTHLY_CENTS,
+}))
+
+/** Office rate with the mission-aligned discount applied. */
+export function officeMissionAlignedCents(cents: number): number {
+  return Math.round(cents * (1 - OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT / 100))
+}
+
+/** Office rate with the month-to-month markup applied. */
+export function officeMonthToMonthCents(cents: number): number {
+  return Math.round(cents * (1 + OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT / 100))
+}
 
 export function isMembershipTierId(value: unknown): value is MembershipTierId {
   return value === 'core' || value === 'resident'

@@ -1,4 +1,17 @@
 import { Metadata } from 'next'
+import {
+  MEMBERSHIP_TIERS,
+  OFFICE_CONTACT_EMAIL,
+  OFFICE_DEPOSIT_MONTHS,
+  OFFICE_EOI_FORM_URL,
+  OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT,
+  OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT,
+  OFFICE_NOTICE_MONTHS,
+  OFFICE_SIZES,
+  formatDollars,
+  officeMissionAlignedCents,
+  officeMonthToMonthCents,
+} from '@/app/lib/membership-pricing'
 
 export const metadata: Metadata = {
   title: 'Office Space | Mox',
@@ -25,7 +38,113 @@ function Link({
   )
 }
 
+function OfficePricingGrid() {
+  const smallest = OFFICE_SIZES[0]
+  return (
+    <div className="bg-background-surface dark:bg-background-subtle-dark p-4 sm:p-5 mb-4">
+      <p className="text-sm font-semibold text-text-tertiary dark:text-text-tertiary-dark mb-1">
+        Pricing
+      </p>
+      <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
+        Starting at{' '}
+        {formatDollars(
+          officeMissionAlignedCents(smallest.standardMonthlyCents)
+        )}
+        /month for a {smallest.people}-person office, for mission-aligned teams
+      </p>
+      <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark mb-4">
+        {formatDollars(smallest.standardMonthlyCents)}/month standard rate
+      </p>
+
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="text-xs uppercase tracking-wider text-text-tertiary dark:text-text-tertiary-dark border-b border-brown-200 dark:border-gray-500">
+            <th scope="col" className="py-2 pr-3 text-left font-semibold">
+              Office size
+            </th>
+            <th scope="col" className="py-2 px-3 text-right font-semibold">
+              Standard
+            </th>
+            <th scope="col" className="py-2 px-3 text-right font-semibold">
+              Month-to-month
+            </th>
+            <th
+              scope="col"
+              className="py-2 pl-3 text-right font-semibold text-amber-900 dark:text-amber-400"
+            >
+              Mission-aligned
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-brown-200 dark:divide-gray-500">
+          {OFFICE_SIZES.map((size) => (
+            <tr key={size.people}>
+              <th
+                scope="row"
+                className="py-2.5 pr-3 text-left font-medium whitespace-nowrap text-text-primary dark:text-text-primary-dark"
+              >
+                {size.people} people
+              </th>
+              <td className="py-2.5 px-3 text-right tabular-nums text-text-primary dark:text-text-primary-dark">
+                {formatDollars(size.standardMonthlyCents)}
+                <span className="text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-right tabular-nums text-text-secondary dark:text-text-secondary-dark">
+                {formatDollars(
+                  officeMonthToMonthCents(size.standardMonthlyCents)
+                )}
+                <span className="text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+              <td className="py-2.5 pl-3 text-right tabular-nums font-semibold text-amber-900 dark:text-amber-400">
+                {formatDollars(
+                  officeMissionAlignedCents(size.standardMonthlyCents)
+                )}
+                <span className="font-normal text-text-tertiary dark:text-text-tertiary-dark">
+                  /mo
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <ul className="mt-4 space-y-1.5 text-sm text-text-tertiary dark:text-text-tertiary-dark">
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Standard rates are on a 90-day rolling contract: billed monthly,
+            with {OFFICE_NOTICE_MONTHS} months&apos; notice before you move out,
+            plus a {OFFICE_DEPOSIT_MONTHS}-month deposit.
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Month-to-month, with no notice period, is +
+            {OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%.
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-gray-600 dark:text-gray-400">•</span>
+          <span>
+            Teams doing mission-aligned work get{' '}
+            {OFFICE_MISSION_ALIGNED_DISCOUNT_PERCENT}% off.{' '}
+            <Link href={OFFICE_EOI_FORM_URL}>Tell us about your team</Link> and
+            we&apos;ll let you know whether you qualify.
+          </span>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
 export default function OfficesPage() {
+  const resident = MEMBERSHIP_TIERS.resident
+
   return (
     <div className="min-h-screen bg-background-page dark:bg-background-page-dark text-text-primary dark:text-text-primary-dark">
       {/* Hero Section */}
@@ -45,9 +164,6 @@ export default function OfficesPage() {
           <p className="text-lg text-text-tertiary dark:text-text-tertiary-dark leading-relaxed max-w-3xl mx-auto">
             Mox offers private offices and dedicated desk space for teams
             working on AI safety, frontier technology, and important problems.
-            You'll work alongside 150 members including researchers from
-            Anthropic, OpenAI, and METR, plus founders, policymakers, and
-            independent researchers.
           </p>
         </div>
       </div>
@@ -67,7 +183,7 @@ export default function OfficesPage() {
                 Private Offices
               </h2>
               <p className="text-lg text-text-secondary dark:text-text-secondary-dark mb-2 font-semibold">
-                For teams of 2-6 who need dedicated, secure workspace.
+                For teams of 4-8 who need dedicated, secure workspace.
               </p>
               <p className="text-base text-text-tertiary dark:text-text-tertiary-dark mb-6 leading-relaxed">
                 Private offices give your team a focused environment while
@@ -127,17 +243,7 @@ export default function OfficesPage() {
                 </li>
               </ul>
 
-              <div className="bg-background-surface dark:bg-background-subtle-dark p-4 mb-4">
-                <p className="text-sm font-semibold text-text-tertiary dark:text-text-tertiary-dark mb-1">
-                  Pricing
-                </p>
-                <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                  Starting at $3,200/month for 4-person capacity
-                </p>
-                <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark">
-                  Additional team members: $800/month per person
-                </p>
-              </div>
+              <OfficePricingGrid />
 
               <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark italic">
                 <strong>Good fit for:</strong> Early-stage startups, research
@@ -218,7 +324,19 @@ export default function OfficesPage() {
                   Pricing
                 </p>
                 <p className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                  $800/month per desk
+                  {formatDollars(resident.quarterlyMonthlyCents)}/month per desk
+                </p>
+                <p className="text-sm text-text-tertiary dark:text-text-tertiary-dark">
+                  On a quarterly plan; {formatDollars(resident.monthlyCents)}
+                  /month month-to-month. That&apos;s our {resident.name}{' '}
+                  membership;{' '}
+                  <a
+                    href="/join"
+                    className="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline decoration-dotted underline-offset-2"
+                  >
+                    apply here
+                  </a>
+                  .
                 </p>
               </div>
 
@@ -371,8 +489,7 @@ export default function OfficesPage() {
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
                 Yes, within reason. We accommodate teams working with hardware,
-                prototyping equipment, or specialized needs. Hazardous materials
-                require prior approval and proper storage protocols.
+                prototyping equipment, or specialized needs.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
@@ -380,9 +497,13 @@ export default function OfficesPage() {
                 What's the commitment period?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Standard agreements are month-to-month with 30 days notice. For
-                teams interested in longer-term stability, we can discuss
-                multi-month or annual commitments with locked pricing.
+                Office contracts are 90-day rolling: you&apos;re billed monthly
+                and agree to give {OFFICE_NOTICE_MONTHS} months&apos; notice
+                before moving out, plus a {OFFICE_DEPOSIT_MONTHS}-month deposit.
+                If you need more flexibility, month-to-month with no notice
+                period is available at +{OFFICE_MONTH_TO_MONTH_MARKUP_PERCENT}%.
+                For teams wanting longer-term stability, we can discuss annual
+                commitments with locked pricing.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
@@ -390,8 +511,9 @@ export default function OfficesPage() {
                 Do you offer tours?
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                Yes! Schedule a tour or come to one of our open events to see
-                the space and meet the community.
+                We give tours to teams we think are a strong fit, after they
+                fill out the office interest form. In the meantime, our open
+                events are a good way to see the space and meet the community.
               </p>
             </div>
             <div className="bg-background-surface dark:bg-background-surface-dark p-6 shadow-md">
@@ -400,8 +522,10 @@ export default function OfficesPage() {
               </h3>
               <p className="text-text-secondary dark:text-text-secondary-dark leading-relaxed">
                 Reach out to Robin Goins at{' '}
-                <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link> to ask
-                a question or set up a tour.
+                <Link href={`mailto:${OFFICE_CONTACT_EMAIL}`}>
+                  {OFFICE_CONTACT_EMAIL}
+                </Link>{' '}
+                to ask a question or set up a tour.
               </p>
             </div>
           </div>
@@ -412,18 +536,12 @@ export default function OfficesPage() {
           <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-400 font-display mb-6">
             Ready to Join?
           </h2>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <a
-              href="mailto:robin@moxsf.com?subject=Office Space Inquiry"
+              href={OFFICE_EOI_FORM_URL}
               className="px-8 py-4 bg-amber-900 dark:bg-amber-900 text-white font-semibold hover:bg-amber-800 dark:hover:bg-amber-800 transition-colors text-center"
             >
-              Inquire about office space
-            </a>
-            <a
-              href="mailto:robin@moxsf.com?subject=Office Tour Request"
-              className="px-8 py-4 bg-background-surface dark:bg-background-subtle-dark border border-amber-900 dark:border-amber-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-background-accent dark:hover:bg-background-subtle-dark transition-colors text-center"
-            >
-              Schedule a tour
+              Express interest in an office
             </a>
           </div>
         </section>
