@@ -10,12 +10,15 @@ Automated weekly rotation of the shared door access code.
 > [`app/portal/VerkadaPin.tsx`](../../app/portal/VerkadaPin.tsx) and
 > `GET`/`POST /portal/api/verkada-pin` in [api-endpoints.md](../api-endpoints.md).
 >
+> The code chip in the homepage nav
+> ([`app/components/PortalNav.tsx`](../../app/components/PortalNav.tsx)) also
+> shows the member's personal PIN now, not the weekly code.
+>
 > The rotation cron below still runs, the Discord door-code channel is still
 > renamed, and `GET /portal/api/weekly-door-code` still returns the current
 > weekly code. Until the Verkada "Weekly Access" user is retired, the remaining
-> member-facing surfaces of the weekly code are the Discord channel name /
-> `#packages` post and the code chip in the homepage nav
-> ([`app/components/PortalNav.tsx`](../../app/components/PortalNav.tsx)).
+> member-facing surfaces of the weekly code are the Discord channel name and
+> the `#packages` post.
 
 ## Overview
 
