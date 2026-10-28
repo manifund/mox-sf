@@ -11,7 +11,7 @@ export const GUEST_PASS_TYPE = 'Guest Pass'
 export const GUEST_PASS_START_HOUR = 8 // 8am Pacific
 export const GUEST_PASS_END_HOUR = 23 // 11pm Pacific
 export const GUEST_PASS_MAX_DAYS_AHEAD = 7
-export const GUEST_PASS_MAX_UNLOCKS = 10
+export const GUEST_PASS_MAX_UNLOCKS = 100
 export const GUEST_TOKEN_PATTERN = /^[A-Za-z0-9]{12}$/
 
 /** Passes per Monday-to-Sunday week. `null` means unlimited. */

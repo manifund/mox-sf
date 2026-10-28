@@ -52,7 +52,7 @@ Open the front door for a valid guest pass.
 - **Auth:** None (token; throttled per token)
 - **Body:** `{ "token": "k7Qp2mX9bT4w" }`
 - **Response:** `{ "success": true }` or `{ "success": false, "reason": "expired" | "not-yet" | "revoked" | "limit" | "throttled" | "not-found" | "verkada-error" }`
-- **Details:** Checks the pass window (8am–11pm Pacific on Valid Date), the unlock cap, and that the host still has an allowance; then calls Verkada `admin_unlock`, bumps Unlock Count, stamps First Used, and posts to Discord #notifications.
+- **Details:** Checks the pass window (8am–11pm Pacific on Valid Date), the unlock cap, and that the host still has an allowance; then calls Verkada `admin_unlock`, bumps Unlock Count, and stamps First Used. On the first unlock only, posts to Discord #notifications with the host, guest name and guest email (same shape as the day-pass activation post).
 
 ### POST `/api/membership-checkout`
 Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
