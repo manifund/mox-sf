@@ -134,7 +134,7 @@ Guest day pass and week pass management.
 | `Guest Email` | email | Guest Pass only: the guest's email, so Mox can reach them if needed | ✅ Guest passes |
 | `Token` | singleLineText | Guest Pass only: 12-char token in the `/guest/<token>` unlock link | ✅ Guest passes |
 | `Valid Date` | date | Guest Pass only: the Pacific day the pass works (8am–11pm); counts against that week's allowance | ✅ Guest passes |
-| `Unlock Count` | number | Guest Pass only: door unlocks via the link (capped at 10) | ✅ Guest passes |
+| `Unlock Count` | number | Guest Pass only: door unlocks via the link (capped at 100) | ✅ Guest passes |
 | `First Used` | dateTime | Guest Pass only: first unlock | ✅ Guest passes |
 
 **Pass Type options:** Day Pass, Happy Hour Pass, Week Pass, Guest Pass

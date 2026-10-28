@@ -68,7 +68,7 @@ the pass isn't revoked, then calls `admin_unlock`.
 - Expiry is exact and enforced server-side. Revocation is instant.
 - Every unlock is logged with the guest and host names, so we can post to
   Discord and write a Checkin.
-- "Single-use" becomes "one guest, one day, capped at ~10 unlocks" to limit
+- "Single-use" becomes "one guest, one day, capped at 100 unlocks" to limit
   forwarding. Verkada can't enforce one-swipe-only for PINs either.
 - Downside: the guest needs a phone with data at the door. No keypad fallback.
 
