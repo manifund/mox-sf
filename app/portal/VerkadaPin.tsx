@@ -244,9 +244,8 @@ export default function VerkadaPin({
         </p>
         <div className="pin-display">{pin}#</div>
         <p className="muted" style={{ fontSize: '0.85em' }}>
-          this code is yours alone — it replaces the shared weekly code, which is
-          going away. don&apos;t share it; if you think someone else has it,
-          regenerate it below.
+          this code is yours alone. don&apos;t share it; if you think someone else
+          has it, regenerate it below.
         </p>
         {unlockBlock}
       </div>
