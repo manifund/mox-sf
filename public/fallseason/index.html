@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mox Fall Season</title>
+    <meta
+      name="description"
+      content="A mini fall season of Mox talks, workshops, discussions, and social events at the frontier of ideas."
+    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=20261020">
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="topbar" aria-label="Primary">
+        <a class="brand" href="https://moxsf.com" target="_blank" rel="noreferrer" aria-label="Mox - moxsf.com">
+          <img class="brand-logo" src="assets/mox-logo.svg" alt="Mox">
+        </a>
+        <div class="nav-links">
+          <a href="#events">Events</a>
+          <a href="#about">About</a>
+        </div>
+      </nav>
+
+      <section class="hero-grid" id="top">
+        <div class="hero-copy">
+          <h1>Fall<br>Season</h1>
+          <p class="intro">
+            A mini season of talks, discussions, and social events at the frontier of ideas.
+          </p>
+          <div class="hero-actions">
+            <span class="season-date">November 15 - December 15, 2026</span>
+            <a class="primary-action" href="https://calendar.google.com/calendar/u/0?cid=Y181NzZhYTA3NWJkMGRiZDU3MWEzYTU1MDBhNGFjYjVjMjg3ZGE1ZGQ2NjBmZGYxMjk4ZDMyMjhmODJlZTk5ODhjQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20" target="_blank" rel="noreferrer">
+              <span aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V6A1.5 1.5 0 0 1 5 4.5Z"/></svg>
+              </span>
+              Add to your calendar
+            </a>
+          </div>
+        </div>
+        <figure class="hero-art" aria-label="Watercolor bay in autumn haze, a low harvest sun, and a branch of turning leaves">
+          <img class="hero-layer hero-sea" src="assets/hero-sea.png?v=6" alt="" data-parallax-y="46" data-parallax-x="0">
+          <img class="hero-layer hero-sun" src="assets/hero-sun.png?v=6" alt="" data-parallax-y="-84" data-parallax-x="-14">
+          <img class="hero-layer hero-branches" src="assets/hero-branches.png?v=6" alt="" data-parallax-y="-128" data-parallax-x="16">
+        </figure>
+      </section>
+    </header>
+
+    <main>
+      <section class="channel-band tv-stage" id="events" aria-labelledby="channels-title">
+        <div class="tv-sizer">
+        <div class="tv-wrap custom-tv" aria-label="Mox Fall Season event calendar">
+          <div class="tv-screen">
+              <div class="tv-scanlines" aria-hidden="true"></div>
+              <div class="tv-screen-inner">
+                <div class="tv-screen-top">
+                  <div class="tv-head">
+                    <p class="tv-kicker">Mox Fall Season</p>
+                    <h2 id="channels-title">Event Calendar</h2>
+                  </div>
+                  <div class="tv-controls" aria-label="Filter by category">
+                    <div class="theme-row">
+                      <button class="channel-button all is-active" type="button" data-category="all" aria-label="Show all channels">
+                        <img class="blob" src="assets/wash-all.png" alt="" aria-hidden="true">
+                        <span class="blob-label">All channels</span>
+                      </button>
+                      <button class="channel-button blue" type="button" data-category="ai" aria-label="Filter by AI Safety">
+                        <img class="blob" src="assets/wash-ai.png" alt="" aria-hidden="true">
+                        <span class="blob-label">AI Safety</span>
+                      </button>
+                      <button class="channel-button purple" type="button" data-category="animal" aria-label="Filter by Animal Welfare">
+                        <img class="blob" src="assets/wash-vibes.png" alt="" aria-hidden="true">
+                        <span class="blob-label">Animal Welfare</span>
+                      </button>
+                      <button class="channel-button green" type="button" data-category="research" aria-label="Filter by New Frontiers">
+                        <img class="blob" src="assets/wash-research.png" alt="" aria-hidden="true">
+                        <span class="blob-label">New frontiers</span>
+                      </button>
+                      <button class="channel-button gold" type="button" data-category="social" aria-label="Filter by Socials and Misc">
+                        <img class="blob" src="assets/wash-social.png" alt="" aria-hidden="true">
+                        <span class="blob-label">Socials &amp; Misc</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tv-content">
+                  <div class="calendar-column" id="calendar">
+                    <div class="section-title">
+                      <span></span>
+                      <h2 id="events-title">Events</h2>
+                      <span></span>
+                    </div>
+                    <div class="event-list" role="list" aria-live="polite"></div>
+                  </div>
+
+                  <aside class="detail-panel" aria-live="polite">
+                    <button class="close-detail" type="button" aria-label="Close event details">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                    <span class="detail-badge"></span>
+                    <h2 class="detail-title"></h2>
+                    <dl class="detail-meta">
+                      <div>
+                        <dt>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V6A1.5 1.5 0 0 1 5 4.5Z"/></svg>
+                        </dt>
+                        <dd class="detail-date"></dd>
+                      </div>
+                      <div>
+                        <dt>
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.1 6-11a6 6 0 0 0-12 0c0 5.9 6 11 6 11Z"/><path d="M12 12.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"/></svg>
+                        </dt>
+                        <dd class="detail-location"></dd>
+                      </div>
+                    </dl>
+                    <p class="eyebrow">Speaker</p>
+                    <div class="speaker">
+                      <div class="speaker-avatar"></div>
+                      <div>
+                        <strong class="speaker-name"></strong>
+                        <span class="speaker-role"></span>
+                      </div>
+                    </div>
+                    <p class="eyebrow">About this event</p>
+                    <p class="detail-description"></p>
+                    <a class="primary-action rsvp-link" href="#" target="_blank" rel="noreferrer">
+                      RSVP on Partiful
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8M5 5h7M5 5v14h14v-7"/></svg>
+                    </a>
+                    <button class="secondary-action share-event" type="button" data-share-event>
+                      Share this event
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></svg>
+                    </button>
+                  </aside>
+                </div>
+              </div>
+            </div>
+        </div>
+        </div>
+      </section>
+
+      <section class="about-section" id="about" aria-label="About Mox">
+        <p class="eyebrow">What is Mox?</p>
+        <div>
+          <h2>A community for frontier conversations.</h2>
+          <p>
+            Mox is an intellectual community at the frontier of AI, rationality, and ideas that matter.
+            We gather to learn together, challenge each other, and build what's next.
+          </p>
+          <a class="about-link" href="https://moxsf.com" target="_blank" rel="noreferrer">
+            Visit moxsf.com
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <section class="subscribe-bar" aria-label="Add the Mox Fall Season calendar">
+        <h2>Add the Mox Fall Season Calendar</h2>
+        <a class="primary-action" href="https://calendar.google.com/calendar/u/0?cid=Y181NzZhYTA3NWJkMGRiZDU3MWEzYTU1MDBhNGFjYjVjMjg3ZGE1ZGQ2NjBmZGYxMjk4ZDMyMjhmODJlZTk5ODhjQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20" target="_blank" rel="noreferrer">
+          <span aria-hidden="true">G</span>
+          Add to Google Calendar
+        </a>
+        <button class="secondary-action" type="button" data-copy-link>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></svg>
+          Copy calendar link
+        </button>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="https://moxsf.com" target="_blank" rel="noreferrer">
+        <img class="brand-logo footer-logo" src="assets/mox-logo.svg" alt="Mox">
+      </a>
+      <span>Intellectual community at the frontier of AI, rationality, and ideas that matter.</span>
+      <span class="footer-links">
+        <a href="https://moxsf.com" target="_blank" rel="noreferrer">moxsf.com</a>
+        <a href="https://x.com/moxspace" target="_blank" rel="noreferrer">@moxspace</a>
+      </span>
+    </footer>
+
+    <script src="script.js?v=20261020"></script>
+  </body>
+</html>
