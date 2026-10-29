@@ -27,17 +27,40 @@ function checkThrottle(token: string): boolean {
   return true
 }
 
-async function announce(
-  guestName: string,
-  hostName: string,
-  firstTime: boolean
-) {
+// One post per pass, on first unlock, in the same shape as the day-pass
+// activation post: who issued it, who the guest is, and how to reach them.
+async function announceActivation(input: {
+  guestName: string
+  guestEmail: string
+  hostName: string
+  validDate: string
+}) {
   try {
     await sendChannelMessage(
       DISCORD_CHANNELS.NOTIFICATIONS,
-      firstTime
-        ? `🚪 **${guestName}** arrived on a guest pass from ${hostName}`
-        : `🚪 **${guestName}** (guest of ${hostName}) unlocked the door again`
+      `🎟️ **${input.guestName}** activated a guest pass`,
+      [
+        {
+          color: 0xd97706, // amber-600
+          fields: [
+            {
+              name: 'Issued by',
+              value: input.hostName || 'Unknown',
+              inline: true,
+            },
+            {
+              name: 'Guest email',
+              value: input.guestEmail || 'Not given',
+              inline: true,
+            },
+            {
+              name: 'Valid',
+              value: `${input.validDate} until 11pm`,
+              inline: true,
+            },
+          ],
+        },
+      ]
     )
   } catch (error) {
     console.error('[guest-unlock] Discord post failed:', error)
@@ -83,7 +106,14 @@ export async function POST(request: Request) {
     recordGuestUnlock(pass).catch((error) =>
       console.error('[guest-unlock] failed to record unlock:', error)
     )
-    announce(pass.guestName, host?.name.split(' ')[0] || 'a member', firstTime)
+    if (firstTime) {
+      announceActivation({
+        guestName: pass.guestName,
+        guestEmail: pass.guestEmail,
+        hostName: host?.name || '',
+        validDate: pass.validDate,
+      })
+    }
 
     return Response.json({ success: true })
   } catch (error) {

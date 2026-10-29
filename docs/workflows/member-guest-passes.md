@@ -68,7 +68,7 @@ the pass isn't revoked, then calls `admin_unlock`.
 - Expiry is exact and enforced server-side. Revocation is instant.
 - Every unlock is logged with the guest and host names, so we can post to
   Discord and write a Checkin.
-- "Single-use" becomes "one guest, one day, capped at ~10 unlocks" to limit
+- "Single-use" becomes "one guest, one day, capped at 100 unlocks" to limit
   forwarding. Verkada can't enforce one-swipe-only for PINs either.
 - Downside: the guest needs a phone with data at the door. No keypad fallback.
 
@@ -134,7 +134,7 @@ flowchart TD
     K -->|No| L[Show why: expired / not yet valid / revoked]
     K -->|Yes| M[Verkada admin_unlock]
     M --> N[Status → Activated on first use, Unlock Count++]
-    N --> O[Discord: guest + host name; Checkin with Source = Day Pass]
+    N --> O[First unlock: Discord post with host, guest name, guest email]
 ```
 
 Portal pieces:
@@ -151,9 +151,9 @@ Server pieces:
 - `GET`/`POST /portal/api/guest-passes` (member auth, quota and tier checks)
   and `POST /portal/api/guest-passes/revoke`.
 - `POST /guest/api/validate` and `POST /guest/api/unlock` (public, token-gated,
-  throttled like the event door routes). Unlock posts to Discord
-  #notifications; no Attendance record is written, since guests have no
-  People record.
+  throttled like the event door routes). The first unlock of a pass posts to
+  Discord #notifications with the host, guest name and guest email; no
+  Attendance record is written, since guests have no People record.
 - Quota rules in `app/lib/guest-passes.ts` with unit tests, next to
   `membership.ts`.
 
