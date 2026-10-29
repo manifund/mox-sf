@@ -13,7 +13,7 @@ export default function PortalNav() {
   const pathname = usePathname()
   const [session, setSession] = useState<SessionData | null>(null)
   const [bannerHeight, setBannerHeight] = useState(0)
-  const [weeklyCode, setWeeklyCode] = useState<string | null>(null)
+  const [doorCode, setDoorCode] = useState<string | null>(null)
 
   // Don't render on portal pages or full-screen special pages
   const isPortalPage =
@@ -34,13 +34,15 @@ export default function PortalNav() {
       .catch(() => setSession({ isLoggedIn: false }))
   }, [isPortalPage])
 
+  // The chip shows the member's personal Verkada PIN. The shared weekly code
+  // is deprecated and no longer surfaced here.
   useEffect(() => {
     if (isPortalPage || !session?.isLoggedIn) return
 
-    fetch('/portal/api/weekly-door-code')
+    fetch('/portal/api/verkada-pin')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.code) setWeeklyCode(data.code)
+        if (data?.pin) setDoorCode(data.pin)
       })
       .catch(() => {})
   }, [isPortalPage, session?.isLoggedIn])
@@ -81,7 +83,7 @@ export default function PortalNav() {
     <nav className="fixed right-0 z-50 p-4" style={{ top: bannerHeight }}>
       {session.isLoggedIn ? (
         <div className="flex items-center gap-2">
-          {weeklyCode && (
+          {doorCode && (
             <div className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
               <svg
                 className="w-4 h-5 text-gray-600 dark:text-gray-400"
@@ -96,7 +98,7 @@ export default function PortalNav() {
                 />
               </svg>
               <span className="text-sm font-mono text-gray-900 dark:text-gray-100">
-                {weeklyCode}#
+                {doorCode}#
               </span>
             </div>
           )}

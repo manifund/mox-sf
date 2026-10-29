@@ -123,16 +123,29 @@ Update user profile.
 - **Details:** Auto-syncs Discord role if username provided
 
 #### GET `/portal/api/verkada-pin`
-Get user's Verkada entry PIN.
+Get the member's personal Verkada door code. This is the code members use on
+the front door keypad (the shared weekly code is being deprecated).
 
-- **Auth:** User
+- **Auth:** User (respects staff "view as")
 - **Response:** `{ "pin": "123456", "hasAccess": true }`
+- **Details:** Looks up the Verkada access user by the member's email. If that
+  user has no entry code yet, generates a random 6-digit one and saves it. If
+  there is no Verkada user for the email, returns `{ "pin": null, "hasAccess": false }`
+  and the portal shows a "generate my door code" button (which calls `POST`).
 
 #### POST `/portal/api/verkada-pin`
-Regenerate Verkada PIN.
+Generate or regenerate the member's personal door code.
 
-- **Auth:** User
+- **Auth:** User (403 while viewing as another user)
 - **Response:** `{ "pin": "654321", "hasAccess": true }`
+
+#### GET `/portal/api/weekly-door-code`
+Get the shared weekly door code. **Deprecated**: no longer shown in the member
+portal; only the homepage nav chip (`app/components/PortalNav.tsx`) still reads
+it. See [door-code-rotation.md](./workflows/door-code-rotation.md).
+
+- **Auth:** Active member (403 otherwise)
+- **Response:** `{ "code": "1234" }` or `{ "code": null }` if unconfigured
 
 ---
 
