@@ -6,6 +6,8 @@ interface VerkadaPinProps {
   isViewingAs?: boolean
   tier?: string | null
   isActiveMember?: boolean
+  // Whether the portal page renders a guest passes section for this member
+  showGuestPassHint?: boolean
 }
 
 const doorBoxStyle = {
@@ -19,6 +21,7 @@ export default function VerkadaPin({
   isViewingAs = false,
   tier,
   isActiveMember = false,
+  showGuestPassHint = false,
 }: VerkadaPinProps) {
   const [pin, setPin] = useState<string | null>(null)
   const [hasAccess, setHasAccess] = useState<boolean>(false)
@@ -167,6 +170,12 @@ export default function VerkadaPin({
   }
 
   const justUnlocked = unlockedAt !== null
+  const guestPassHint = showGuestPassHint && (
+    <p className="muted" style={{ fontSize: '0.85em' }}>
+      bringing a guest? you can issue them a guest pass in the{' '}
+      <a href="#guest-passes">guest passes</a> section below.
+    </p>
+  )
   const unlockBlock = (
     <div style={{ marginTop: '12px' }}>
       <button
@@ -191,6 +200,7 @@ export default function VerkadaPin({
           )}
           <p>as a guest program member, enter this shared code on the front door keypad:</p>
           <div className="pin-display">{guestPin}#</div>
+          {guestPassHint}
           {unlockBlock}
         </div>
       )
@@ -227,6 +237,7 @@ export default function VerkadaPin({
           system yet — email{' '}
           <a href="mailto:team@moxsf.com">team@moxsf.com</a> and we&apos;ll sort it out.
         </p>
+        {guestPassHint}
         {unlockBlock}
       </div>
     )
@@ -247,6 +258,7 @@ export default function VerkadaPin({
           this code is yours alone. don&apos;t share it; if you think someone else
           has it, regenerate it below.
         </p>
+        {guestPassHint}
         {unlockBlock}
       </div>
 

@@ -120,7 +120,13 @@ export default async function DashboardPage() {
           <section>
             <h2>door access</h2>
             {activeMember ? (
-              <VerkadaPin key={effectiveUserId} isViewingAs={!!session.viewingAsUserId} tier={profile.tier} isActiveMember={activeMember} />
+              <VerkadaPin
+                key={effectiveUserId}
+                isViewingAs={!!session.viewingAsUserId}
+                tier={profile.tier}
+                isActiveMember={activeMember}
+                showGuestPassHint={guestAllowance !== 0 || canDayPass}
+              />
             ) : (
               <MyDayPasses passes={dayPasses} isActiveMember={activeMember} hideHeading />
             )}
@@ -169,7 +175,7 @@ export default async function DashboardPage() {
       {(guestAllowance !== 0 || canDayPass) && (
         <>
           <hr />
-          <section>
+          <section id="guest-passes">
             <h2>guest passes</h2>
             {guestAllowance !== 0 ? (
               <GuestPasses key={effectiveUserId} canBuyPass={canDayPass} />
