@@ -206,6 +206,6 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/api/webhooks/stripe",
     "type": "webhook",
     "httpMethod": "POST",
-    "summary": "Handles Stripe events: day pass purchases create Airtable records and send activation emails; new subscriptions add members to Forkable"
+    "summary": "Handles Stripe events: membership checkouts mark the member Joined in Airtable (tier + Stripe ID), send the welcome email and post to Discord; failed payments alert staff; unpaid/cancelled subscriptions set Payment Issue/Cancelled and pull door access; day passes create records and send activation emails; new subscriptions add members to Forkable"
   }
 ]
