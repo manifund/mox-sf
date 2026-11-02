@@ -390,7 +390,7 @@ export default function SubscriptionInfo({
           disabled={billingLoading}
           className="primary"
         >
-          {billingLoading ? 'loading...' : 'manage billing / change tier'}
+          {billingLoading ? 'loading...' : 'update payment method / invoices'}
         </button>
 
         {switchLabel && canSwitchTo && (
