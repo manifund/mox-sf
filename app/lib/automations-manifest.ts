@@ -24,15 +24,6 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Weekly: Claude matches job seekers to open roles and emails suggestions to STAFF ONLY (members never receive this)."
   },
   {
-    "id": "cron/event-suggestions",
-    "filePath": "app/api/cron/event-suggestions/route.ts",
-    "routePath": "/api/cron/event-suggestions",
-    "type": "cron",
-    "cronSchedule": "0 17 * * 3",
-    "httpMethod": "GET",
-    "summary": "Weekly: emails opted-in members their top 3 upcoming events, picked by Claude from their profile interests."
-  },
-  {
     "id": "cron/gef-weekly-digest",
     "filePath": "app/api/cron/gef-weekly-digest/route.ts",
     "routePath": "/api/cron/gef-weekly-digest",

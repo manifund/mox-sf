@@ -53,7 +53,6 @@ Primary table for user/member management.
 | `Hiring` | checkbox | **STAFF-ONLY.** Member says they're hiring | ✅ Profile career section, careers admin |
 | `LinkedIn` | url | **STAFF-ONLY.** | ✅ Profile career section, careers admin |
 | `Career notes` | multilineText | **STAFF-ONLY.** Free-text for staff | ✅ Profile career section, careers admin |
-| `Event digest` | checkbox | Opt-in to weekly personalized event email | ✅ Profile, event-suggestions cron |
 
 **Tier options:** Staff, Volunteer, Private Office, Program, Resident, Core, Friend, Courtesy, Guest Program, Paused
 
