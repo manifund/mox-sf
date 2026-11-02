@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  FRIEND_PRODUCT_ID,
+  LEGACY_FRIEND_MONTHLY_CENTS,
   LEGACY_MONTHLY_CENTS,
   decideMigration,
   formatReport,
   snapshotSubscription,
   summarize,
   tierForProduct,
+  type AirtablePerson,
   type MigrationRow,
   type SubscriptionItemSnapshot,
   type SubscriptionSnapshot,
@@ -63,9 +66,30 @@ function sub(
     status: 'active',
     customerId: 'cus_1',
     customerEmail: 'member@example.com',
+    customerName: null,
+    scheduleId: null,
     items,
     ...overrides,
   }
+}
+
+function friendItem(
+  overrides: Partial<SubscriptionItemSnapshot> = {}
+): SubscriptionItemSnapshot {
+  return item({
+    priceId: 'price_friend_legacy',
+    productId: FRIEND_PRODUCT_ID,
+    unitAmount: LEGACY_FRIEND_MONTHLY_CENTS,
+    ...overrides,
+  })
+}
+
+const friendPerson: AirtablePerson = {
+  recordId: 'recFriend1',
+  name: 'Fran Friend',
+  email: 'fran@example.com',
+  tier: 'Friend',
+  status: 'Joined',
 }
 
 describe('tierForProduct', () => {
@@ -85,7 +109,19 @@ describe('decideMigration', () => {
       fromPriceId: 'price_core_legacy',
       targetPriceId: 'price_core_monthly_new',
       targetLookupKey: 'membership_core_monthly',
+      tierChange: null,
     })
+  })
+
+  it('flags a subscription managed by a schedule, whatever its price', () => {
+    const decision = decideMigration(
+      sub(undefined, { scheduleId: 'sub_sched_1' }),
+      targets
+    )
+    expect(decision).toMatchObject({ action: 'manual', tier: 'core' })
+    expect(decision.action === 'manual' && decision.reason).toContain(
+      'subscription schedule sub_sched_1'
+    )
   })
 
   it('migrates a legacy Resident month-to-month subscription', () => {
@@ -146,15 +182,83 @@ describe('decideMigration', () => {
     expect(decision.action).toBe('skip')
   })
 
-  it('flags the Friend product (and any other product) for manual review', () => {
+  it('flags products other than Core, Resident and Friend for manual review', () => {
     const decision = decideMigration(
-      sub([item({ productId: 'prod_Rq9VzfM9QoJwPD' })]),
+      sub([item({ productId: 'prod_ScRhXMt6G7rljh' })]),
       targets
     )
     expect(decision).toMatchObject({ action: 'manual', tier: null })
     expect(decision.action === 'manual' && decision.reason).toMatch(
-      /not the Core or Resident/
+      /not the Core, Resident or Friend/
     )
+  })
+
+  describe('Friend → Core', () => {
+    it('moves a $160 Friend to Core monthly with a tier change when Airtable agrees', () => {
+      expect(decideMigration(sub([friendItem()]), targets, friendPerson)).toEqual({
+        action: 'migrate',
+        tier: 'core',
+        itemId: 'si_1',
+        fromPriceId: 'price_friend_legacy',
+        targetPriceId: 'price_core_monthly_new',
+        targetLookupKey: 'membership_core_monthly',
+        tierChange: { from: 'Friend', to: 'Core', airtableRecordId: 'recFriend1' },
+      })
+    })
+
+    it('also moves a Paused Friend (they resume as Core)', () => {
+      const decision = decideMigration(sub([friendItem()]), targets, {
+        ...friendPerson,
+        status: 'Paused',
+      })
+      expect(decision.action).toBe('migrate')
+    })
+
+    it('leaves a Friend alone when there is no Airtable record', () => {
+      const decision = decideMigration(sub([friendItem()]), targets, null)
+      expect(decision).toMatchObject({ action: 'manual', tier: null })
+      expect(decision.action === 'manual' && decision.reason).toContain(
+        'no Airtable People record for Stripe customer cus_1'
+      )
+    })
+
+    it('leaves a Friend alone when Airtable disagrees about status or tier', () => {
+      const cancelled = decideMigration(sub([friendItem()]), targets, {
+        ...friendPerson,
+        status: 'Cancelled',
+      })
+      expect(cancelled).toMatchObject({ action: 'manual' })
+      expect(cancelled.action === 'manual' && cancelled.reason).toContain(
+        'Airtable says Cancelled / Friend (Fran Friend)'
+      )
+
+      const office = decideMigration(sub([friendItem()]), targets, {
+        ...friendPerson,
+        tier: 'Private Office',
+      })
+      expect(office.action).toBe('manual')
+    })
+
+    it('leaves a Friend at a custom amount or interval alone', () => {
+      expect(
+        decideMigration(sub([friendItem({ unitAmount: 10000 })]), targets, friendPerson)
+      ).toMatchObject({ action: 'manual', reason: expect.stringContaining('$100.00 USD') })
+      expect(
+        decideMigration(
+          sub([friendItem({ intervalCount: 3, unitAmount: 48000 })]),
+          targets,
+          friendPerson
+        ).action
+      ).toBe('manual')
+    })
+
+    it('never migrates a Friend when the Core monthly price is missing', () => {
+      const decision = decideMigration(sub([friendItem()]), new Map(), friendPerson)
+      expect(decision).toMatchObject({
+        action: 'manual',
+        reason: 'no active Stripe price with lookup_key membership_core_monthly',
+      })
+    })
   })
 
   it('flags subscriptions with multiple items', () => {
@@ -345,11 +449,34 @@ describe('summarize + formatReport', () => {
   it('counts by action', () => {
     expect(summarize(rows)).toEqual({
       migrate: 1,
+      tierChanges: 0,
       skip: 1,
       manual: 1,
       applied: 0,
       failed: 0,
     })
+    const friendRow: MigrationRow = {
+      subscription: sub([friendItem()]),
+      decision: decideMigration(sub([friendItem()]), targets, friendPerson),
+    }
+    expect(summarize([...rows, friendRow])).toMatchObject({
+      migrate: 2,
+      tierChanges: 1,
+    })
+    const friendReport = formatReport([friendRow], {
+      apply: false,
+      runAt: new Date('2026-11-02T17:00:00Z'),
+    })
+    expect(friendReport).toContain('1 to migrate (1 of them Friend → Core)')
+    expect(friendReport).toContain(
+      '+ Airtable Tier Friend → Core, Forkable members club'
+    )
+    expect(
+      formatReport([{ ...friendRow, applied: true, notes: ['Airtable Tier → Core', 'Forkable members club added'] }], {
+        apply: true,
+        runAt: new Date('2026-11-02T17:00:00Z'),
+      })
+    ).toContain('OK [Airtable Tier → Core; Forkable members club added]')
     expect(
       summarize([
         { ...rows[0], applied: true },

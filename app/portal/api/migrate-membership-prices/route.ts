@@ -3,6 +3,12 @@ import type Stripe from 'stripe'
 import { requireStaff } from '@/app/lib/session'
 import { stripe } from '@/app/lib/stripe'
 import { sendEmail } from '@/app/lib/email'
+import { findRecords, updateRecord, Tables } from '@/app/lib/airtable'
+import {
+  addMemberToForkable,
+  FORKABLE_CLUBS,
+  parseFullName,
+} from '@/app/lib/forkable'
 import { MEMBERSHIP_TIERS, chargeCents } from '@/app/lib/membership-pricing'
 import {
   MIGRATABLE_STATUSES,
@@ -10,6 +16,7 @@ import {
   formatReport,
   snapshotSubscription,
   summarize,
+  type AirtablePerson,
   type MigrationRow,
   type TargetPrice,
 } from '@/app/lib/membership-price-migration'
@@ -19,8 +26,9 @@ export const maxDuration = 300
 const REPORT_TO = 'team@moxsf.com'
 
 // Staff-only one-off: move existing month-to-month Core/Resident subscriptions
-// onto the Nov 1, 2026 monthly prices. Dry run unless `apply=true`. See
-// docs/workflows/price-migration.md.
+// onto the Nov 1, 2026 monthly prices, and retired Friend subscriptions onto
+// Core monthly (which also sets Airtable Tier = Core and adds the member to
+// Forkable). Dry run unless `apply=true`. See docs/workflows/price-migration.md.
 //
 // GET  — always a dry run (safe to open in a browser)
 // POST — dry run unless ?apply=true (or {"apply": true} in the JSON body)
@@ -88,6 +96,77 @@ async function loadTargetPrices(): Promise<
   return { ok: true, targets }
 }
 
+interface PersonFields {
+  Name?: string
+  Email?: string
+  Tier?: string
+  Status?: string
+  'Stripe Customer ID'?: string
+}
+
+/** Every People record with a Stripe customer id, keyed by that id. Friend
+ *  rows are only migrated when Airtable agrees they are a live Friend. */
+async function loadAirtablePeople(): Promise<Map<string, AirtablePerson>> {
+  const records = await findRecords<PersonFields>(
+    Tables.People,
+    "{Stripe Customer ID} != ''",
+    { fields: ['Name', 'Email', 'Tier', 'Status', 'Stripe Customer ID'] }
+  )
+  const people = new Map<string, AirtablePerson>()
+  for (const record of records) {
+    const customerId = record.fields['Stripe Customer ID']?.trim()
+    if (!customerId) continue
+    people.set(customerId, {
+      recordId: record.id,
+      name: record.fields.Name ?? null,
+      email: record.fields.Email ?? null,
+      tier: record.fields.Tier ?? null,
+      status: record.fields.Status ?? null,
+    })
+  }
+  return people
+}
+
+/** The non-Stripe half of a Friend → Core move. Each step records its own
+ *  outcome on the row so a Forkable hiccup never hides a successful Tier write. */
+async function applyTierChange(
+  row: MigrationRow,
+  person: AirtablePerson | undefined
+): Promise<void> {
+  if (row.decision.action !== 'migrate' || !row.decision.tierChange) return
+  const { airtableRecordId, to } = row.decision.tierChange
+  const notes: string[] = []
+  try {
+    await updateRecord(Tables.People, airtableRecordId, { Tier: to })
+    notes.push(`Airtable Tier → ${to}`)
+  } catch (error) {
+    notes.push(
+      `Airtable Tier write FAILED: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+
+  const email = person?.email || row.subscription.customerEmail
+  if (!email) {
+    notes.push('Forkable skipped: no email')
+  } else {
+    const { firstName, lastName } = parseFullName(
+      person?.name || row.subscription.customerName || ''
+    )
+    const forkable = await addMemberToForkable({
+      email,
+      firstName: firstName || email.split('@')[0],
+      lastName,
+      clubIds: [FORKABLE_CLUBS.MOX_MEMBERS],
+    })
+    notes.push(
+      forkable.success
+        ? 'Forkable members club added'
+        : `Forkable FAILED: ${forkable.errors?.join(', ') || 'unknown error'}`
+    )
+  }
+  row.notes = notes
+}
+
 async function listCandidateSubscriptions(): Promise<Stripe.Subscription[]> {
   const seen = new Set<string>()
   const subs: Stripe.Subscription[] = []
@@ -116,15 +195,21 @@ async function run({ apply }: { apply: boolean }) {
     }
     const { targets } = loaded
 
-    const rows: MigrationRow[] = (await listCandidateSubscriptions()).map(
-      (stripeSub) => {
-        const subscription = snapshotSubscription(stripeSub)
-        return {
+    const [candidates, people] = await Promise.all([
+      listCandidateSubscriptions(),
+      loadAirtablePeople(),
+    ])
+    const rows: MigrationRow[] = candidates.map((stripeSub) => {
+      const subscription = snapshotSubscription(stripeSub)
+      return {
+        subscription,
+        decision: decideMigration(
           subscription,
-          decision: decideMigration(subscription, targets),
-        }
+          targets,
+          people.get(subscription.customerId) ?? null
+        ),
       }
-    )
+    })
 
     if (apply) {
       for (const row of rows) {
@@ -141,6 +226,9 @@ async function run({ apply }: { apply: boolean }) {
             proration_behavior: 'none',
           })
           row.applied = true
+          // Only once Stripe has the new price: a member whose Tier says Core
+          // but who is still billed as a Friend is the confusing case.
+          await applyTierChange(row, people.get(row.subscription.customerId))
         } catch (error) {
           row.error = error instanceof Error ? error.message : String(error)
           console.error(
@@ -157,7 +245,7 @@ async function run({ apply }: { apply: boolean }) {
 
     const emailed = await sendEmail({
       to: REPORT_TO,
-      subject: `Membership price migration ${tag}: ${summary.migrate} to migrate, ${summary.manual} manual, ${summary.skip} skipped${apply && summary.failed ? `, ${summary.failed} FAILED` : ''}`,
+      subject: `Membership price migration ${tag}: ${summary.migrate} to migrate (${summary.tierChanges} Friend → Core), ${summary.manual} manual, ${summary.skip} skipped${apply && summary.failed ? `, ${summary.failed} FAILED` : ''}`,
       text: report,
     })
 
