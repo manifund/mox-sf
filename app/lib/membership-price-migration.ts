@@ -102,6 +102,13 @@ export type MigrationDecision =
   | { action: 'skip'; tier: MembershipTierId; reason: string }
   | { action: 'manual'; tier: MembershipTierId | null; reason: string }
 
+export interface MigrationOptions {
+  /** Also move retired Friend subscriptions to Core monthly (with the
+   *  Airtable + Forkable side effects). Off by default so the price increase
+   *  can run on its own; Friend rows are then skipped with a reason. */
+  friends?: boolean
+}
+
 export interface MigrationRow {
   subscription: SubscriptionSnapshot
   decision: MigrationDecision
@@ -143,12 +150,14 @@ function describeBilling(item: SubscriptionItemSnapshot): string {
  * Decide what to do with one subscription. `targets` is keyed by lookup_key
  * and must contain the monthly key for every tier the caller wants migrated.
  * `person` is the Airtable record for the subscription's Stripe customer, or
- * null when there is none; it is only consulted for Friend subscriptions.
+ * null when there is none; it is only consulted for Friend subscriptions,
+ * and those are only considered at all when `opts.friends` is set.
  */
 export function decideMigration(
   sub: SubscriptionSnapshot,
   targets: ReadonlyMap<string, TargetPrice>,
-  person: AirtablePerson | null = null
+  person: AirtablePerson | null = null,
+  opts: MigrationOptions = {}
 ): MigrationDecision {
   if (sub.items.length !== 1) {
     return {
@@ -168,6 +177,13 @@ export function decideMigration(
   }
 
   if (item.productId === FRIEND_PRODUCT_ID) {
+    if (!opts.friends) {
+      return {
+        action: 'skip',
+        tier: 'core',
+        reason: 'Friend → Core is a separate pass (run with friends=true)',
+      }
+    }
     return decideFriendMigration(sub, item, targets, person)
   }
 
@@ -421,7 +437,7 @@ export function formatReport(
       (opts.apply
         ? ` (${summary.applied} applied, ${summary.failed} failed)`
         : '') +
-      `, ${summary.skip} already on new prices, ${summary.manual} need manual review`
+      `, ${summary.skip} skipped, ${summary.manual} need manual review`
   )
 
   const section = (title: string, action: MigrationDecision['action']) => {
@@ -452,6 +468,6 @@ export function formatReport(
 
   section(opts.apply ? 'Migrated' : 'Would migrate', 'migrate')
   section('Needs manual review', 'manual')
-  section('Skipped (already on new price)', 'skip')
+  section('Skipped (already on new price, or Friend without friends=true)', 'skip')
   return lines.join('\n')
 }

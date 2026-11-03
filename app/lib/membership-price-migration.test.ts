@@ -194,8 +194,22 @@ describe('decideMigration', () => {
   })
 
   describe('Friend → Core', () => {
+    const friends = { friends: true }
+
+    it('skips every Friend unless the friends option is set', () => {
+      const decision = decideMigration(sub([friendItem()]), targets, friendPerson)
+      expect(decision).toEqual({
+        action: 'skip',
+        tier: 'core',
+        reason: 'Friend → Core is a separate pass (run with friends=true)',
+      })
+      expect(
+        decideMigration(sub([friendItem()]), targets, null, { friends: false }).action
+      ).toBe('skip')
+    })
+
     it('moves a $160 Friend to Core monthly with a tier change when Airtable agrees', () => {
-      expect(decideMigration(sub([friendItem()]), targets, friendPerson)).toEqual({
+      expect(decideMigration(sub([friendItem()]), targets, friendPerson, friends)).toEqual({
         action: 'migrate',
         tier: 'core',
         itemId: 'si_1',
@@ -207,15 +221,17 @@ describe('decideMigration', () => {
     })
 
     it('also moves a Paused Friend (they resume as Core)', () => {
-      const decision = decideMigration(sub([friendItem()]), targets, {
-        ...friendPerson,
-        status: 'Paused',
-      })
+      const decision = decideMigration(
+        sub([friendItem()]),
+        targets,
+        { ...friendPerson, status: 'Paused' },
+        friends
+      )
       expect(decision.action).toBe('migrate')
     })
 
     it('leaves a Friend alone when there is no Airtable record', () => {
-      const decision = decideMigration(sub([friendItem()]), targets, null)
+      const decision = decideMigration(sub([friendItem()]), targets, null, friends)
       expect(decision).toMatchObject({ action: 'manual', tier: null })
       expect(decision.action === 'manual' && decision.reason).toContain(
         'no Airtable People record for Stripe customer cus_1'
@@ -223,37 +239,42 @@ describe('decideMigration', () => {
     })
 
     it('leaves a Friend alone when Airtable disagrees about status or tier', () => {
-      const cancelled = decideMigration(sub([friendItem()]), targets, {
-        ...friendPerson,
-        status: 'Cancelled',
-      })
+      const cancelled = decideMigration(
+        sub([friendItem()]),
+        targets,
+        { ...friendPerson, status: 'Cancelled' },
+        friends
+      )
       expect(cancelled).toMatchObject({ action: 'manual' })
       expect(cancelled.action === 'manual' && cancelled.reason).toContain(
         'Airtable says Cancelled / Friend (Fran Friend)'
       )
 
-      const office = decideMigration(sub([friendItem()]), targets, {
-        ...friendPerson,
-        tier: 'Private Office',
-      })
+      const office = decideMigration(
+        sub([friendItem()]),
+        targets,
+        { ...friendPerson, tier: 'Private Office' },
+        friends
+      )
       expect(office.action).toBe('manual')
     })
 
     it('leaves a Friend at a custom amount or interval alone', () => {
       expect(
-        decideMigration(sub([friendItem({ unitAmount: 10000 })]), targets, friendPerson)
+        decideMigration(sub([friendItem({ unitAmount: 10000 })]), targets, friendPerson, friends)
       ).toMatchObject({ action: 'manual', reason: expect.stringContaining('$100.00 USD') })
       expect(
         decideMigration(
           sub([friendItem({ intervalCount: 3, unitAmount: 48000 })]),
           targets,
-          friendPerson
+          friendPerson,
+          friends
         ).action
       ).toBe('manual')
     })
 
     it('never migrates a Friend when the Core monthly price is missing', () => {
-      const decision = decideMigration(sub([friendItem()]), new Map(), friendPerson)
+      const decision = decideMigration(sub([friendItem()]), new Map(), friendPerson, friends)
       expect(decision).toMatchObject({
         action: 'manual',
         reason: 'no active Stripe price with lookup_key membership_core_monthly',
@@ -457,7 +478,9 @@ describe('summarize + formatReport', () => {
     })
     const friendRow: MigrationRow = {
       subscription: sub([friendItem()]),
-      decision: decideMigration(sub([friendItem()]), targets, friendPerson),
+      decision: decideMigration(sub([friendItem()]), targets, friendPerson, {
+        friends: true,
+      }),
     }
     expect(summarize([...rows, friendRow])).toMatchObject({
       migrate: 2,
@@ -492,7 +515,7 @@ describe('summarize + formatReport', () => {
     })
     expect(report).toContain('DRY RUN 2026-11-01T17:00:00.000Z')
     expect(report).toContain(
-      '3 subscriptions considered: 1 to migrate, 1 already on new prices, 1 need manual review'
+      '3 subscriptions considered: 1 to migrate, 1 skipped, 1 need manual review'
     )
     expect(report).toContain('## Would migrate (1)')
     expect(report).toContain(
@@ -501,7 +524,7 @@ describe('summarize + formatReport', () => {
     expect(report).toContain('## Needs manual review (1)')
     expect(report).toContain('[sub_3, active]')
     expect(report).toContain('— quantity is 2')
-    expect(report).toContain('## Skipped (already on new price) (1)')
+    expect(report).toContain('## Skipped (already on new price, or Friend without friends=true) (1)')
     // Falls back to the customer id when there is no email.
     expect(report).toContain('- cus_1 [sub_2, active]')
   })

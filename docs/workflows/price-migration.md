@@ -5,13 +5,18 @@ Nov 1, 2026 prices. New signups already get the new prices via
 `/api/membership-checkout`; this handles the members who signed up before the
 change, whose subscriptions Stripe leaves on the old Price.
 
-It makes two kinds of move:
+It makes two kinds of move, run as two separate passes:
 
-| From                       | To                                | Also                                         |
-| -------------------------- | --------------------------------- | -------------------------------------------- |
-| Core $380/mo (legacy)      | Core $595/mo                      | —                                            |
-| Resident $780/mo (legacy)  | Resident $995/mo                  | —                                            |
-| Friend $160/mo (retired)   | Core $595/mo                      | Airtable Tier → Core, Forkable members club  |
+| Pass                     | From                       | To               | Also                                        |
+| ------------------------ | -------------------------- | ---------------- | ------------------------------------------- |
+| Prices (default)         | Core $380/mo (legacy)      | Core $595/mo     | —                                           |
+| Prices (default)         | Resident $780/mo (legacy)  | Resident $995/mo | —                                           |
+| Friends (`friends=true`) | Friend $160/mo (retired)   | Core $595/mo     | Airtable Tier → Core, Forkable members club |
+
+Without `friends=true` every Friend subscription is listed under **Skipped**
+with the reason `Friend → Core is a separate pass`, and nothing about it
+changes. That lets the price increase go out as soon as it is ready while the
+Friend move waits for its own member email.
 
 Members who reply asking for quarterly ($1,350 / $2,550 every 3 months) can
 switch themselves from the member portal once that ships, or staff switch them
@@ -25,9 +30,10 @@ new rate first appears on each member's next regular renewal after the run.
 Anyone who renewed between Nov 1 and the run simply paid the old rate one more
 time.
 
-Before applying, settle the Friend replies with Leilani: anyone who chose to
-leave should be cancelled in Stripe first, so the sweep never lands them on
-Core. Anyone who chose quarterly can be moved after.
+Before applying the **Friends** pass, settle the Friend replies with Leilani:
+anyone who chose to leave should be cancelled in Stripe first, so the sweep
+never lands them on Core. Anyone who chose quarterly can be moved after. The
+Prices pass does not need this and can run first.
 
 Running it twice is harmless: anything already on a lookup-keyed new price is
 skipped, and a Friend whose Airtable Tier is already Core is no longer a Friend
@@ -39,20 +45,27 @@ Route: `/portal/api/migrate-membership-prices` (staff login required; listed in
 `/portal/admin/automations`).
 
 1. **Dry run** — open the route in a browser while logged in as staff, or
-   `POST` it without `apply`. Nothing in Stripe or Airtable changes. The
-   response (and the email to team@moxsf.com) lists every subscription in one
-   of three buckets:
+   `POST` it without `apply`. Add `?friends=true` to preview the Friend pass
+   as well. Nothing in Stripe or Airtable changes. The response (and the email
+   to team@moxsf.com) lists every subscription in one of three buckets:
    - **Would migrate** — will be moved to `membership_<tier>_monthly`; Friend
      rows also say `+ Airtable Tier Friend → Core, Forkable members club`
    - **Needs manual review** — not touched; a human decides
-   - **Skipped** — already on a new lookup-keyed price
+   - **Skipped** — already on a new lookup-keyed price, or a Friend when
+     `friends` is off
 2. Read the manual-review list. Anything there that should move gets changed by
    hand in the Stripe Dashboard (and Airtable, for a tier change).
-3. **Apply** — `POST` with `apply=true`. From the browser console on any portal
-   page, logged in as staff:
+3. **Apply** — `POST` with `apply=true`, plus `friends=true` for the Friend
+   pass. From the browser console on any portal page, logged in as staff:
 
    ```js
+   // Prices pass (Core and Resident only)
    fetch('/portal/api/migrate-membership-prices?apply=true', { method: 'POST' })
+     .then((r) => r.json())
+     .then(console.log)
+
+   // Friends pass, once the Friend email has gone out
+   fetch('/portal/api/migrate-membership-prices?apply=true&friends=true', { method: 'POST' })
      .then((r) => r.json())
      .then(console.log)
    ```
@@ -82,7 +95,7 @@ A **Core or Resident** subscription is migrated only when **all** of these hold:
 - billed every 1 month, in USD, at the legacy list price ($380 / $780)
 
 A **Friend** subscription (`prod_Rq9VzfM9QoJwPD`) is migrated to Core monthly
-only when, additionally:
+only when `friends=true` was passed and, additionally:
 
 - it is billed every 1 month, in USD, at $160
 - the Stripe customer id matches an Airtable People record whose Tier is
@@ -99,7 +112,8 @@ but isn't the lookup-keyed Price, non-USD, or a price whose `lookup_key`
 belongs to another tier.
 
 **Skipped** means the item's price already carries one of this tier's lookup
-keys (`membership_<tier>_monthly` / `_quarterly`), or is the target Price id.
+keys (`membership_<tier>_monthly` / `_quarterly`), or is the target Price id,
+or it is a Friend subscription and `friends` was not set.
 
 ## What apply does and doesn't touch
 

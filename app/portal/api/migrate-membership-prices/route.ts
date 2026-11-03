@@ -26,30 +26,36 @@ export const maxDuration = 300
 const REPORT_TO = 'team@moxsf.com'
 
 // Staff-only one-off: move existing month-to-month Core/Resident subscriptions
-// onto the Nov 1, 2026 monthly prices, and retired Friend subscriptions onto
-// Core monthly (which also sets Airtable Tier = Core and adds the member to
-// Forkable). Dry run unless `apply=true`. See docs/workflows/price-migration.md.
+// onto the Nov 1, 2026 monthly prices. With `friends=true` it also moves
+// retired Friend subscriptions onto Core monthly (which sets Airtable Tier =
+// Core and adds the member to Forkable); without it Friend rows are skipped,
+// so the price increase and the Friend → Core move can run on different days.
+// Dry run unless `apply=true`. See docs/workflows/price-migration.md.
 //
-// GET  — always a dry run (safe to open in a browser)
-// POST — dry run unless ?apply=true (or {"apply": true} in the JSON body)
+// GET  — always a dry run (safe to open in a browser); ?friends=true previews
+//        the Friend pass too
+// POST — dry run unless ?apply=true (or {"apply": true} in the JSON body);
+//        ?friends=true / {"friends": true} includes Friend → Core
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!(await requireStaff())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
-  return run({ apply: false })
+  return run({
+    apply: false,
+    friends: request.nextUrl.searchParams.get('friends') === 'true',
+  })
 }
 
 export async function POST(request: NextRequest) {
   if (!(await requireStaff())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
-  let apply = request.nextUrl.searchParams.get('apply') === 'true'
-  if (!apply) {
-    const body = await request.json().catch(() => null)
-    apply = body?.apply === true
-  }
-  return run({ apply })
+  const params = request.nextUrl.searchParams
+  const body = await request.json().catch(() => null)
+  const apply = params.get('apply') === 'true' || body?.apply === true
+  const friends = params.get('friends') === 'true' || body?.friends === true
+  return run({ apply, friends })
 }
 
 /** Resolve the new monthly price for every tier by lookup_key, refusing to
@@ -184,9 +190,9 @@ async function listCandidateSubscriptions(): Promise<Stripe.Subscription[]> {
   return subs
 }
 
-async function run({ apply }: { apply: boolean }) {
+async function run({ apply, friends }: { apply: boolean; friends: boolean }) {
   const runAt = new Date()
-  const tag = apply ? 'APPLY' : 'DRY RUN'
+  const tag = `${apply ? 'APPLY' : 'DRY RUN'}${friends ? ' + Friends' : ''}`
   try {
     const loaded = await loadTargetPrices()
     if (!loaded.ok) {
@@ -206,7 +212,8 @@ async function run({ apply }: { apply: boolean }) {
         decision: decideMigration(
           subscription,
           targets,
-          people.get(subscription.customerId) ?? null
+          people.get(subscription.customerId) ?? null,
+          { friends }
         ),
       }
     })
@@ -251,6 +258,7 @@ async function run({ apply }: { apply: boolean }) {
 
     return NextResponse.json({
       apply,
+      friends,
       runAt: runAt.toISOString(),
       summary,
       emailed,
