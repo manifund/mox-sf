@@ -165,6 +165,15 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+    if (!targetPrice.recurring) {
+      console.error(
+        `[switch-billing-interval] Price ${targetPrice.id} (${lookupKey}) is not recurring`
+      )
+      return Response.json(
+        { error: `The ${tier.name} ${interval} plan isn't set up yet` },
+        { status: 500 }
+      )
+    }
     const expected = chargeCents(tier, interval)
     if (targetPrice.unit_amount !== expected) {
       console.warn(
@@ -194,7 +203,7 @@ export async function POST(request: Request) {
             quantity: item.quantity,
           })),
         },
-        targetPrice.id
+        { id: targetPrice.id, recurring: targetPrice.recurring }
       )
       await stripe.subscriptionSchedules.update(schedule.id, {
         end_behavior: 'release',
