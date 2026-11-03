@@ -62,10 +62,27 @@ async function loadMember() {
   }
   const effectiveUserId = session.viewingAsUserId || session.userId
   const userInfo = await getUserInfo(effectiveUserId)
-  if (!userInfo || !userInfo.customerId) {
+  if (!userInfo) {
+    // A logged-in session always points at a People record, so a miss here
+    // is almost always Airtable timing out or rate-limiting (getRecord
+    // returns null for any failure), not a missing member.
+    console.error(
+      `[switch-billing-interval] Could not load People record ${effectiveUserId}`
+    )
     return {
       error: Response.json(
-        { error: 'User or subscription not found' },
+        {
+          error:
+            "Couldn't load your membership record just now. Please try again in a moment.",
+        },
+        { status: 503 }
+      ),
+    }
+  }
+  if (!userInfo.customerId) {
+    return {
+      error: Response.json(
+        { error: 'No subscription found for your account' },
         { status: 404 }
       ),
     }
@@ -148,6 +165,15 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+    if (!targetPrice.recurring) {
+      console.error(
+        `[switch-billing-interval] Price ${targetPrice.id} (${lookupKey}) is not recurring`
+      )
+      return Response.json(
+        { error: `The ${tier.name} ${interval} plan isn't set up yet` },
+        { status: 500 }
+      )
+    }
     const expected = chargeCents(tier, interval)
     if (targetPrice.unit_amount !== expected) {
       console.warn(
@@ -166,26 +192,46 @@ export async function POST(request: Request) {
       from_subscription: subscription.id,
     })
     const currentPhase = schedule.phases[0]
-    const phases = buildSwitchPhases(
-      {
-        start_date: currentPhase.start_date,
-        end_date: currentPhase.end_date,
-        trial_end: currentPhase.trial_end,
-        items: currentPhase.items.map((item) => ({
-          price: typeof item.price === 'string' ? item.price : item.price.id,
-          quantity: item.quantity,
-        })),
-      },
-      targetPrice.id
-    )
-    await stripe.subscriptionSchedules.update(schedule.id, {
-      end_behavior: 'release',
-      phases,
-      metadata: {
-        source: 'portal-switch-billing-interval',
-        requested_by: actingAdmin ? actingAdmin.email : userInfo.email,
-      },
-    })
+    try {
+      const phases = buildSwitchPhases(
+        {
+          start_date: currentPhase.start_date,
+          end_date: currentPhase.end_date,
+          trial_end: currentPhase.trial_end,
+          items: currentPhase.items.map((item) => ({
+            price: typeof item.price === 'string' ? item.price : item.price.id,
+            quantity: item.quantity,
+          })),
+        },
+        { id: targetPrice.id, recurring: targetPrice.recurring }
+      )
+      await stripe.subscriptionSchedules.update(schedule.id, {
+        end_behavior: 'release',
+        phases,
+        metadata: {
+          source: 'portal-switch-billing-interval',
+          requested_by: actingAdmin ? actingAdmin.email : userInfo.email,
+        },
+      })
+    } catch (error) {
+      // Without this the subscription stays attached to a one-phase schedule
+      // that changes nothing but blocks every other price edit (dashboard,
+      // migration tool) until someone releases it by hand. Put it back the
+      // way we found it, then report the original failure.
+      console.error(
+        `[switch-billing-interval] Could not add the ${interval} phase to ${schedule.id}; releasing it:`,
+        error
+      )
+      await stripe.subscriptionSchedules
+        .release(schedule.id)
+        .catch((releaseError) =>
+          console.error(
+            `[switch-billing-interval] Could not release ${schedule.id}:`,
+            releaseError
+          )
+        )
+      throw error
+    }
 
     const effectiveDate = new Date(currentPhase.end_date * 1000)
     const rate = formatRate(targetPrice.unit_amount, targetPrice.recurring)

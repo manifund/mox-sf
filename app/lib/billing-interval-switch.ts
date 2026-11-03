@@ -151,24 +151,46 @@ export interface ExistingPhase {
   items: { price: string; quantity?: number | null }[]
 }
 
+/** Stripe's phase `duration` (API 2025-10-29 and later; `iterations` is gone). */
+export interface PhaseDuration {
+  interval: 'day' | 'week' | 'month' | 'year'
+  interval_count: number
+}
+
 export interface PhaseParams {
   items: { price: string; quantity: number }[]
   start_date?: number
   end_date?: number
   trial_end?: number
-  iterations?: number
+  duration?: PhaseDuration
   proration_behavior?: 'none'
 }
 
+export interface TargetPrice {
+  id: string
+  recurring: Recurring
+}
+
+const PHASE_INTERVALS = new Set(['day', 'week', 'month', 'year'])
+
 /**
  * Phases for the schedule update: the current phase exactly as it is, then
- * one period on the target price. With `end_behavior: 'release'` the
+ * one billing period on the target price. With `end_behavior: 'release'` the
  * subscription carries on renewing on the target price afterwards.
+ *
+ * The second phase's length comes from the target price's own interval
+ * (quarterly = 3 months): since API version 2025-10-29 Stripe wants an
+ * explicit `duration` here and rejects the old `iterations: 1`.
  */
 export function buildSwitchPhases(
   existing: ExistingPhase,
-  targetPriceId: string
+  target: TargetPrice
 ): PhaseParams[] {
+  if (!PHASE_INTERVALS.has(target.recurring.interval)) {
+    throw new Error(
+      `Price ${target.id} recurs every ${target.recurring.interval}, which a schedule phase cannot express`
+    )
+  }
   const current: PhaseParams = {
     items: existing.items.map((item) => ({
       price: item.price,
@@ -181,8 +203,11 @@ export function buildSwitchPhases(
   return [
     current,
     {
-      items: [{ price: targetPriceId, quantity: 1 }],
-      iterations: 1,
+      items: [{ price: target.id, quantity: 1 }],
+      duration: {
+        interval: target.recurring.interval as PhaseDuration['interval'],
+        interval_count: target.recurring.interval_count,
+      },
       proration_behavior: 'none',
     },
   ]

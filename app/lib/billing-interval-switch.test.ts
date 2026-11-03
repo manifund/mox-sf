@@ -134,7 +134,7 @@ describe('buildSwitchPhases', () => {
         end_date: 1_702_592_000,
         items: [{ price: 'price_old', quantity: 1 }],
       },
-      'price_new'
+      { id: 'price_new', recurring: { interval: 'month', interval_count: 3 } }
     )
     expect(phases).toEqual([
       {
@@ -144,10 +144,28 @@ describe('buildSwitchPhases', () => {
       },
       {
         items: [{ price: 'price_new', quantity: 1 }],
-        iterations: 1,
+        duration: { interval: 'month', interval_count: 3 },
         proration_behavior: 'none',
       },
     ])
+  })
+
+  it('never sends the removed iterations parameter', () => {
+    const [, next] = buildSwitchPhases(
+      { start_date: 1, end_date: 2, items: [{ price: 'price_old' }] },
+      { id: 'price_new', recurring: { interval: 'month', interval_count: 1 } }
+    )
+    expect(next).not.toHaveProperty('iterations')
+    expect(next.duration).toEqual({ interval: 'month', interval_count: 1 })
+  })
+
+  it('refuses a target price whose interval a phase cannot express', () => {
+    expect(() =>
+      buildSwitchPhases(
+        { start_date: 1, end_date: 2, items: [{ price: 'price_old' }] },
+        { id: 'price_odd', recurring: { interval: 'fortnight', interval_count: 1 } }
+      )
+    ).toThrow(/cannot express/)
   })
 
   it('carries an in-progress trial through the current phase', () => {
@@ -158,7 +176,7 @@ describe('buildSwitchPhases', () => {
         trial_end: 2,
         items: [{ price: 'price_old', quantity: null }],
       },
-      'price_new'
+      { id: 'price_new', recurring: { interval: 'month', interval_count: 1 } }
     )
     expect(current.trial_end).toBe(2)
     expect(current.items[0].quantity).toBe(1)
