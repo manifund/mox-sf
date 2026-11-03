@@ -161,6 +161,14 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Staff-only bulk sync of Airtable membership tiers and program participant roles"
   },
   {
+    "id": "portal/migrate-membership-prices",
+    "filePath": "app/portal/api/migrate-membership-prices/route.ts",
+    "routePath": "/portal/api/migrate-membership-prices",
+    "type": "portal-action",
+    "httpMethod": "GET, POST",
+    "summary": "One-off: moves legacy month-to-month Core/Resident Stripe subscriptions to the Nov 1, 2026 monthly prices (dry run unless apply=true); emails the report to team@"
+  },
+  {
     "id": "portal/pause-subscription",
     "filePath": "app/portal/api/pause-subscription/route.ts",
     "routePath": "/portal/api/pause-subscription",
