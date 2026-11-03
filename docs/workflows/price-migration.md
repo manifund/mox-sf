@@ -41,8 +41,22 @@ in Stripe either.
 
 ## How to run it
 
-Route: `/portal/api/migrate-membership-prices` (staff login required; listed in
-`/portal/admin/automations`).
+Two entry points share the same code (`app/lib/membership-price-migration-runner.ts`):
+
+- Route: `/portal/api/migrate-membership-prices` (staff login required; listed
+  in `/portal/admin/automations`).
+- Command line, from a checkout with production env vars
+  (`vercel env pull .env.local`):
+
+  ```bash
+  bun --env-file=.env.local scripts/migrate-membership-prices.ts --friends            # dry run
+  bun --env-file=.env.local scripts/migrate-membership-prices.ts --friends --apply    # apply
+  ```
+
+  `--out report.txt` also writes the report to a file. In apply mode it prints
+  one `OK` / `FAILED` line per subscription as it goes.
+
+The route steps below apply to both; the flags map to the query parameters.
 
 1. **Dry run** — open the route in a browser while logged in as staff, or
    `POST` it without `apply`. Add `?friends=true` to preview the Friend pass
@@ -156,6 +170,8 @@ for staff to finish by hand.
 ## Files
 
 - `app/portal/api/migrate-membership-prices/route.ts` — the route
+- `app/lib/membership-price-migration-runner.ts` — fetch, apply, email (shared)
+- `scripts/migrate-membership-prices.ts` — command-line entry point
 - `app/lib/membership-price-migration.ts` — decision logic, snapshotting,
   report formatting
 - `app/lib/membership-price-migration.test.ts` — tests (`bun run test`)
