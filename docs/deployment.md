@@ -60,7 +60,14 @@ Cron jobs require `Authorization: Bearer {CRON_SECRET}` header.
 
 ## GitHub Actions
 
-Two workflows in `.github/workflows/`:
+Workflows in `.github/workflows/`:
+
+### tvs.yml
+- Validates TV display changes on pull requests without deployment credentials
+- Deploys every upstream `main` push to the 1F and 3F Pis over Tailscale/SSH
+- Preserves credentials and restores the previous app if Cog fails to load
+- Requires the `tvs` environment secrets and tailnet access described in
+  [`tvs/README.md`](../tvs/README.md); this is separate from Vercel deployment
 
 ### claude-code-review.yml
 - Runs on pull requests

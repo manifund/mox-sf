@@ -1,0 +1,86 @@
+name: TV displays
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'tvs/**'
+      - '.github/workflows/tvs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate display source and deployment rollback
+        run: |
+          bash -n tvs/update_events.sh
+          node --check tvs/web/screen.js
+          node --check tvs/web/events.js
+          python3 -m unittest discover -s tvs/tests -v
+
+  deploy:
+    needs: check
+    # Fork pushes and PRs never receive production credentials or deploy.
+    if: >-
+      github.repository == 'manifund/mox-sf' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: tvs
+    concurrency:
+      group: tvs-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check deployment credentials
+        env:
+          TS_CLIENT_ID: ${{ secrets.TVS_TS_OAUTH_CLIENT_ID }}
+          TS_SECRET: ${{ secrets.TVS_TS_OAUTH_SECRET }}
+          SSH_KEY: ${{ secrets.TVS_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$TS_CLIENT_ID" || { echo 'Missing TVS_TS_OAUTH_CLIENT_ID'; exit 1; }
+          test -n "$TS_SECRET" || { echo 'Missing TVS_TS_OAUTH_SECRET'; exit 1; }
+          test -n "$SSH_KEY" || { echo 'Missing TVS_SSH_PRIVATE_KEY'; exit 1; }
+      - name: Reject superseded commits
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          latest=$(git ls-remote https://github.com/manifund/mox-sf.git refs/heads/main | cut -f1)
+          test "$latest" = "$REVISION" || { echo 'main has moved; deploy its newer run instead.'; exit 1; }
+      - name: Join the TVs' Tailscale network
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4
+        with:
+          oauth-client-id: ${{ secrets.TVS_TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TVS_TS_OAUTH_SECRET }}
+          tags: tag:mox-tv-deploy
+          ping: 100.87.232.90,100.72.72.35
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.TVS_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          install -m 600 tvs/known_hosts ~/.ssh/known_hosts
+      - name: Deploy and verify 1F
+        env:
+          REVISION: ${{ github.sha }}
+        run: python3 tvs/scripts/deploy.py 100.87.232.90 "$REVISION"
+      - name: Deploy and verify 3F
+        env:
+          REVISION: ${{ github.sha }}
+        run: python3 tvs/scripts/deploy.py 100.72.72.35 "$REVISION"
+      - name: Remove runner SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
