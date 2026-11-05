@@ -76,7 +76,7 @@ export default function DirectoryClient({
     <>
       {/* Title row with toggle */}
       <div className="directory-title-row">
-        <h1>Humans of Mox</h1>
+        <h1>Mox Humans</h1>
         <div className="directory-toggle">
           {toggleButton}
         </div>

@@ -55,7 +55,7 @@ export const defaultContent: HomeContent = {
   },
   eventsTitle: 'Events',
   eventsSubtitle: "What's happening at Mox",
-  peopleTitle: 'Humans of Mox',
+  peopleTitle: 'Mox Humans',
   peopleSubtitle: 'The community that makes Mox special',
   galleryTitle: 'The Space',
   gallerySubtitle: 'A glimpse into our home',
