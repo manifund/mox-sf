@@ -566,6 +566,10 @@ export default async function Component() {
             Questions? Contact{' '}
             <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link>
           </p>
+          <div
+            aria-hidden="true"
+            className="mx-auto mt-6 h-1.5 w-1.5 bg-gray-900 opacity-[0.06] dark:bg-gray-100"
+          />
         </div>
       </footer>
     </div>
