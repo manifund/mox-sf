@@ -18,9 +18,12 @@ export default function Masonry({
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
     null
   )
-  const initRatios = Object.values(sizes || {}).map(
-    ([width, height]) => width / height
-  )
+  // Look sizes up by src so entries don't have to stay in the same order as
+  // `images`. A photo missing from `sizes` falls back to 4:3.
+  const initRatios = images.map((src) => {
+    const size = sizes?.[src]
+    return size ? size[0] / size[1] : 4 / 3
+  })
   const [imageRatios, setImageRatios] = useState<number[]>(initRatios)
   const [containerWidth, setContainerWidth] = useState(900)
   const containerRef = useRef<HTMLDivElement>(null)
