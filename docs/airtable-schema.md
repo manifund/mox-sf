@@ -86,7 +86,7 @@ Manages events and activities.
 | `Event Retro` | multilineText | Post-event retrospective | |
 | `Revenue` | currency | Event revenue | |
 | `Invoice Status` | singleSelect | Payment status | |
-| `Door Token` | singleLineText | 12-char alphanumeric token gating the `/door?evt=…` unlock link. Populated by an Airtable automation when `Status` becomes `Confirmed`. | ✅ Door unlock |
+| `Door Token` | singleLineText | 12-char alphanumeric token gating the `/door?evt=…` event page, which shows the event and its hours (it no longer unlocks the door). Populated by an Airtable automation when `Status` becomes `Confirmed`. | ✅ Event door page |
 
 **Status options:** Idea, Maybe, Confirmed, To invoice, Invoiced, Paid, Cancelled, Recurring, Declined
 
@@ -132,17 +132,21 @@ Guest day pass and week pass management.
 | `Issued By Email` | lookup | Issuer's email (from Issued By); lets the app list a host's passes | ✅ Guest passes |
 | `Guest Name` | singleLineText | Guest Pass only: who the pass is for. No People record is created for the guest. | ✅ Guest passes |
 | `Guest Email` | email | Guest Pass only: the guest's email, so Mox can reach them if needed | ✅ Guest passes |
-| `Token` | singleLineText | Guest Pass only: 12-char token in the `/guest/<token>` unlock link | ✅ Guest passes |
+| `Token` | singleLineText | Guest Pass only: 12-char token in the `/guest/<token>` link where the guest sees their code | ✅ Guest passes |
 | `Valid Date` | date | Guest Pass only: the Pacific day the pass works (8am–11pm); counts against that week's allowance | ✅ Guest passes |
-| `Unlock Count` | number | Guest Pass only: door unlocks via the link (capped at 100) | ✅ Guest passes |
-| `First Used` | dateTime | Guest Pass only: first unlock | ✅ Guest passes |
+| `Code` | singleLineText | Guest Pass only: the guest's 6-digit keypad code (the Verkada entry code of their guest user) | ✅ Guest passes |
+| `Verkada User ID` | singleLineText | Guest Pass only: the Verkada user holding the code. Cleared when the user is deleted (revoke, or the nightly expiry cron); empty means no live code | ✅ Guest passes |
+| `Unlock Count` | number | Guest Pass only: accepted keypad entries, filled in by the nightly expiry cron from Verkada's door events | ✅ Guest passes |
+| `First Used` | dateTime | Guest Pass only: first accepted keypad entry, from the same nightly sync | ✅ Guest passes |
 
 **Pass Type options:** Day Pass, Happy Hour Pass, Week Pass, Guest Pass
 
 **Status options:** Unused, Activated, Expired, Revoked
 
-The app writes `Guest Pass` and `Revoked` with `typecast: true`, so Airtable
-adds those select options automatically on first use.
+The app writes `Guest Pass`, `Revoked` and `Expired` with `typecast: true`, so
+Airtable adds those select options automatically on first use. `Code` and
+`Verkada User ID` are plain text fields and must exist before a pass can be
+issued.
 
 ---
 

@@ -32,9 +32,6 @@ export default function VerkadaPin({
   const [showConfirm, setShowConfirm] = useState<boolean>(false)
   const [guestPin, setGuestPin] = useState<string | null>(null)
   const [showAppInfo, setShowAppInfo] = useState<boolean>(false)
-  const [unlocking, setUnlocking] = useState<boolean>(false)
-  const [unlockedAt, setUnlockedAt] = useState<number | null>(null)
-  const [unlockError, setUnlockError] = useState<string | null>(null)
 
   const isGuestProgram = tier === 'Program' || tier === 'Guest Program'
 
@@ -96,30 +93,6 @@ export default function VerkadaPin({
     fetchGuestPin()
   }, [isGuestProgram, isActiveMember])
 
-  useEffect(() => {
-    if (unlockedAt === null) return
-    const timer = setTimeout(() => setUnlockedAt(null), 6000)
-    return () => clearTimeout(timer)
-  }, [unlockedAt])
-
-  const handleUnlock = async () => {
-    setUnlocking(true)
-    setUnlockError(null)
-    try {
-      const res = await fetch('/portal/api/unlock-door', { method: 'POST' })
-      const data = await res.json()
-      if (data.success) {
-        setUnlockedAt(Date.now())
-      } else {
-        setUnlockError(data.error || "couldn't unlock")
-      }
-    } catch {
-      setUnlockError("couldn't unlock")
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
   // Creates a fresh personal code in Verkada. Used both to generate a first
   // code (when the automatic one on load didn't stick) and to regenerate.
   const requestNewPin = async (failureMessage: string) => {
@@ -169,27 +142,12 @@ export default function VerkadaPin({
     return <p className="error">{error}</p>
   }
 
-  const justUnlocked = unlockedAt !== null
   const guestPassHint = showGuestPassHint && (
     <p className="muted" style={{ fontSize: '0.85em' }}>
       bringing a guest? you can issue them a guest pass in the{' '}
       <a href="#guest-passes">guest passes</a> section below.
     </p>
   )
-  const unlockBlock = (
-    <div style={{ marginTop: '12px' }}>
-      <button
-        onClick={handleUnlock}
-        disabled={unlocking || justUnlocked}
-      >
-        {unlocking ? 'unlocking…' : justUnlocked ? '✓ unlocked' : 'or unlock the door from here'}
-      </button>
-      {unlockError && (
-        <p className="error" style={{ marginTop: '8px' }}>{unlockError}</p>
-      )}
-    </div>
-  )
-
   if (!hasAccess || !pin) {
     // Guest program members share a single guest code instead of a personal one
     if (isGuestProgram && guestPin) {
@@ -201,7 +159,6 @@ export default function VerkadaPin({
           <p>as a guest program member, enter this shared code on the front door keypad:</p>
           <div className="pin-display">{guestPin}#</div>
           {guestPassHint}
-          {unlockBlock}
         </div>
       )
     }
@@ -238,7 +195,6 @@ export default function VerkadaPin({
           <a href="mailto:team@moxsf.com">team@moxsf.com</a> and we&apos;ll sort it out.
         </p>
         {guestPassHint}
-        {unlockBlock}
       </div>
     )
   }
@@ -259,7 +215,6 @@ export default function VerkadaPin({
           has it, regenerate it below.
         </p>
         {guestPassHint}
-        {unlockBlock}
       </div>
 
       <p className="muted" style={{ fontSize: '0.9em' }}>

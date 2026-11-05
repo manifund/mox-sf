@@ -1,7 +1,7 @@
 // Rules for member-issued guest passes: weekly allowances by tier, the
-// Monday-to-Sunday Pacific week they count against, and the hours a pass
-// opens the door. Pure functions only; Airtable and Verkada calls live in the
-// API routes. See docs/workflows/member-guest-passes.md.
+// Monday-to-Sunday Pacific week they count against, and the hours a guest's
+// door code works. Pure functions only; Airtable and Verkada calls live in
+// guest-passes-server.ts. See docs/workflows/member-guest-passes.md.
 
 import { fromZonedTime } from 'date-fns-tz'
 import { MOX_TZ, addDays, mondayOf, ptDateString } from './checkins'
@@ -11,7 +11,6 @@ export const GUEST_PASS_TYPE = 'Guest Pass'
 export const GUEST_PASS_START_HOUR = 8 // 8am Pacific
 export const GUEST_PASS_END_HOUR = 23 // 11pm Pacific
 export const GUEST_PASS_MAX_DAYS_AHEAD = 7
-export const GUEST_PASS_MAX_UNLOCKS = 100
 export const GUEST_TOKEN_PATTERN = /^[A-Za-z0-9]{12}$/
 
 /** Passes per Monday-to-Sunday week. `null` means unlimited. */
@@ -48,7 +47,11 @@ export function todayPT(now: Date = new Date()): string {
   return ptDateString(now)
 }
 
-/** The instants between which a pass dated `validDate` opens the door. */
+/**
+ * The instants between which a pass dated `validDate` works. The guest's
+ * Verkada access user gets exactly this start and end, so the keypad
+ * enforces it without us.
+ */
 export function passWindow(validDate: string): { start: Date; end: Date } {
   const hh = (h: number) => String(h).padStart(2, '0')
   return {
@@ -90,27 +93,31 @@ export function guestPassState(
   return 'active'
 }
 
-/** Why a pass can't open the door right now, or null if it can. */
-export function unlockBlocker(
-  pass: GuestPassLike & { unlockCount: number },
+/**
+ * Whether a pass can still be revoked: only while its code could still open
+ * the door. Once the day is over the pass is a record of a visit, not a key.
+ */
+export function canRevokeGuestPass(
+  pass: GuestPassLike,
   now: Date = new Date()
-): 'revoked' | 'expired' | 'not-yet' | 'limit' | null {
+): boolean {
   const state = guestPassState(pass, now)
-  if (state === 'revoked') return 'revoked'
-  if (state === 'expired') return 'expired'
-  if (state === 'upcoming') return 'not-yet'
-  if (pass.unlockCount >= GUEST_PASS_MAX_UNLOCKS) return 'limit'
-  return null
+  return state === 'active' || state === 'upcoming'
 }
 
 /**
- * Whether a pass can still be revoked. Once the guest has opened the door
- * the pass is a record of a visit, not a key, so it stays as it is.
+ * How a guest appears in Verkada Command: their own name, marked as a guest
+ * of the host so staff can tell these short-lived users from members.
  */
-export function canRevokeGuestPass(
-  pass: GuestPassLike & { unlockCount: number }
-): boolean {
-  return pass.status !== 'Revoked' && pass.unlockCount === 0
+export function verkadaGuestName(
+  guestName: string,
+  hostFirstName: string
+): { firstName: string; lastName: string } {
+  const parts = guestName.trim().split(/\s+/).filter(Boolean)
+  const firstName = parts[0] || 'Guest'
+  const rest = parts.slice(1).join(' ')
+  const tag = hostFirstName ? `(guest of ${hostFirstName})` : '(guest)'
+  return { firstName, lastName: rest ? `${rest} ${tag}` : tag }
 }
 
 /** Passes left this week given the allowance and passes already dated in it. */
@@ -129,6 +136,9 @@ export interface GuestPassSummary {
   guestEmail: string
   validDate: string
   state: GuestPassState
+  /** Keypad code, present while the pass is upcoming or active. */
+  code: string | null
+  /** Accepted keypad entries, filled in after the pass day ends. */
   unlockCount: number
   firstUsedAt: string | null
 }

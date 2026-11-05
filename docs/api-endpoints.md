@@ -39,20 +39,20 @@ Weekly cron job to rotate Verkada door codes.
   ```
 - **Details:** Updates Verkada weekly access code, renames Discord channel, posts notification
 
+### GET `/api/cron/expire-guest-passes`
+Nightly (08:00 UTC, after every pass has ended at 11pm Pacific): closes out guest passes whose day is over.
+
+- **Auth:** Cron secret (Bearer token)
+- **Response:** `{ "success", "today", "closed", "failed", "results": [{ id, guestName, validDate, ok, used?, error? }] }`
+- **Details:** For each Guest Pass record that still has a `Verkada User ID` and a `Valid Date` before today: reads the guest's door events from Verkada (sets `Unlock Count` and `First Used`), deletes the guest's Verkada user so the code is gone, clears `Verkada User ID`, and sets `Status` to Activated (used) or Expired (not used). Verkada already refuses the code after the user's end date; this is the cleanup. Safe to re-run.
+
 ### POST `/guest/api/validate`
-What the guest unlock page should show for a token.
+What the guest pass page should show for a token.
 
 - **Auth:** None (12-char token; throttled per IP)
 - **Body:** `{ "token": "k7Qp2mX9bT4w" }`
-- **Response:** `{ "status": "active" | "upcoming" | "expired" | "revoked" | "not-found", "guestName", "hostFirstName", "validDate" }`
-
-### POST `/guest/api/unlock`
-Open the front door for a valid guest pass.
-
-- **Auth:** None (token; throttled per token)
-- **Body:** `{ "token": "k7Qp2mX9bT4w" }`
-- **Response:** `{ "success": true }` or `{ "success": false, "reason": "expired" | "not-yet" | "revoked" | "limit" | "throttled" | "not-found" | "verkada-error" }`
-- **Details:** Checks the pass window (8am–11pm Pacific on Valid Date), the unlock cap, and that the host still has an allowance; then calls Verkada `admin_unlock`, bumps Unlock Count, and stamps First Used. On the first unlock only, posts to Discord #notifications with the host, guest name and guest email (same shape as the day-pass activation post).
+- **Response:** `{ "status": "active" | "upcoming" | "expired" | "revoked" | "not-found", "guestName", "hostFirstName", "validDate", "code" }`
+- **Details:** `code` is the guest's own keypad code and is only returned while the pass is `active` (8am–11pm Pacific on Valid Date, host still has an allowance, pass not revoked); otherwise `null`. There is no unlock endpoint: the guest types the code at the door.
 
 ### POST `/api/membership-checkout`
 Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
@@ -217,19 +217,21 @@ Create Stripe billing portal session.
 Weekly guest-pass allowance and the member's passes for this week onward.
 
 - **Auth:** User
-- **Response:** `{ "allowance": 4 | null, "remaining": 2 | null, "weekStart", "weekEnd", "today", "maxDaysAhead": 7, "passes": [{ id, token, guestName, validDate, state, unlockCount, firstUsedAt, link }] }`
+- **Response:** `{ "allowance": 4 | null, "remaining": 2 | null, "weekStart", "weekEnd", "today", "maxDaysAhead": 7, "passes": [{ id, token, guestName, guestEmail, validDate, state, code, unlockCount, firstUsedAt, link }] }`
+- **Details:** `code` is the guest's keypad code while the pass is upcoming or active, else `null`. `unlockCount` and `firstUsedAt` are filled in by the nightly `expire-guest-passes` cron, not live.
 - **Details:** Allowance comes from `weeklyGuestPassAllowance()` (`app/lib/guest-passes.ts`); `null` means unlimited (Staff). See `docs/workflows/member-guest-passes.md`.
 
 #### POST `/portal/api/guest-passes`
-Issue a free guest pass (an unlock link) for a named guest.
+Issue a free guest pass for a named guest: a Verkada access user with its own door code, valid 8am–11pm Pacific on the pass date, plus a link the guest opens to see the code.
 
 - **Auth:** User
 - **Body:** `{ "guestName": "Priya Natarajan", "guestEmail": "priya@example.com", "validDate"?: "2026-10-14" }` (date defaults to today, Pacific; up to 7 days out)
 - **Response:** `{ "pass": { ...summary, "link": "https://moxsf.com/guest/<token>" }, "remaining": 1 }`
-- **Errors:** 400 missing name, invalid email, host's own email, or bad date; 403 tier has no allowance; 409 `{ "code": "quota" }` when the week's allowance is used.
+- **Errors:** 400 missing name, invalid email, host's own email, or bad date; 403 tier has no allowance; 409 `{ "code": "quota" }` when the week's allowance is used; 502 when Verkada would not create the guest's user or code (no record is written).
+- **Details:** Posts to Discord #notifications when the pass is issued (host, guest name, guest email, date). The Verkada user copies the access groups of the shared day-pass user (`VERKADA_UUID`), so guests get exactly the doors a paid day pass gets.
 
 #### POST `/portal/api/guest-passes/revoke`
-Revoke a guest pass. Host or staff only. Only unused passes can be revoked; a pass the guest has already used returns 409.
+Revoke a guest pass: deletes the guest's Verkada user (so the code stops working at once) and marks the record Revoked. Host or staff only. Only upcoming or active passes can be revoked; a pass whose day is over returns 409.
 
 - **Auth:** User (own pass) or Staff
 - **Body:** `{ "passId": "rec123" }`

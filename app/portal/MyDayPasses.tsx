@@ -31,9 +31,6 @@ function PassCard({ pass }: PassCardProps) {
   const [activated, setActivated] = useState<ActivatedState | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlocked, setUnlocked] = useState(false)
-  const [unlockError, setUnlockError] = useState<string | null>(null)
 
   const fetchDoorCode = async (): Promise<{ doorCode: string; expiresAt: string | null } | null> => {
     const res = await fetch('/portal/api/activate-day-pass', {
@@ -56,21 +53,6 @@ function PassCard({ pass }: PassCardProps) {
       setError(e instanceof Error ? e.message : 'failed to activate. try again.')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const unlock = async () => {
-    setUnlocking(true)
-    setUnlockError(null)
-    try {
-      const res = await fetch('/portal/api/unlock-door', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'failed')
-      setUnlocked(true)
-    } catch (e) {
-      setUnlockError(e instanceof Error ? e.message : "couldn't unlock. try the code on the keypad.")
-    } finally {
-      setUnlocking(false)
     }
   }
 
@@ -101,16 +83,20 @@ function PassCard({ pass }: PassCardProps) {
                 : ''}
           </span>
         </div>
-        <button onClick={unlock} disabled={unlocking || unlocked} className="primary">
-          {unlocking ? 'unlocking...' : unlocked ? '✓ unlocked' : 'unlock door'}
-        </button>
-        {unlockError && <p className="error" style={{ marginTop: '8px' }}>{unlockError}</p>}
-        {activated && (
-          <p className="muted" style={{ marginTop: '10px', fontSize: '0.85em' }}>
-            Or enter <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: 'var(--text)', letterSpacing: '0.08em' }}>{activated.doorCode}#</span>
-            {' on the keypad.'}
-            {activated.expiresAt && <> Good until 11pm {formatDate(activated.expiresAt)}</>}.
-          </p>
+        {activated ? (
+          <>
+            <p style={{ marginBottom: 0 }}>
+              enter this code on the front door keypad, followed by #:
+            </p>
+            <div className="pin-display">{activated.doorCode}#</div>
+            {activated.expiresAt && (
+              <p className="muted" style={{ fontSize: '0.85em' }}>
+                good until 11pm {formatDate(activated.expiresAt)}.
+              </p>
+            )}
+          </>
+        ) : (
+          !error && <p className="loading">loading your door code...</p>
         )}
         {error && <p className="error" style={{ marginTop: '8px' }}>{error}</p>}
       </div>
