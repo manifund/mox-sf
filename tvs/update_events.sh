@@ -22,10 +22,12 @@ KEY_FILE="${AIRTABLE_KEY_FILE:-auth/airtable.com.txt}"
 OUT="${1:-${MOX_EVENTS_OUT:-web/events.js}}"
 
 # Only these statuses are hidden. Everything else (Confirmed, Recurring,
-# To invoice, Invoiced, Paid, blank) is shown.
+# To invoice, Invoiced, Paid, blank) is shown. Filter on the effective end
+# time so ongoing multi-day events remain visible, with the same two-hour
+# fallback for missing end times used below and in the browser.
 FORMULA="AND(
   {Start Date},
-  IS_AFTER({Start Date}, DATEADD(NOW(), -1, 'days')),
+  IS_AFTER(IF({End Date}, {End Date}, DATEADD({Start Date}, 2, 'hours')), NOW()),
   IS_BEFORE({Start Date}, DATEADD(NOW(), 1, 'days')),
   NOT(OR({Status} = 'Idea', {Status} = 'Maybe', {Status} = 'Cancelled', {Status} = 'Declined'))
 )"
