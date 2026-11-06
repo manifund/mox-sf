@@ -11,7 +11,7 @@ on the TVs.
 | 3F | `100.72.72.35` | `web/index.html?floor=3` |
 
 Source was imported from the working `moxscreens-htmldesign` deployment.
-Both Pis were migrated to `/home/tessavision/production` on November 6, 2026.
+Both Pis were migrated to `/home/mox/production` on November 6, 2026.
 `web/events.js` in Git is an empty preview placeholder, never uploaded to a TV.
 
 ## Events
@@ -27,7 +27,7 @@ events to floors 1–4; **Floor TBD events are not displayed**. A missing end
 time defaults to two hours. Failed API refreshes retain the last good file.
 
 Each Pi keeps its own PAT at
-`/home/tessavision/production/auth/airtable.com.txt`. The PAT needs
+`/home/mox/production/auth/airtable.com.txt`. The PAT needs
 `data.records:read` and access to the base. It is never uploaded to GitHub or
 included in the deployment archive. The browser only sees the generated feed.
 
@@ -105,8 +105,8 @@ An approval rule on the GitHub environment will pause deployment for approval;
 omit required reviewers if every main push should deploy unattended.
 
 Generate a dedicated deployment key on a trusted admin computer and append
-its public key to `/home/tessavision/.ssh/authorized_keys` on both Pis. The
-workflow runs as `tessavision`, whose current configuration permits
+its public key to `/home/mox/.ssh/authorized_keys` on both Pis. The
+workflow runs as `mox`, whose current configuration permits
 passwordless sudo for managing services. Treat this deployment credential as
 privileged: do not reuse a personal SSH key. Ordinary SSH is used; Tailscale
 SSH need not be enabled. Never commit private keys or PATs.
@@ -136,24 +136,40 @@ Read-only status commands on a Pi:
 
 ```sh
 systemctl is-active mox-display.service mox-html-events.timer
-cat /home/tessavision/production/DEPLOYED_REVISION
+cat /home/mox/production/DEPLOYED_REVISION
 journalctl _COMM=cog -n 20 --no-pager
 ```
 
 `DEPLOYED_REVISION` is created by the first automated/manual rollout, so it
 will be absent on the initial hand-deployed installation.
 
-## Production directory migration
+## Display account migration
+
+Both TVs now run the display and event updater as `mox`, with their own
+`/home/mox` and app at `/home/mox/production`. Existing authorized keys and
+the password credential were copied locally from `tessavision`, along with
+supplementary groups and passwordless sudo access. Existing `tessavision`
+logins remain available. Future key changes should target `/home/mox/.ssh/authorized_keys`.
+
+`scripts/migrate_user.py` is the one-time account migration, run with sudo
+beside `apply_release.py`. It moves production and deployment backups, updates
+service users, home paths and the Cog runtime UID, then verifies the event
+refresh and page load. Failed migrations restore the previous app ownership
+and unit files; the new account remains for inspection. Original unit files
+are retained in `/home/mox/account-migration/`.
+
+## Historical production directory migration
 
 The repository directory stays `tvs/`; the app runs at `~/production` on each
 Pi. `auth/airtable.com.txt` is copied locally on the Pi and is Git-ignored.
 No runtime script reads from the old `~/tessavision` app directory. The Linux
-account is still named `tessavision`.
+display account is `mox`; `tessavision` remains available for existing SSH access.
 
 `scripts/migrate_pi.py` performs the one-time migration on an existing Pi.
 Upload an archive produced by `scripts/deploy.py`'s `package()` function and
 place `migrate_pi.py` beside `apply_release.py` in a temporary remote directory.
-Run `python3 migrate_pi.py display.tar.gz 1` (or `3`). It checks the floor,
+This historical script targets `/home/tessavision/production` before the account
+migration. Run `python3 migrate_pi.py display.tar.gz 1` (or `3`). It checks the floor,
 fetches live events before stopping the display, saves existing unit files,
 updates their paths, and checks Cog's page-load log. On failure it restores
 the original units and services. It refuses to overwrite an existing
@@ -167,4 +183,4 @@ service. Other system networking tools under `/usr/local/sbin` remain in place.
 
 `systemd/` contains the display, refresh, and 1F watchdog unit definitions for reference
 and future provisioning. Replace `@FLOOR@` in `mox-display.service.in` with
-the device floor. Routine deployments do not reinstall these units.
+the device floor and `@UID@` with `id -u mox`. Routine deployments do not reinstall these units.

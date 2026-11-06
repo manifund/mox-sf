@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run as tessavision on an already-provisioned Pi. Retain a rollback copy."""
+"""Run as mox on an already-provisioned Pi. Retain a rollback copy."""
 import datetime
 import fcntl
 import os
@@ -13,7 +13,7 @@ import tarfile
 import tempfile
 import time
 
-APP = Path('/home/tessavision/production')
+APP = Path('/home/mox/production')
 KEY = APP / 'auth/airtable.com.txt'
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
             'web/assets/mox-logo.svg', 'network_watchdog.sh'}

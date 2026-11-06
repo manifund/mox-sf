@@ -15,7 +15,10 @@ import subprocess
 import tempfile
 import time
 
-from apply_release import APP, interrupted, unpack, verify_display
+from apply_release import interrupted, unpack, verify_display
+
+# Historical first-stage migration; migrate_user.py moves this app to mox.
+APP = Path("/home/tessavision/production")
 
 OLD = Path('/home/tessavision/moxscreens-htmldesign')
 OLD_KEY = Path('/home/tessavision/tessavision/auth/airtable.com.txt')

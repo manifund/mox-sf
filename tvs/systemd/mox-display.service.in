@@ -6,12 +6,12 @@ Conflicts=getty@tty7.service tessavision-display.service
 After=tessavision-display.service
 
 [Service]
-User=tessavision
+User=mox
 PAMName=login
-WorkingDirectory=/home/tessavision/production
+WorkingDirectory=/home/mox/production
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-Environment=HOME=/home/tessavision
+Environment=XDG_RUNTIME_DIR=/run/user/@UID@
+Environment=HOME=/home/mox
 Environment=COG_PLATFORM_DRM_MODE_MAX=1920x1080@60
 TTYPath=/dev/tty7
 StandardInput=tty
@@ -21,7 +21,7 @@ TTYReset=yes
 TTYVHangup=yes
 TTYVTDisallocate=yes
 ExecStartPre=+/usr/bin/chvt 7
-ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all /usr/bin/dbus-run-session -- /usr/bin/cog --doc-viewer --webprocess-failure=exit --platform=drm file:///home/tessavision/production/web/index.html?floor=@FLOOR@
+ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all /usr/bin/dbus-run-session -- /usr/bin/cog --doc-viewer --webprocess-failure=exit --platform=drm file:///home/mox/production/web/index.html?floor=@FLOOR@
 ExecStopPost=+/usr/bin/chvt 1
 TimeoutStopSec=20
 Restart=on-failure

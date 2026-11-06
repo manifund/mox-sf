@@ -34,12 +34,12 @@ def main():
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):
         parser.error("revision must be a full Git commit SHA")
-    target = f"tessavision@{args.host}"
+    target = f"mox@{args.host}"
     ssh = ["ssh", *SSH_OPTIONS, target]
     remote = subprocess.check_output(
-        [*ssh, "mktemp -d /home/tessavision/.mox-upload-XXXXXXXX"], text=True
+        [*ssh, "mktemp -d /home/mox/.mox-upload-XXXXXXXX"], text=True
     ).strip()
-    if not re.fullmatch(r"/home/tessavision/\.mox-upload-[A-Za-z0-9]+", remote):
+    if not re.fullmatch(r"/home/mox/\.mox-upload-[A-Za-z0-9]+", remote):
         raise RuntimeError("Unexpected remote staging path")
     try:
         with tempfile.TemporaryDirectory(prefix="mox-tv-") as tmp:

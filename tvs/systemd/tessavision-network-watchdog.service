@@ -5,4 +5,4 @@ Wants=NetworkManager.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /home/tessavision/production/network_watchdog.sh
+ExecStart=/bin/bash /home/mox/production/network_watchdog.sh
