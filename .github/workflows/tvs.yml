@@ -48,10 +48,12 @@ jobs:
           TS_CLIENT_ID: ${{ secrets.TVS_TS_OAUTH_CLIENT_ID }}
           TS_SECRET: ${{ secrets.TVS_TS_OAUTH_SECRET }}
           SSH_KEY: ${{ secrets.TVS_SSH_PRIVATE_KEY }}
+          AIRTABLE_TOKEN: ${{ secrets.TVS_AIRTABLE_TOKEN }}
         run: |
           test -n "$TS_CLIENT_ID" || { echo 'Missing TVS_TS_OAUTH_CLIENT_ID'; exit 1; }
           test -n "$TS_SECRET" || { echo 'Missing TVS_TS_OAUTH_SECRET'; exit 1; }
           test -n "$SSH_KEY" || { echo 'Missing TVS_SSH_PRIVATE_KEY'; exit 1; }
+          test -n "$AIRTABLE_TOKEN" || { echo 'Missing TVS_AIRTABLE_TOKEN'; exit 1; }
       - name: Reject superseded commits
         env:
           REVISION: ${{ github.sha }}
@@ -76,10 +78,12 @@ jobs:
       - name: Deploy and verify 1F
         env:
           REVISION: ${{ github.sha }}
+          TVS_AIRTABLE_TOKEN: ${{ secrets.TVS_AIRTABLE_TOKEN }}
         run: python3 tvs/scripts/deploy.py 100.87.232.90 "$REVISION"
       - name: Deploy and verify 3F
         env:
           REVISION: ${{ github.sha }}
+          TVS_AIRTABLE_TOKEN: ${{ secrets.TVS_AIRTABLE_TOKEN }}
         run: python3 tvs/scripts/deploy.py 100.72.72.35 "$REVISION"
       - name: Remove runner SSH key
         if: always()

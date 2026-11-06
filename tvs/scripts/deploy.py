@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Package display source and deploy it over an already-authenticated SSH connection."""
 import argparse
+import os
 from pathlib import Path
 import re
 import shlex
@@ -36,6 +37,9 @@ def main():
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):
         parser.error("revision must be a full Git commit SHA")
+    token = os.environ.pop("TVS_AIRTABLE_TOKEN", "").strip()
+    if not token or any(c.isspace() for c in token):
+        parser.error("TVS_AIRTABLE_TOKEN must contain a nonempty token without whitespace")
     target = f"mox@{args.host}"
     ssh = ["ssh", *SSH_OPTIONS, target]
     remote = subprocess.check_output(
@@ -44,11 +48,15 @@ def main():
     if not re.fullmatch(r"/home/mox/\.mox-upload-[A-Za-z0-9]+", remote):
         raise RuntimeError("Unexpected remote staging path")
     try:
+        # Send the secret over SSH stdin, never in argv, the archive, or local files.
+        credential = f"{remote}/airtable.token"
+        subprocess.run([*ssh, f"umask 077; cat > {shlex.quote(credential)}"],
+                       input=token + "\n", text=True, check=True)
         with tempfile.TemporaryDirectory(prefix="mox-tv-") as tmp:
             archive = Path(tmp) / "display.tar.gz"
             package(archive)
             subprocess.run(["scp", *SSH_OPTIONS, str(archive), f"{target}:{remote}/display.tar.gz"], check=True)
-            command = shlex.join(["python3", "-", f"{remote}/display.tar.gz", args.revision])
+            command = shlex.join(["python3", "-", f"{remote}/display.tar.gz", args.revision, credential])
             subprocess.run([*ssh, command], input=(ROOT / "scripts/apply_release.py").read_text(),
                            text=True, check=True)
     finally:

@@ -5,6 +5,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 
@@ -33,6 +34,8 @@ class DeploymentTests(unittest.TestCase):
         (self.app / 'auth').mkdir(mode=0o700)
         self.key = self.app / 'auth/airtable.com.txt'
         self.key.write_text('test-only-placeholder')
+        self.uploaded_key = self.home / 'uploaded.token'
+        self.uploaded_key.write_text('new-test-token')
         self.archive = self.home / 'display.tar.gz'
         upload.package(self.archive)
         self.calls = []
@@ -67,13 +70,13 @@ class DeploymentTests(unittest.TestCase):
             if self.fail_fetch:
                 raise subprocess.CalledProcessError(22, args)
             staged_key = Path(kwargs['env']['AIRTABLE_KEY_FILE'])
-            self.assertEqual(staged_key.read_text(), 'test-only-placeholder')
+            self.assertEqual(staged_key.read_text(), 'new-test-token')
             self.assertNotEqual(staged_key, self.key)
             Path(kwargs['env']['MOX_EVENTS_OUT']).write_text('fresh live events')
         return subprocess.CompletedProcess(args, 0, stdout='')
 
     def deploy(self, verify=lambda since, run: None):
-        apply.deploy(self.archive, REVISION, self.app, self.key, self.run_command, verify, units=self.units, uid=1234)
+        apply.deploy(self.archive, REVISION, self.app, self.uploaded_key, self.run_command, verify, units=self.units, uid=1234)
 
     def test_package_excludes_runtime_data_and_credentials(self):
         with tarfile.open(self.archive) as archive:
@@ -89,7 +92,7 @@ class DeploymentTests(unittest.TestCase):
         backups = list((self.home / 'deploy-backups').glob('html-*'))
         self.assertEqual(len(backups), 1)
         self.assertEqual((backups[0] / 'web/index.html').read_text(), 'old display')
-        self.assertEqual(self.key.read_text(), 'test-only-placeholder')
+        self.assertEqual(self.key.read_text(), 'new-test-token')
         self.assertEqual(self.key.stat().st_mode & 0o777, 0o600)
         self.assertEqual((backups[0] / 'auth/airtable.com.txt').read_text(), 'test-only-placeholder')
         self.assertIn(['sudo', '-n', 'systemctl', 'daemon-reload'], self.calls)
@@ -175,6 +178,36 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'display floor'):
             self.deploy()
         self.assertFalse(any('stop' in args for args in self.calls))
+
+    def test_missing_uploaded_credential_aborts_without_service_changes(self):
+        self.uploaded_key.unlink()
+        with self.assertRaisesRegex(RuntimeError, 'uploaded Airtable credential'):
+            self.deploy()
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.key.read_text(), 'test-only-placeholder')
+
+    def test_runner_requires_secret_before_connecting(self):
+        with patch.dict('os.environ', {}, clear=True), patch('sys.argv',
+                ['deploy.py', '100.87.232.90', REVISION]), \
+                patch.object(upload.subprocess, 'check_output') as ssh, \
+                patch('sys.stderr', new_callable=io.StringIO):
+            with self.assertRaises(SystemExit):
+                upload.main()
+            ssh.assert_not_called()
+
+    def test_runner_transfers_secret_only_via_stdin_and_cleans_up(self):
+        remote = '/home/mox/.mox-upload-test123'
+        with patch.dict('os.environ', {'TVS_AIRTABLE_TOKEN': 'new-test-token'}), \
+                patch('sys.argv', ['deploy.py', '100.87.232.90', REVISION]), \
+                patch.object(upload.subprocess, 'check_output', return_value=remote), \
+                patch.object(upload.subprocess, 'run') as run:
+            upload.main()
+            calls = run.call_args_list
+            self.assertEqual(calls[0].kwargs['input'], 'new-test-token\n')
+            for call in calls:
+                self.assertNotIn('new-test-token', ' '.join(call.args[0]))
+            self.assertIn(remote + '/airtable.token', calls[2].args[0][-1])
+            self.assertIn('rm -rf', calls[-1].args[0][-1])
 
     def test_rejects_invalid_revision(self):
         with self.assertRaisesRegex(ValueError, 'full Git commit'):

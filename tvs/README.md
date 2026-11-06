@@ -26,10 +26,13 @@ Idea, Maybe, Cancelled, and Declined statuses are hidden. Room rollups assign
 events to floors 1–4; **Floor TBD events are not displayed**. A missing end
 time defaults to two hours. Failed API refreshes retain the last good file.
 
-Each Pi keeps its own PAT at
-`/home/mox/production/auth/airtable.com.txt`. The PAT needs
-`data.records:read` and access to the base. It is never uploaded to GitHub or
-included in the deployment archive. The browser only sees the generated feed.
+GitHub Actions environment `tvs` supplies `TVS_AIRTABLE_TOKEN` on every
+deployment. Each Pi keeps the deployed copy at
+`/home/mox/production/auth/airtable.com.txt` (mode 0600) for minute-by-minute
+refreshes. The PAT needs
+`data.records:read` and access to the base. It is stored in GitHub Actions secrets, never in Git or the deployment archive.
+The runner transfers it over SSH stdin into a private temporary file, then
+removes that upload directory when deployment finishes. The browser only sees the generated feed.
 
 ## Local preview and checks
 
@@ -66,7 +69,7 @@ For each Pi the deploy script:
    `web/assets/`, and the display/event-refresh systemd units.
 2. Validates the archive, shell syntax, and rendered systemd units, preserving
    the existing floor and resolving the local `mox` UID. Pauses the refresh timer and
-   copies that Pi's credential into the staged app with private permissions and
+   installs the runner-supplied credential into the staged app with private permissions and
    generates fresh events using that copy. API failure
    aborts before changing the visible display.
 3. Stops Cog, moves the current app into `~/deploy-backups/html-…`, and swaps
@@ -78,8 +81,10 @@ For each Pi the deploy script:
 5. Resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
 
 Deployment manages `mox-display.service`, `mox-html-events.service`, and
-`mox-html-events.timer`. It preserves credentials and floor configuration,
-and does not modify networking units, network settings, or packages, or reboot. The existing services
+`mox-html-events.timer`. It preserves floor configuration,
+and does not modify networking units, network settings, or packages, or reboot.
+Each successful deployment replaces the Airtable credential with the supplied
+GitHub secret; rollback restores the previous credential with the old app. The existing services
 must already be active and enabled. Both TVs were provisioned this way on
 November 2, 2026. A fresh/reimaged Pi needs separate provisioning before this
 workflow can target it. Keep the current Cog, `libgles2`, GNU `date`, `curl`,
@@ -100,6 +105,7 @@ named **`tvs`** in `manifund/mox-sf`, restrict deployments to `main`, and add:
 | `TVS_TS_OAUTH_CLIENT_ID` | Tailscale OAuth client ID |
 | `TVS_TS_OAUTH_SECRET` | OAuth client secret with auth-key write access for `tag:mox-tv-deploy` |
 | `TVS_SSH_PRIVATE_KEY` | Dedicated unencrypted Ed25519 deployment private key, multiline OpenSSH format |
+| `TVS_AIRTABLE_TOKEN` | Airtable PAT with `data.records:read` access to the Mox base; installed on both TVs |
 
 Use the **tailnet that owns the TVs**, not merely a personal tailnet to which
 the TVs have been shared. Configure `tag:mox-tv-deploy` ownership and grant
@@ -107,6 +113,17 @@ that tag access to TCP port 22 on the two IPs above. See the official
 [Tailscale GitHub Action setup](https://tailscale.com/docs/integrations/github/github-action).
 An approval rule on the GitHub environment will pause deployment for approval;
 omit required reviewers if every main push should deploy unattended.
+
+A repository admin can seed the GitHub environment secret from the existing
+TV credential without displaying it (create the `tvs` environment first):
+
+```sh
+set -o pipefail
+ssh mox_1f 'cat /home/mox/production/auth/airtable.com.txt' | gh secret set TVS_AIRTABLE_TOKEN --repo manifund/mox-sf --env tvs
+```
+
+Updating that GitHub secret rotates the deployed token on the next successful
+rollout. Old backups and legacy directories retain older credential copies.
 
 Generate a dedicated deployment key on a trusted admin computer and append
 its public key to `/home/mox/.ssh/authorized_keys` on both Pis. The
@@ -123,7 +140,8 @@ file; do not disable host checking or blindly trust `ssh-keyscan` in CI.
 ## Manual rollout and recovery
 
 On a trusted machine with Tailscale access, an authorized SSH identity, and
-the checked-in host keys installed in `~/.ssh/known_hosts`:
+the checked-in host keys installed in `~/.ssh/known_hosts`, and
+`TVS_AIRTABLE_TOKEN` supplied in the environment by your secret manager:
 
 ```sh
 python3 tvs/scripts/deploy.py 100.87.232.90 "$(git rev-parse HEAD)"

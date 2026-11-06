@@ -15,7 +15,6 @@ import tempfile
 import time
 
 APP = Path('/home/mox/production')
-KEY = APP / 'auth/airtable.com.txt'
 UNITS = Path('/etc/systemd/system')
 MANAGED_UNITS = ('mox-display.service', 'mox-html-events.service', 'mox-html-events.timer')
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
@@ -72,12 +71,14 @@ def prepare_units(stage, units, uid, run):
     return originals, changed
 
 
-def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verify_display,
+def deploy(archive, revision, app=APP, key=None, run=subprocess.run, verify=verify_display,
            units=UNITS, uid=None):
     if not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('Expected a full Git commit SHA')
-    if not app.is_dir() or app.is_symlink() or not key.is_file():
-        raise RuntimeError('Expected the existing provisioned app and local Airtable credential')
+    if not app.is_dir() or app.is_symlink():
+        raise RuntimeError('Expected the existing provisioned app')
+    if key is None or not key.is_file() or not key.read_bytes().strip():
+        raise RuntimeError('Expected an uploaded Airtable credential from the deployment runner')
     for unit in ('mox-display.service', 'mox-html-events.timer'):
         run(['systemctl', 'is-enabled', '--quiet', unit], check=True)
         run(['systemctl', 'is-active', '--quiet', unit], check=True)
@@ -106,7 +107,7 @@ def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verif
         cache = app / 'web/events.js'
         if cache.exists():
             shutil.copy2(cache, stage / 'web/events.js')
-        # Credentials belong to the app now; preserve them across directory swaps.
+        # Install the runner-supplied credential; retain the old one only in rollback backups.
         auth = stage / 'auth'
         auth.mkdir(mode=0o700)
         staged_key = auth / 'airtable.com.txt'
@@ -171,4 +172,4 @@ if __name__ == '__main__':
         signal.signal(sig, interrupted)
     with (APP.parent / '.mox-tv-deploy.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        deploy(Path(sys.argv[1]), sys.argv[2])
+        deploy(Path(sys.argv[1]), sys.argv[2], key=Path(sys.argv[3]))
