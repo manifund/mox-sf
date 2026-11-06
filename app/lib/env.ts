@@ -68,7 +68,13 @@ export const env = {
 
   // Verkada
   get VERKADA_API_KEY() { return optional('VERKADA_API_KEY') },
-  get VERKADA_MEMBER_KEY() { return optional('VERKADA_MEMBER_KEY') },
+  // Older production deployments only configured VERKADA_API_KEY. The Access
+  // APIs used by the portal and the door-unlock flow need the same access
+  // scope, so retain the more specific key when present and otherwise use the
+  // documented deployment variable.
+  get VERKADA_MEMBER_KEY() {
+    return optional('VERKADA_MEMBER_KEY') || optional('VERKADA_API_KEY')
+  },
   get VERKADA_UUID() { return optional('VERKADA_UUID') },
   get VERKADA_WEEKLY_ACCESS_USER_ID() { return optional('VERKADA_WEEKLY_ACCESS_USER_ID') },
   get VERKADA_OLD_WEEKLY_ACCESS_USER_ID() { return optional('VERKADA_OLD_WEEKLY_ACCESS_USER_ID') },
