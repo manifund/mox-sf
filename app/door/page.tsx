@@ -17,9 +17,6 @@ function DoorPageContent() {
   const [state, setState] = useState<PageState>('loading')
   const [eventName, setEventName] = useState('')
   const [formattedHours, setFormattedHours] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlockedAt, setUnlockedAt] = useState<number | null>(null)
-  const [unlockError, setUnlockError] = useState('')
 
   useEffect(() => {
     if (!token) {
@@ -41,40 +38,6 @@ function DoorPageContent() {
       .catch(() => setState('error'))
   }, [token])
 
-  useEffect(() => {
-    if (unlockedAt === null) return
-    const timer = setTimeout(() => setUnlockedAt(null), 8000)
-    return () => clearTimeout(timer)
-  }, [unlockedAt])
-
-  const handleUnlock = async () => {
-    if (!token) return
-    setUnlocking(true)
-    setUnlockError('')
-    try {
-      const res = await fetch('/door/api/unlock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setUnlockedAt(Date.now())
-      } else if (data.reason === 'inactive') {
-        setUnlockError("This link isn't active right now.")
-        setState('inactive')
-      } else if (data.reason === 'throttled') {
-        setUnlockError('Too many attempts. Wait a moment and try again.')
-      } else {
-        setUnlockError("Couldn't unlock. Try again, or contact us.")
-      }
-    } catch {
-      setUnlockError("Couldn't unlock. Try again, or contact us.")
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
   if (state === 'loading') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -87,7 +50,6 @@ function DoorPageContent() {
   }
 
   if (state === 'active') {
-    const justUnlocked = unlockedAt !== null
     return (
       <div className="min-h-screen bg-slate-50 text-gray-800">
         <div className="max-w-md mx-auto pt-8 pb-8 px-6">
@@ -99,29 +61,14 @@ function DoorPageContent() {
             <div className="text-sm text-amber-800">{formattedHours}</div>
           </div>
 
-          <button
-            onClick={handleUnlock}
-            disabled={unlocking}
-            className={`w-full py-6 text-xl font-semibold transition-all mb-4 ${
-              justUnlocked
-                ? 'bg-green-600 text-white'
-                : unlocking
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-amber-800 text-white hover:bg-amber-900'
-            }`}
-          >
-            {unlocking
-              ? 'Unlocking...'
-              : justUnlocked
-                ? '✓ Door open — go on in'
-                : 'Unlock Door'}
-          </button>
-
-          {unlockError && (
-            <p className="text-sm text-red-600 text-center mb-4">
-              {unlockError}
-            </p>
-          )}
+          <div className="bg-green-50 border border-green-200 p-4 mb-6 text-center">
+            <div className="font-semibold text-green-900">
+              Happening now
+            </div>
+            <div className="text-sm text-green-800">
+              Come on up. The organizer will let you in at the front door.
+            </div>
+          </div>
 
           <div className="bg-white border border-slate-200 p-4 mb-6">
             <div className="flex items-start gap-3">
@@ -131,7 +78,7 @@ function DoorPageContent() {
                   1680 Mission St
                 </div>
                 <div className="text-sm text-gray-500">
-                  Tap Unlock when you&apos;re at the front door
+                  If the door is locked, message the event organizer
                 </div>
               </div>
             </div>
@@ -166,7 +113,7 @@ function DoorPageContent() {
             <p className="text-gray-600 mb-6">{formattedHours}</p>
           )}
           <p className="text-sm text-gray-500">
-            This unlock link only works during the event hours above.
+            This event link only works during the event hours above.
           </p>
         </div>
       </div>

@@ -17,6 +17,7 @@ interface ValidateResponse {
   guestName?: string
   hostFirstName?: string
   validDate?: string
+  code?: string | null
 }
 
 function formatDate(iso: string): string {
@@ -42,9 +43,7 @@ export default function GuestPassPage() {
   const [guestName, setGuestName] = useState('')
   const [hostFirstName, setHostFirstName] = useState('')
   const [validDate, setValidDate] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlockedAt, setUnlockedAt] = useState<number | null>(null)
-  const [unlockError, setUnlockError] = useState('')
+  const [code, setCode] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -62,48 +61,10 @@ export default function GuestPassPage() {
         setGuestName(data.guestName || '')
         setHostFirstName(data.hostFirstName || '')
         setValidDate(data.validDate || '')
+        setCode(data.code || null)
       })
       .catch(() => setStatus('error'))
   }, [token])
-
-  useEffect(() => {
-    if (unlockedAt === null) return
-    const timer = setTimeout(() => setUnlockedAt(null), 10000)
-    return () => clearTimeout(timer)
-  }, [unlockedAt])
-
-  const handleUnlock = async () => {
-    if (!token) return
-    setUnlocking(true)
-    setUnlockError('')
-    try {
-      const res = await fetch('/guest/api/unlock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setUnlockedAt(Date.now())
-      } else if (data.reason === 'expired' || data.reason === 'revoked') {
-        setStatus(data.reason)
-      } else if (data.reason === 'not-yet') {
-        setStatus('upcoming')
-      } else if (data.reason === 'limit') {
-        setUnlockError(
-          'This pass has been used as many times as it can be today.'
-        )
-      } else if (data.reason === 'throttled') {
-        setUnlockError('Too many attempts. Wait a moment and try again.')
-      } else {
-        setUnlockError("Couldn't unlock. Try again, or ask at the lobby.")
-      }
-    } catch {
-      setUnlockError("Couldn't unlock. Try again, or ask at the lobby.")
-    } finally {
-      setUnlocking(false)
-    }
-  }
 
   if (status === 'loading') {
     return (
@@ -117,7 +78,6 @@ export default function GuestPassPage() {
   }
 
   if (status === 'active') {
-    const justUnlocked = unlockedAt !== null
     return (
       <Shell>
         <p className="text-sm text-gray-500 mb-1">
@@ -136,36 +96,31 @@ export default function GuestPassPage() {
           </div>
         </div>
 
-        <p className="text-gray-700 mb-5">
-          1680 Mission St, San Francisco. Tap below when you&apos;re at the
-          front door.
-        </p>
-
-        <button
-          onClick={handleUnlock}
-          disabled={unlocking || justUnlocked}
-          className={`w-full py-5 text-xl font-semibold transition-all mb-3 ${
-            justUnlocked
-              ? 'bg-green-600 text-white'
-              : unlocking
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-amber-800 text-white hover:bg-amber-900'
-          }`}
-        >
-          {unlocking
-            ? 'Unlocking...'
-            : justUnlocked
-              ? '✓ Door unlocked'
-              : 'Unlock front door'}
-        </button>
-
-        {justUnlocked && (
-          <p className="text-center text-green-800 mb-3">
-            Pull the door open. Welcome in.
+        {code ? (
+          <>
+            <div className="bg-amber-50 border-2 border-amber-200 p-6 mb-5 text-center">
+              <div className="text-sm text-amber-700 mb-1">Your door code</div>
+              <div className="text-5xl font-bold text-amber-900 tracking-wider font-mono">
+                {code}#
+              </div>
+            </div>
+            <p className="text-gray-700 mb-5">
+              1680 Mission St, San Francisco. Enter the code on the keypad at
+              the front door, followed by <strong>#</strong>.
+            </p>
+            <p className="text-sm text-gray-500 mb-5">
+              This code is yours for today only and stops working at 11pm.
+            </p>
+          </>
+        ) : (
+          <p className="text-red-600 mb-5">
+            Your door code isn&apos;t ready. Ask {hostFirstName || 'the member who invited you'}{' '}
+            to let you in, or email{' '}
+            <a href="mailto:team@moxsf.com" className="underline">
+              team@moxsf.com
+            </a>
+            .
           </p>
-        )}
-        {unlockError && (
-          <p className="text-sm text-red-600 text-center mb-3">{unlockError}</p>
         )}
 
         <p className="text-center text-sm text-gray-400 mt-6">

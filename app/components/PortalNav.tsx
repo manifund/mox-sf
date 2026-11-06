@@ -21,8 +21,8 @@ export default function PortalNav() {
     pathname?.startsWith('/lobby') ||
     pathname?.startsWith('/summerseason') ||
     pathname?.startsWith('/gef') ||
-    pathname?.startsWith('/guest') || // guest pass unlock page
-    pathname?.startsWith('/door') || // event door unlock page
+    pathname?.startsWith('/guest') || // guest pass door-code page
+    pathname?.startsWith('/door') || // event door page
     pathname?.startsWith('/tasks') // task board has its own header
 
   useEffect(() => {

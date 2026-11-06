@@ -30,7 +30,8 @@ function getClientIp(request: Request): string {
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } }
 
 // Public, token-gated. Tells the guest page what to show; never reveals
-// anything beyond the guest's own name, the host's first name, and the date.
+// anything beyond the guest's own name, the host's first name, the date,
+// and (only while the pass is active) the guest's own door code.
 export async function POST(request: Request) {
   try {
     if (!checkIpThrottle(getClientIp(request))) {
@@ -55,12 +56,18 @@ export async function POST(request: Request) {
       weeklyGuestPassAllowance({ status: host.status, tier: host.tier }) !== 0
 
     const state = hostAllowed ? guestPassState(pass) : 'revoked'
+    const code =
+      state === 'active' && pass.code && pass.verkadaUserId ? pass.code : null
+    if (state === 'active' && !code) {
+      console.error(`[guest-validate] pass ${pass.id} is active but has no code`)
+    }
     return Response.json(
       {
         status: state,
         guestName: pass.guestName,
         hostFirstName,
         validDate: pass.validDate,
+        code,
       },
       NO_STORE
     )
