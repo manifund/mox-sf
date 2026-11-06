@@ -151,35 +151,18 @@ the password credential were copied locally from `tessavision`, along with
 supplementary groups and passwordless sudo access. Existing `tessavision`
 logins remain available. Future key changes should target `/home/mox/.ssh/authorized_keys`.
 
-`scripts/migrate_user.py` is the one-time account migration, run with sudo
-beside `apply_release.py`. It moves production and deployment backups, updates
-service users, home paths and the Cog runtime UID, then verifies the event
-refresh and page load. Failed migrations restore the previous app ownership
-and unit files; the new account remains for inspection. Original unit files
-are retained in `/home/mox/account-migration/`.
+Both one-time migrations are complete. Their scripts were removed from the
+working tree and remain available in commit `7592056`:
 
-## Historical production directory migration
+```sh
+git show 7592056:tvs/scripts/migrate_pi.py
+git show 7592056:tvs/scripts/migrate_user.py
+```
 
-The repository directory stays `tvs/`; the app runs at `~/production` on each
-Pi. `auth/airtable.com.txt` is copied locally on the Pi and is Git-ignored.
-No runtime script reads from the old `~/tessavision` app directory. The Linux
-display account is `mox`; `tessavision` remains available for existing SSH access.
-
-`scripts/migrate_pi.py` performs the one-time migration on an existing Pi.
-Upload an archive produced by `scripts/deploy.py`'s `package()` function and
-place `migrate_pi.py` beside `apply_release.py` in a temporary remote directory.
-This historical script targets `/home/tessavision/production` before the account
-migration. Run `python3 migrate_pi.py display.tar.gz 1` (or `3`). It checks the floor,
-fetches live events before stopping the display, saves existing unit files,
-updates their paths, and checks Cog's page-load log. On failure it restores
-the original units and services. It refuses to overwrite an existing
-`~/production`. The old app directories remain as recovery copies.
-
-The migration disables the unused legacy event/ticker timers and old display
-fallback timers. On 1F, it also copies the existing Wi-Fi watchdog into
-`production/network_watchdog.sh` and changes its service path, preserving
-the device-specific Wi-Fi configuration. 3F does not have that watchdog
-service. Other system networking tools under `/usr/local/sbin` remain in place.
+Original account-migration unit files remain in `/home/mox/account-migration/`
+on each Pi. The unused legacy event/ticker and display fallback timers are
+disabled. On 1F, the Wi-Fi watchdog runs from
+`/home/mox/production/network_watchdog.sh`; 3F has no watchdog service.
 
 `systemd/` contains the display, refresh, and 1F watchdog unit definitions for reference
 and future provisioning. Replace `@FLOOR@` in `mox-display.service.in` with
