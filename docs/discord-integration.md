@@ -133,7 +133,7 @@ One-click sync for all linked Discord members.
 
 ## Door Code Integration
 
-The weekly cron job (`/api/cron/rotate-door-code`) updates Discord:
+The door code rotation route (`/api/cron/rotate-door-code`, no longer scheduled as of November 2026) updates Discord when run:
 
 1. Renames door code channel: `🚪 Code: 1234#`
 2. Posts to packages channel with rotation notice

@@ -2,6 +2,10 @@
 
 Automated weekly rotation of the shared door access code.
 
+> **Status (November 2026): the weekly cron is turned off.** The schedule was
+> removed from `vercel.json`, so the code no longer rotates and the `#packages`
+> notification is no longer posted. The route still exists for manual runs.
+>
 > **Status (October 2026): the shared weekly code is being deprecated.**
 > Members now use their own personal Verkada PIN to get in. The member portal
 > (`/portal`, door access section) shows only the personal code, generates one
