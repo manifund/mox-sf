@@ -227,8 +227,7 @@ export default async function DashboardPage() {
         <p>
           <Link href="/portal/profile/edit">edit your profile</Link>{' '}
           <span className="muted">
-            — photo, directory listing, career &amp; job status (private),
-            weekly event picks
+            — photo, directory listing, career &amp; job status (private)
           </span>
         </p>
       </section>

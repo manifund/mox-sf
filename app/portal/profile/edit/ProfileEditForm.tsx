@@ -22,7 +22,6 @@ interface ProfileEditFormProps {
     hiring?: boolean
     linkedin?: string | null
     careerNotes?: string | null
-    eventDigest?: boolean
   }
   userId: string
 }
@@ -45,7 +44,6 @@ export default function ProfileEditForm({
     hiring: profile.hiring || false,
     linkedin: profile.linkedin || '',
     careerNotes: profile.careerNotes || '',
-    eventDigest: profile.eventDigest || false,
   })
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [status, setStatus] = useState<
@@ -94,7 +92,6 @@ export default function ProfileEditForm({
       hiring: profile.hiring || false,
       linkedin: profile.linkedin || '',
       careerNotes: profile.careerNotes || '',
-      eventDigest: profile.eventDigest || false,
     })
     setStatus('idle')
     setMessage('')
@@ -145,7 +142,6 @@ export default function ProfileEditForm({
       formDataToSend.append('hiring', formData.hiring.toString())
       formDataToSend.append('linkedin', formData.linkedin)
       formDataToSend.append('careerNotes', formData.careerNotes)
-      formDataToSend.append('eventDigest', formData.eventDigest.toString())
 
       if (photoFile) {
         formDataToSend.append('photo', photoFile)
@@ -465,25 +461,6 @@ export default function ProfileEditForm({
           placeholder='e.g. "looking for alignment research roles", "hiring a founding engineer"'
           maxLength={1000}
         />
-      </div>
-
-      <hr style={{ margin: '20px 0' }} />
-
-      <div className="form-group">
-        <label>
-          <input
-            type="checkbox"
-            id="eventDigest"
-            name="eventDigest"
-            checked={formData.eventDigest}
-            onChange={handleChange}
-          />
-          <b>send me a weekly email with events picked for me</b>
-        </label>
-        <p className="muted" style={{ marginTop: '5px' }}>
-          top 3 upcoming Mox events matched to your interests. unsubscribe by
-          unchecking.
-        </p>
       </div>
 
       {message && (

@@ -19,7 +19,6 @@ interface ProfileFields {
   Hiring?: boolean
   LinkedIn?: string
   'Career notes'?: string
-  'Event digest'?: boolean
 }
 
 export interface UserProfile {
@@ -41,7 +40,6 @@ export interface UserProfile {
   hiring: boolean
   linkedin: string | null
   careerNotes: string | null
-  eventDigest: boolean
 }
 
 export async function getUserProfile(
@@ -70,6 +68,5 @@ export async function getUserProfile(
     hiring: fields.Hiring === true,
     linkedin: fields.LinkedIn || null,
     careerNotes: fields['Career notes'] || null,
-    eventDigest: fields['Event digest'] === true,
   }
 }

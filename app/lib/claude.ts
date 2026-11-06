@@ -3,7 +3,7 @@ import { env } from './env'
 
 /**
  * Small Claude API helper for the site's LLM-powered automations (role
- * extraction, job matching, event suggestions). All features using this must
+ * extraction, job matching). All features using this must
  * degrade gracefully when ANTHROPIC_API_KEY is unset — check
  * isClaudeConfigured() first.
  */

@@ -1,8 +1,7 @@
 # Careers: Job Signals, Roles Board, and AI Matching
 
 Tracks who in the community is looking for work or hiring, maintains a public
-board of open roles at member orgs, and uses Claude to suggest matches and
-event picks.
+board of open roles at member orgs, and uses Claude to suggest matches.
 
 ## Privacy model (read this first)
 
@@ -15,16 +14,13 @@ event picks.
   ever emailed to the member.
 - **The roles board is public** (`/jobs`) — job postings are public
   information. Roles linked to stealth orgs are excluded.
-- **Event suggestions are opt-in** via the `Event digest` checkbox, with an
-  unsubscribe pointer in every email.
 
 ## Components
 
 ### 1. Profile "career" section — `/portal/profile/edit`
 
 Members self-report: job status (Looking now / Open to offers / Not looking),
-"I'm hiring", LinkedIn, and free-text notes for staff — plus the separate
-weekly event digest opt-in. Saved via `/portal/api/update-profile` (which now
+"I'm hiring", LinkedIn, and free-text notes for staff. Saved via `/portal/api/update-profile` (which now
 derives the target record from the session instead of trusting a posted
 userId).
 
@@ -64,16 +60,9 @@ none is fine) and emails the suggestions **to staff** for warm intros.
 Skips silently when there are no seekers, no roles, or no `ANTHROPIC_API_KEY`.
 `?to=<x>@moxsf.com` overrides the recipient.
 
-### 5. Event suggestions — `event-suggestions` cron (Wednesdays, 17:00 UTC)
-
-For each opted-in member: Claude picks their top 3 events in the next 14 days
-(Confirmed/Recurring, Public/Members) from their Work thing / Fun thing, and
-emails them with a one-line why. `?dry=1` previews picks without sending;
-`?to=<x>@moxsf.com` reroutes all emails for testing.
-
 ## Configuration
 
-- `ANTHROPIC_API_KEY` (in `app/lib/env.ts`, optional) — all three LLM crons
+- `ANTHROPIC_API_KEY` (in `app/lib/env.ts`, optional) — both LLM crons
   no-op with a log line when unset.
 - Model + JSON helper: `app/lib/claude.ts`. Careers queries:
   `app/lib/careers.ts`.

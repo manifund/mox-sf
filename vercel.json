@@ -25,10 +25,6 @@
       "schedule": "0 17 * * 2"
     },
     {
-      "path": "/api/cron/event-suggestions",
-      "schedule": "0 17 * * 3"
-    },
-    {
       "path": "/api/cron/tasks-sweep",
       "schedule": "*/15 * * * *"
     },

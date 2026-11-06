@@ -50,7 +50,6 @@ interface PersonFields {
   Hiring?: boolean
   LinkedIn?: string | null
   'Career notes'?: string | null
-  'Event digest'?: boolean
 }
 
 const JOB_STATUSES = ['Looking now', 'Open to offers', 'Not looking']
@@ -80,7 +79,6 @@ export async function POST(request: Request) {
     const hiring = formData.get('hiring')
     const linkedin = formData.get('linkedin') as string | null
     const careerNotes = formData.get('careerNotes') as string | null
-    const eventDigest = formData.get('eventDigest')
 
     // Validate name
     if (!name || name.trim().length === 0) {
@@ -156,7 +154,6 @@ export async function POST(request: Request) {
       Hiring: hiring === 'true',
       LinkedIn: trimmedLinkedin || null,
       'Career notes': trimmedCareerNotes || null,
-      'Event digest': eventDigest === 'true',
     }
 
     // Update Airtable record (without photo - that's handled separately)
