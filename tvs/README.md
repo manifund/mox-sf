@@ -63,19 +63,23 @@ run cannot deploy over a newer completed rollout.
 For each Pi the deploy script:
 
 1. Uploads `update_events.sh`, `network_watchdog.sh`, the HTML/CSS/JS source,
-   and `web/assets/`.
-2. Validates the archive and shell syntax, pauses the HTML refresh timer, and
+   `web/assets/`, and the display/event-refresh systemd units.
+2. Validates the archive, shell syntax, and rendered systemd units, preserving
+   the existing floor and resolving the local `mox` UID. Pauses the refresh timer and
    copies that Pi's credential into the staged app with private permissions and
    generates fresh events using that copy. API failure
    aborts before changing the visible display.
 3. Stops Cog, moves the current app into `~/deploy-backups/html-…`, and swaps
    the staged app into the same deployed path.
-4. Starts Cog and waits up to 90 seconds for its successful page-load log.
-   A failed launch restores the previous app and starts it again.
+4. Installs changed display/event service and timer units, saves the previous
+   units in `~/deploy-backups/units-…`, and runs `daemon-reload` only if needed.
+   Runs the installed event service, starts Cog, and waits up to 90 seconds
+   for its successful page-load log. A failure restores both the app and units.
 5. Resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
 
-Deployment does not modify service units, credentials, network settings,
-floor configuration, or packages, and does not reboot. The existing services
+Deployment manages `mox-display.service`, `mox-html-events.service`, and
+`mox-html-events.timer`. It preserves credentials and floor configuration,
+and does not modify networking units, network settings, or packages, or reboot. The existing services
 must already be active and enabled. Both TVs were provisioned this way on
 November 2, 2026. A fresh/reimaged Pi needs separate provisioning before this
 workflow can target it. Keep the current Cog, `libgles2`, GNU `date`, `curl`,
@@ -128,8 +132,11 @@ python3 tvs/scripts/deploy.py 100.72.72.35 "$(git rev-parse HEAD)"
 
 If manually restoring a backup, stop `mox-html-events.timer`,
 `mox-html-events.service`, and `mox-display.service` first. Move the failed
-app aside, move the selected backup to `~/production`, then start
-`mox-display.service` and `mox-html-events.timer` again. This preserves the
+app aside and move the selected backup to `~/production`. If that deployment
+changed units, restore the files from its matching `units-…` backup to
+`/etc/systemd/system/` using `sudo install -m 644`, then run
+`sudo systemctl daemon-reload`. Start `mox-display.service` and
+`mox-html-events.timer` again. This preserves the
 floor-specific service URL and the Airtable credential in the restored app's `auth/` directory.
 
 Read-only status commands on a Pi:
@@ -164,6 +171,7 @@ on each Pi. The unused legacy event/ticker and display fallback timers are
 disabled. On 1F, the Wi-Fi watchdog runs from
 `/home/mox/production/network_watchdog.sh`; 3F has no watchdog service.
 
-`systemd/` contains the display, refresh, and 1F watchdog unit definitions for reference
-and future provisioning. Replace `@FLOOR@` in `mox-display.service.in` with
-the device floor and `@UID@` with `id -u mox`. Routine deployments do not reinstall these units.
+`systemd/` contains the deployed display and refresh units. Deployment renders
+`@FLOOR@` and `@UID@` in `mox-display.service.in` from the existing TV setup.
+The 1F watchdog unit definitions are provisioning references only; routine
+deployments never install them or change their device-specific overrides.

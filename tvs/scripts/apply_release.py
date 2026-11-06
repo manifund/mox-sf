@@ -3,6 +3,7 @@
 import datetime
 import fcntl
 import os
+import pwd
 from pathlib import Path
 import re
 import shutil
@@ -15,8 +16,12 @@ import time
 
 APP = Path('/home/mox/production')
 KEY = APP / 'auth/airtable.com.txt'
+UNITS = Path('/etc/systemd/system')
+MANAGED_UNITS = ('mox-display.service', 'mox-html-events.service', 'mox-html-events.timer')
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
-            'web/assets/mox-logo.svg', 'network_watchdog.sh'}
+            'web/assets/mox-logo.svg', 'network_watchdog.sh',
+            'systemd/mox-display.service.in', 'systemd/mox-html-events.service',
+            'systemd/mox-html-events.timer'}
 
 
 def unpack(archive, stage):
@@ -46,7 +51,29 @@ def verify_display(since, run):
     raise RuntimeError('Cog did not confirm a successful page load within 90 seconds')
 
 
-def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verify_display):
+def prepare_units(stage, units, uid, run):
+    originals = {name: (units / name).read_text() for name in MANAGED_UNITS}
+    floors = set(re.findall(r'\?floor=([13])(?:\s|$)', originals['mox-display.service']))
+    if len(floors) != 1:
+        raise RuntimeError('Cannot determine existing display floor (expected 1 or 3)')
+    floor = floors.pop()
+    rendered = stage / 'rendered-units'
+    rendered.mkdir()
+    changed = []
+    for name in MANAGED_UNITS:
+        source = name + '.in' if name == 'mox-display.service' else name
+        content = (stage / 'systemd' / source).read_text()
+        content = content.replace('@FLOOR@', floor).replace('@UID@', str(uid))
+        (rendered / name).write_text(content)
+        if content != originals[name]:
+            changed.append(name)
+    run(['sudo', '-n', 'systemd-analyze', 'verify',
+         *[str(rendered / name) for name in MANAGED_UNITS]], check=True)
+    return originals, changed
+
+
+def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verify_display,
+           units=UNITS, uid=None):
     if not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('Expected a full Git commit SHA')
     if not app.is_dir() or app.is_symlink() or not key.is_file():
@@ -59,11 +86,20 @@ def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verif
     backups = app.parent / 'deploy-backups'
     backup = backups / f'html-{stamp}-{revision[:12]}'
     failed = backups / f'failed-html-{stamp}-{revision[:12]}'
+    unit_backup = backups / f'units-{stamp}-{revision[:12]}'
+    units_touched = False
+    changed = []
     moved_old = False
     timer_stopped = False
     try:
         unpack(archive, stage)
         run(['bash', '-n', str(stage / 'update_events.sh')], check=True)
+        originals, changed = prepare_units(
+            stage, units, pwd.getpwnam('mox').pw_uid if uid is None else uid, run)
+        if changed:
+            unit_backup.mkdir(parents=True, mode=0o700)
+            for name, content in originals.items():
+                (unit_backup / name).write_text(content)
         # Stop writers before copying the last good cache or swapping directories.
         timer_stopped = True
         run(['sudo', '-n', 'systemctl', 'stop', 'mox-html-events.timer', 'mox-html-events.service'], check=True)
@@ -84,14 +120,32 @@ def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verif
         app.rename(backup)
         moved_old = True
         stage.rename(app)
+        if changed:
+            units_touched = True  # Also restore after a partially completed install.
+            for name in changed:
+                run(['sudo', '-n', 'install', '-m', '644',
+                     str(app / 'rendered-units' / name), str(units / name)], check=True)
+            run(['sudo', '-n', 'systemctl', 'daemon-reload'], check=True)
+        # Exercise the installed event service, not just the staged shell script.
+        run(['sudo', '-n', 'systemctl', 'start', 'mox-html-events.service'], check=True)
         # Fractional timestamp excludes a previous load in the same second.
         since = f'{time.time():.6f}'
         run(['sudo', '-n', 'systemctl', 'start', 'mox-display.service'], check=True)
         verify(since, run)
+        run(['sudo', '-n', 'systemctl', 'start', 'mox-html-events.timer'], check=True)
+        run(['systemctl', 'is-active', '--quiet', 'mox-html-events.timer'], check=True)
+        timer_stopped = False
         print(f'Deployed {revision}; rollback copy: {backup}', flush=True)
     except BaseException:
         if moved_old:
-            run(['sudo', '-n', 'systemctl', 'stop', 'mox-display.service'], check=True)
+            run(['sudo', '-n', 'systemctl', 'stop', 'mox-display.service',
+                 'mox-html-events.timer', 'mox-html-events.service'], check=True)
+            timer_stopped = True
+            if units_touched:
+                for name in changed:
+                    run(['sudo', '-n', 'install', '-m', '644',
+                         str(unit_backup / name), str(units / name)], check=True)
+                run(['sudo', '-n', 'systemctl', 'daemon-reload'], check=True)
             if app.exists():
                 app.rename(failed)
             backup.rename(app)

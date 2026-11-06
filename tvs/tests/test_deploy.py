@@ -37,9 +37,30 @@ class DeploymentTests(unittest.TestCase):
         upload.package(self.archive)
         self.calls = []
         self.fail_fetch = False
+        self.fail_install = False
+        self.fail_validation = False
+        self.fail_command = None
+        self.units = self.home / 'units'
+        self.units.mkdir()
+        for name in apply.MANAGED_UNITS:
+            source = name + '.in' if name == 'mox-display.service' else name
+            content = (SCRIPTS.parent / 'systemd' / source).read_text()
+            content = content.replace('@FLOOR@', '3').replace('@UID@', '1234')
+            (self.units / name).write_text(content + '# previous unit\n')
+        self.original_units = {name: (self.units / name).read_text() for name in apply.MANAGED_UNITS}
 
     def run_command(self, args, **kwargs):
         self.calls.append(args)
+        if args == self.fail_command:
+            self.fail_command = None
+            raise subprocess.CalledProcessError(1, args)
+        if 'systemd-analyze' in args and self.fail_validation:
+            raise subprocess.CalledProcessError(1, args)
+        if args[:3] == ['sudo', '-n', 'install']:
+            if self.fail_install and args[-1].endswith('mox-html-events.service'):
+                self.fail_install = False
+                raise subprocess.CalledProcessError(1, args)
+            Path(args[-1]).write_text(Path(args[-2]).read_text())
         if args[:2] == ['bash', '-n']:
             return subprocess.run(args, **kwargs)
         if args[0] == 'bash':
@@ -52,7 +73,7 @@ class DeploymentTests(unittest.TestCase):
         return subprocess.CompletedProcess(args, 0, stdout='')
 
     def deploy(self, verify=lambda since, run: None):
-        apply.deploy(self.archive, REVISION, self.app, self.key, self.run_command, verify)
+        apply.deploy(self.archive, REVISION, self.app, self.key, self.run_command, verify, units=self.units, uid=1234)
 
     def test_package_excludes_runtime_data_and_credentials(self):
         with tarfile.open(self.archive) as archive:
@@ -71,7 +92,11 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(self.key.read_text(), 'test-only-placeholder')
         self.assertEqual(self.key.stat().st_mode & 0o777, 0o600)
         self.assertEqual((backups[0] / 'auth/airtable.com.txt').read_text(), 'test-only-placeholder')
-        self.assertEqual(self.calls[-1][-2:], ['start', 'mox-html-events.timer'])
+        self.assertIn(['sudo', '-n', 'systemctl', 'daemon-reload'], self.calls)
+        display = (self.units / 'mox-display.service').read_text()
+        self.assertIn('?floor=3', display)
+        self.assertIn('/run/user/1234', display)
+        self.assertNotIn('# previous unit', display)
 
     def test_api_failure_leaves_previous_display_and_resumes_timer(self):
         self.fail_fetch = True
@@ -92,6 +117,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertFalse((self.app / 'DEPLOYED_REVISION').exists())
         self.assertEqual(self.key.read_text(), 'test-only-placeholder')
         self.assertEqual(len(list((self.home / 'deploy-backups').glob('failed-html-*'))), 1)
+        self.assertEqual({name: (self.units / name).read_text() for name in apply.MANAGED_UNITS},
+                         self.original_units)
         self.assertEqual(self.calls[-1][-2:], ['start', 'mox-html-events.timer'])
 
     def test_rejects_path_traversal_before_stopping_display(self):
@@ -103,6 +130,50 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unexpected archive member'):
             self.deploy()
         self.assertEqual((self.app / 'web/index.html').read_text(), 'old display')
+        self.assertFalse(any('stop' in args for args in self.calls))
+
+    def test_partial_unit_install_restores_all_units_and_app(self):
+        self.fail_install = True
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.deploy()
+        self.assertEqual((self.app / 'web/index.html').read_text(), 'old display')
+        self.assertEqual({name: (self.units / name).read_text() for name in apply.MANAGED_UNITS},
+                         self.original_units)
+
+    def assert_command_failure_rolls_back(self, command):
+        self.fail_command = ['sudo', '-n', 'systemctl', *command]
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.deploy()
+        self.assertEqual((self.app / 'web/index.html').read_text(), 'old display')
+        self.assertEqual({name: (self.units / name).read_text() for name in apply.MANAGED_UNITS},
+                         self.original_units)
+        self.assertEqual(self.calls[-1][-2:], ['start', 'mox-html-events.timer'])
+
+    def test_reload_failure_rolls_back(self):
+        self.assert_command_failure_rolls_back(['daemon-reload'])
+
+    def test_event_service_failure_rolls_back(self):
+        self.assert_command_failure_rolls_back(['start', 'mox-html-events.service'])
+
+    def test_timer_start_failure_rolls_back(self):
+        self.assert_command_failure_rolls_back(['start', 'mox-html-events.timer'])
+
+    def test_invalid_units_abort_before_stopping_services(self):
+        self.fail_validation = True
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.deploy()
+        self.assertFalse(any('stop' in args for args in self.calls))
+
+    def test_unchanged_units_do_not_reload_systemd(self):
+        for name in apply.MANAGED_UNITS:
+            (self.units / name).write_text(self.original_units[name].replace('# previous unit\n', ''))
+        self.deploy()
+        self.assertFalse(any('daemon-reload' in args or 'install' in args for args in self.calls))
+
+    def test_unknown_floor_aborts_before_stopping_services(self):
+        (self.units / 'mox-display.service').write_text('no floor configured')
+        with self.assertRaisesRegex(RuntimeError, 'display floor'):
+            self.deploy()
         self.assertFalse(any('stop' in args for args in self.calls))
 
     def test_rejects_invalid_revision(self):

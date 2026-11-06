@@ -19,6 +19,8 @@ def package(destination):
     files = [ROOT / "update_events.sh", ROOT / "network_watchdog.sh"]
     files += [ROOT / "web" / name for name in ("index.html", "screen.js", "screen.css")]
     files += sorted((ROOT / "web/assets").rglob("*"))
+    files += [ROOT / "systemd" / name for name in
+              ("mox-display.service.in", "mox-html-events.service", "mox-html-events.timer")]
     with tarfile.open(destination, "w:gz") as archive:
         for path in files:
             if path.is_symlink():
