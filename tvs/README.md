@@ -11,7 +11,7 @@ on the TVs.
 | 3F | `100.72.72.35` | `web/index.html?floor=3` |
 
 Source was imported from the working `moxscreens-htmldesign` deployment.
-The deployed path remains `/home/tessavision/moxscreens-htmldesign`.
+Both Pis were migrated to `/home/tessavision/production` on November 6, 2026.
 `web/events.js` in Git is an empty preview placeholder, never uploaded to a TV.
 
 ## Events
@@ -27,7 +27,7 @@ events to floors 1–4; **Floor TBD events are not displayed**. A missing end
 time defaults to two hours. Failed API refreshes retain the last good file.
 
 Each Pi keeps its own PAT at
-`/home/tessavision/tessavision/auth/airtable.com.txt`. The PAT needs
+`/home/tessavision/production/auth/airtable.com.txt`. The PAT needs
 `data.records:read` and access to the base. It is never uploaded to GitHub or
 included in the deployment archive. The browser only sees the generated feed.
 
@@ -62,9 +62,11 @@ run cannot deploy over a newer completed rollout.
 
 For each Pi the deploy script:
 
-1. Uploads only `update_events.sh`, the HTML/CSS/JS source, and `web/assets/`.
+1. Uploads `update_events.sh`, `network_watchdog.sh`, the HTML/CSS/JS source,
+   and `web/assets/`.
 2. Validates the archive and shell syntax, pauses the HTML refresh timer, and
-   generates fresh events with that Pi's existing credential. API failure
+   copies that Pi's credential into the staged app with private permissions and
+   generates fresh events using that copy. API failure
    aborts before changing the visible display.
 3. Stops Cog, moves the current app into `~/deploy-backups/html-…`, and swaps
    the staged app into the same deployed path.
@@ -80,7 +82,8 @@ workflow can target it. Keep the current Cog, `libgles2`, GNU `date`, `curl`,
 `jq`, and systemd setup in place.
 
 Backups are retained under `~/deploy-backups/` for manual recovery; there is
-no automatic pruning. Failed replacement apps are retained as `failed-html-…`.
+no automatic pruning. Backups now include the private `auth/` directory; do not
+copy them into Git. Failed replacement apps are retained as `failed-html-…`.
 Health verification confirms page loading, not physical TV appearance.
 
 ## One-time maintainer setup (required before deployment works)
@@ -125,17 +128,43 @@ python3 tvs/scripts/deploy.py 100.72.72.35 "$(git rev-parse HEAD)"
 
 If manually restoring a backup, stop `mox-html-events.timer`,
 `mox-html-events.service`, and `mox-display.service` first. Move the failed
-app aside, move the selected backup to `~/moxscreens-htmldesign`, then start
+app aside, move the selected backup to `~/production`, then start
 `mox-display.service` and `mox-html-events.timer` again. This preserves the
-floor-specific service URL and the Airtable credential outside the app.
+floor-specific service URL and the Airtable credential in the restored app's `auth/` directory.
 
 Read-only status commands on a Pi:
 
 ```sh
 systemctl is-active mox-display.service mox-html-events.timer
-cat /home/tessavision/moxscreens-htmldesign/DEPLOYED_REVISION
+cat /home/tessavision/production/DEPLOYED_REVISION
 journalctl _COMM=cog -n 20 --no-pager
 ```
 
 `DEPLOYED_REVISION` is created by the first automated/manual rollout, so it
 will be absent on the initial hand-deployed installation.
+
+## Production directory migration
+
+The repository directory stays `tvs/`; the app runs at `~/production` on each
+Pi. `auth/airtable.com.txt` is copied locally on the Pi and is Git-ignored.
+No runtime script reads from the old `~/tessavision` app directory. The Linux
+account is still named `tessavision`.
+
+`scripts/migrate_pi.py` performs the one-time migration on an existing Pi.
+Upload an archive produced by `scripts/deploy.py`'s `package()` function and
+place `migrate_pi.py` beside `apply_release.py` in a temporary remote directory.
+Run `python3 migrate_pi.py display.tar.gz 1` (or `3`). It checks the floor,
+fetches live events before stopping the display, saves existing unit files,
+updates their paths, and checks Cog's page-load log. On failure it restores
+the original units and services. It refuses to overwrite an existing
+`~/production`. The old app directories remain as recovery copies.
+
+The migration disables the unused legacy event/ticker timers and old display
+fallback timers. On 1F, it also copies the existing Wi-Fi watchdog into
+`production/network_watchdog.sh` and changes its service path, preserving
+the device-specific Wi-Fi configuration. 3F does not have that watchdog
+service. Other system networking tools under `/usr/local/sbin` remain in place.
+
+`systemd/` contains the display, refresh, and 1F watchdog unit definitions for reference
+and future provisioning. Replace `@FLOOR@` in `mox-display.service.in` with
+the device floor. Routine deployments do not reinstall these units.

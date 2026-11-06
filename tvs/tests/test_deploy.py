@@ -26,11 +26,12 @@ class DeploymentTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.home = Path(self.tmp.name)
-        self.app = self.home / 'moxscreens-htmldesign'
+        self.app = self.home / 'production'
         (self.app / 'web').mkdir(parents=True)
         (self.app / 'web/index.html').write_text('old display')
         (self.app / 'web/events.js').write_text('last good live events')
-        self.key = self.home / 'airtable-token'
+        (self.app / 'auth').mkdir(mode=0o700)
+        self.key = self.app / 'auth/airtable.com.txt'
         self.key.write_text('test-only-placeholder')
         self.archive = self.home / 'display.tar.gz'
         upload.package(self.archive)
@@ -44,6 +45,9 @@ class DeploymentTests(unittest.TestCase):
         if args[0] == 'bash':
             if self.fail_fetch:
                 raise subprocess.CalledProcessError(22, args)
+            staged_key = Path(kwargs['env']['AIRTABLE_KEY_FILE'])
+            self.assertEqual(staged_key.read_text(), 'test-only-placeholder')
+            self.assertNotEqual(staged_key, self.key)
             Path(kwargs['env']['MOX_EVENTS_OUT']).write_text('fresh live events')
         return subprocess.CompletedProcess(args, 0, stdout='')
 
@@ -65,6 +69,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual((backups[0] / 'web/index.html').read_text(), 'old display')
         self.assertEqual(self.key.read_text(), 'test-only-placeholder')
+        self.assertEqual(self.key.stat().st_mode & 0o777, 0o600)
+        self.assertEqual((backups[0] / 'auth/airtable.com.txt').read_text(), 'test-only-placeholder')
         self.assertEqual(self.calls[-1][-2:], ['start', 'mox-html-events.timer'])
 
     def test_api_failure_leaves_previous_display_and_resumes_timer(self):
@@ -84,6 +90,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((self.app / 'web/index.html').read_text(), 'old display')
         self.assertEqual((self.app / 'web/events.js').read_text(), 'last good live events')
         self.assertFalse((self.app / 'DEPLOYED_REVISION').exists())
+        self.assertEqual(self.key.read_text(), 'test-only-placeholder')
         self.assertEqual(len(list((self.home / 'deploy-backups').glob('failed-html-*'))), 1)
         self.assertEqual(self.calls[-1][-2:], ['start', 'mox-html-events.timer'])
 

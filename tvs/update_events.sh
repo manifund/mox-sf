@@ -4,10 +4,10 @@
 #
 # Usage:  ./update_events.sh [output-file]
 # Defaults (override with environment variables):
-#   AIRTABLE_KEY_FILE  auth/airtable.com.txt  (same key file as events.sh)
+#   AIRTABLE_KEY_FILE  auth/airtable.com.txt
 #   MOX_EVENTS_OUT     web/events.js          (next to index.html)
 #
-# Paths are relative to this script's folder. Same requirements as events.sh:
+# Paths are relative to this script's folder. Requires:
 # bash, curl, jq.
 set -Eeuo pipefail
 

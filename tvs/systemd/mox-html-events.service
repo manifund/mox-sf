@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Mox HTML events
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+User=tessavision
+WorkingDirectory=/home/tessavision/production
+Environment=AIRTABLE_KEY_FILE=/home/tessavision/production/auth/airtable.com.txt
+ExecStart=/bin/bash ./update_events.sh

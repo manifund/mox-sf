@@ -16,7 +16,7 @@ SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=20",
 
 def package(destination):
     # Runtime data, credentials, local previews, and backups never enter the upload.
-    files = [ROOT / "update_events.sh"]
+    files = [ROOT / "update_events.sh", ROOT / "network_watchdog.sh"]
     files += [ROOT / "web" / name for name in ("index.html", "screen.js", "screen.css")]
     files += sorted((ROOT / "web/assets").rglob("*"))
     with tarfile.open(destination, "w:gz") as archive:

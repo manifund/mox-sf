@@ -13,10 +13,10 @@ import tarfile
 import tempfile
 import time
 
-APP = Path('/home/tessavision/moxscreens-htmldesign')
-KEY = Path('/home/tessavision/tessavision/auth/airtable.com.txt')
+APP = Path('/home/tessavision/production')
+KEY = APP / 'auth/airtable.com.txt'
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
-            'web/assets/mox-logo.svg'}
+            'web/assets/mox-logo.svg', 'network_watchdog.sh'}
 
 
 def unpack(archive, stage):
@@ -70,11 +70,17 @@ def deploy(archive, revision, app=APP, key=KEY, run=subprocess.run, verify=verif
         cache = app / 'web/events.js'
         if cache.exists():
             shutil.copy2(cache, stage / 'web/events.js')
-        env = dict(os.environ, AIRTABLE_KEY_FILE=str(key), MOX_EVENTS_OUT=str(stage / 'web/events.js'))
+        # Credentials belong to the app now; preserve them across directory swaps.
+        auth = stage / 'auth'
+        auth.mkdir(mode=0o700)
+        staged_key = auth / 'airtable.com.txt'
+        shutil.copyfile(key, staged_key)
+        staged_key.chmod(0o600)
+        env = dict(os.environ, AIRTABLE_KEY_FILE=str(staged_key), MOX_EVENTS_OUT=str(stage / 'web/events.js'))
         run(['bash', str(stage / 'update_events.sh')], env=env, check=True, timeout=240)
         (stage / 'DEPLOYED_REVISION').write_text(revision + '\n')
         run(['sudo', '-n', 'systemctl', 'stop', 'mox-display.service'], check=True)
-        backups.mkdir(exist_ok=True)
+        backups.mkdir(mode=0o700, exist_ok=True)
         app.rename(backup)
         moved_old = True
         stage.rename(app)

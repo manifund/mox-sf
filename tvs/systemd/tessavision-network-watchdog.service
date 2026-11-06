@@ -1,0 +1,8 @@
+[Unit]
+Description=Reconnect TessaVision Wi-Fi when disconnected
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/tessavision/production/network_watchdog.sh
