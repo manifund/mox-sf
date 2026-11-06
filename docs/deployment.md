@@ -101,4 +101,5 @@ Next.js 16 with Turbopack generates:
 3. Push to main branch
 4. Vercel automatically deploys
 5. Verify cron job endpoints are accessible
-6. Check Stripe webhook is receiving events
+6. Check Stripe webhook is receiving events. The endpoint for `/api/webhooks/stripe` must be subscribed to **all** of: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Missing events fail silently (nothing is delivered), so re-check this whenever the endpoint is recreated.
+7. `VERKADA_MEMBER_KEY` needs Access Control "Users and Groups" write permission so lapsed members can be removed from the member access group. If it lacks it, the webhook still updates Airtable and posts a "door access NOT removed" alert to Discord.

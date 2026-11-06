@@ -4,6 +4,16 @@ import { POST } from './route'
 const m = vi.hoisted(() => ({
   event: vi.fn(), lines: vi.fn(), find: vi.fn(), create: vi.fn(), update: vi.fn(),
   magic: vi.fn(), send: vi.fn(),
+  membership: vi.fn(), paymentFailed: vi.fn(), subUpdated: vi.fn(), subDeleted: vi.fn(),
+  alert: vi.fn(),
+}))
+vi.mock('@/app/lib/stripe-membership', () => ({
+  MEMBERSHIP_PRODUCTS: {},
+  handleMembershipCheckout: m.membership,
+  handlePaymentFailed: m.paymentFailed,
+  handleSubscriptionUpdated: m.subUpdated,
+  handleSubscriptionDeleted: m.subDeleted,
+  alertWebhookFailure: m.alert,
 }))
 vi.mock('@/app/lib/stripe', () => ({ stripe: {
   webhooks: { constructEvent: m.event }, checkout: { sessions: { listLineItems: m.lines } },
@@ -86,5 +96,43 @@ describe('paid day pass fulfillment', () => {
     m.event.mockImplementation(() => { throw new Error('invalid signature') })
     expect((await POST(request())).status).toBe(400)
     expect(m.find).not.toHaveBeenCalled()
+  })
+})
+describe('membership lifecycle dispatch', () => {
+  const event = (type: string, object: Record<string, unknown>, previous_attributes?: Record<string, unknown>) =>
+    m.event.mockReturnValue({ id: 'evt_1', type, data: { object, previous_attributes } })
+  it('routes subscription checkouts to the membership handler, not day-pass fulfillment', async () => {
+    event('checkout.session.completed', { id: 'cs_sub', mode: 'subscription' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.membership).toHaveBeenCalledWith(expect.objectContaining({ id: 'cs_sub' }))
+    expect(m.lines).not.toHaveBeenCalled()
+    expect(m.create).not.toHaveBeenCalled()
+  })
+  it('returns 500 and alerts staff when the membership handler fails', async () => {
+    event('checkout.session.completed', { id: 'cs_sub', mode: 'subscription' })
+    m.membership.mockRejectedValue(new Error('Airtable 503'))
+    expect((await POST(request())).status).toBe(500)
+    expect(m.alert).toHaveBeenCalledWith('checkout.session.completed', 'evt_1', expect.any(Error))
+  })
+  it('passes previous_attributes to the subscription update handler', async () => {
+    event('customer.subscription.updated', { id: 'sub_1', status: 'unpaid' }, { status: 'past_due' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.subUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'unpaid' }), { status: 'past_due' },
+    )
+  })
+  it('dispatches cancellations and failed payments, retrying on error', async () => {
+    event('customer.subscription.deleted', { id: 'sub_1' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.subDeleted).toHaveBeenCalled()
+    event('invoice.payment_failed', { id: 'in_1' })
+    m.paymentFailed.mockRejectedValue(new Error('Discord down'))
+    expect((await POST(request())).status).toBe(500)
+    expect(m.alert).toHaveBeenCalledWith('invoice.payment_failed', 'evt_1', expect.any(Error))
+  })
+  it('does not alert for the Forkable step, which keeps its best-effort 200', async () => {
+    event('customer.subscription.created', { id: 'sub_1', items: { data: [] } })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.alert).not.toHaveBeenCalled()
   })
 })
