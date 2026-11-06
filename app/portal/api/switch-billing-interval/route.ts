@@ -7,6 +7,7 @@ import {
   type BillingInterval,
   chargeCents,
   isBillingInterval,
+  otherInterval,
 } from '@/app/lib/membership-pricing'
 import {
   buildSwitchPhases,
@@ -53,6 +54,12 @@ function formatDate(date: Date): string {
 const INTERVAL_LABEL: Record<BillingInterval, string> = {
   monthly: 'month-to-month',
   quarterly: 'quarterly',
+}
+
+/** The period a member on this interval has already paid for. */
+const PERIOD_NOUN: Record<BillingInterval, string> = {
+  monthly: 'month',
+  quarterly: 'quarter',
 }
 
 async function loadMember() {
@@ -233,9 +240,11 @@ export async function POST(request: Request) {
       throw error
     }
 
+    const lastRenewal = new Date(currentPhase.start_date * 1000)
     const effectiveDate = new Date(currentPhase.end_date * 1000)
     const rate = formatRate(targetPrice.unit_amount, targetPrice.recurring)
     const label = INTERVAL_LABEL[interval]
+    const paidPeriod = PERIOD_NOUN[otherInterval(interval)]
 
     await sendChannelMessage(
       DISCORD_CHANNELS.NOTIFICATIONS,
@@ -246,15 +255,15 @@ export async function POST(request: Request) {
       subject: `Your Mox billing plan is changing to ${label}`,
       text: `Hi ${userInfo.name},
 
-Your ${tier.name} membership will move to ${label} billing on ${formatDate(effectiveDate)}. Nothing changes before then.
+Your ${tier.name} membership is moving to ${label} billing. Because you last renewed on ${formatDate(lastRenewal)}, the ${paidPeriod} you've already paid for runs through ${formatDate(effectiveDate)}, and the new plan takes effect then.
 
-From that date you'll be billed ${rate}.${
+From ${formatDate(effectiveDate)} you'll be billed ${rate}${
         interval === 'quarterly'
-          ? ' Quarterly billing renews every three months.'
+          ? ', and your membership renews every three months'
           : ''
-      }
+      }.
 
-You can cancel this change from your member portal any time before it takes effect. If you have any questions, reply to this email or contact us at team@moxsf.com.
+You can cancel this change from your member portal any time before ${formatDate(effectiveDate)}. If you have any questions, reply to this email or contact us at team@moxsf.com.
 
 Best,
 The Mox Team`,
