@@ -3,6 +3,8 @@ name: TV displays
 on:
   push:
     branches: [main]
+    paths:
+      - 'tvs/**'
   pull_request:
     paths:
       - 'tvs/**'
@@ -64,7 +66,13 @@ jobs:
           DEPLOY_REF: ${{ github.ref }}
         run: |
           latest=$(git ls-remote "https://github.com/${DEPLOY_REPOSITORY}.git" "$DEPLOY_REF" | cut -f1)
-          test "$latest" = "$REVISION" || { echo 'Branch has moved; deploy its newer run instead.'; exit 1; }
+          if [ "$latest" != "$REVISION" ]; then
+            git fetch --no-tags --depth=1 "https://github.com/${DEPLOY_REPOSITORY}.git" "$DEPLOY_REF"
+            git diff --quiet "$REVISION" FETCH_HEAD -- tvs/ || {
+              echo 'TV files have changed; deploy the newer revision instead.'
+              exit 1
+            }
+          fi
       - name: Join the TVs' Tailscale network
         uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4
         with:

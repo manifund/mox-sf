@@ -1,5 +1,8 @@
 # Mox TV displays
 
+(This readme was AI generated and, while helpful, pretty verbose. Left for
+agents to read more than humans.)
+
 The HTML/CSS/JavaScript display currently used on the 1F and 3F Raspberry Pi
 Zero 2 W devices. This is a separate app from the Next.js website. Cog/WPE
 WebKit renders one local page at 1920×1080; no Node server or build is needed
@@ -52,8 +55,8 @@ Python 3.12+ and OpenSSH. Keep fictional preview data out of commits.
 ## Automatic deployment
 
 [`TV displays`](../.github/workflows/tvs.yml) validates PRs without secrets.
-Every push to **`main` in `manifund/mox-sf`** triggers deployment after checks,
-including pushes that only change the website. A manual workflow run on main
+Pushes to **`main` in `manifund/mox-sf`** trigger deployment after checks
+only when files under `tvs/` change. A manual workflow run on main
 can retry a failed rollout. PRs do not deploy. The `clayjonesthomas/mox-sf`
 fork also permits manual deployments from `tvs-deployment`, using its own
 `tvs` environment and the same four secret names. Fork pushes never deploy.
@@ -63,11 +66,7 @@ Do not run fork and upstream rollouts simultaneously; GitHub concurrency
 groups are scoped to each repository.
 
 The runner joins Tailscale, authenticates with ordinary SSH, then deploys 1F
-and 3F sequentially. If 1F fails, 3F is not touched. A failure on 3F rolls back
-3F; 1F retains the successful release. Concurrent runs are serialized and an
-in-progress deployment is not canceled by a newer commit.
-Queued runs reject superseded commits before connecting to the TVs, so an old
-run cannot deploy over a newer completed rollout.
+and 3F sequentially.
 
 For each Pi the deploy script:
 
@@ -118,7 +117,7 @@ the TVs have been shared. Configure `tag:mox-tv-deploy` ownership and grant
 that tag access to TCP port 22 on the two IPs above. See the official
 [Tailscale GitHub Action setup](https://tailscale.com/docs/integrations/github/github-action).
 An approval rule on the GitHub environment will pause deployment for approval;
-omit required reviewers if every main push should deploy unattended.
+omit required reviewers if matching main pushes should deploy unattended.
 
 A repository admin can seed the GitHub environment secret from the existing
 TV credential without displaying it (create the `tvs` environment first):

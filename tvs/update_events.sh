@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pulls today's events from the Mox Airtable and writes events.js for the
-# HTML screen. Runs on the Pi; the API key never reaches the browser.
+# HTML screen.
 #
 # Usage:  ./update_events.sh [output-file]
 # Defaults (override with environment variables):
