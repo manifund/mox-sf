@@ -7,6 +7,7 @@ body { background: var(--paper); color: var(--ink); font-family: "DejaVu Sans Mo
 .logo { width: calc(13.3 * var(--vw)); height: calc(10.5 * var(--vh)); object-fit: contain; mix-blend-mode: multiply; }
 .heading { border-left: 1px solid var(--line); padding-left: calc(2.5 * var(--vw)); }
 h1 { margin: 0; font-size: calc(4.2 * var(--vw)); line-height: 1.06; letter-spacing: -.055em; font-weight: 600; }
+.deploy-test { display: inline-block; margin: calc(.8 * var(--vh)) 0 0; padding: .3em .6em; background: #ffe08a; color: #20271f; border: 1px solid currentColor; font-size: calc(1.2 * var(--vw)); font-weight: 700; letter-spacing: .06em; }
 .floors { flex: 1; min-height: auto; display: grid; grid-template-rows: repeat(4, minmax(min-content, 1fr)); border-top: 2px solid var(--ink); }
 .floor { display: grid; grid-template-columns: 17% minmax(0, 1fr); align-items: center; padding: calc(1.4 * var(--vh)) calc(1.5 * var(--vw)); border-bottom: 1px solid var(--line); column-gap: 0; }
 .floor.here { background: var(--lime); border-color: #a7bf66; }
