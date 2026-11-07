@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Mox HTML events
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+User=mox
+WorkingDirectory=/home/mox/production
+Environment=AIRTABLE_KEY_FILE=/home/mox/production/auth/airtable.com.txt
+ExecStart=/bin/bash ./update_events.sh
