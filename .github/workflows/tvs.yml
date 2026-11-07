@@ -28,11 +28,14 @@ jobs:
 
   deploy:
     needs: check
-    # Fork pushes and PRs never receive production credentials or deploy.
+    # Upstream main deploys automatically; this fork permits manual branch tests only.
     if: >-
-      github.repository == 'manifund/mox-sf' &&
-      github.ref == 'refs/heads/main' &&
-      github.event_name != 'pull_request'
+      (github.repository == 'manifund/mox-sf' &&
+       github.ref == 'refs/heads/main' &&
+       github.event_name != 'pull_request') ||
+      (github.repository == 'clayjonesthomas/mox-sf' &&
+       github.ref == 'refs/heads/tvs-deployment' &&
+       github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: tvs
@@ -57,9 +60,11 @@ jobs:
       - name: Reject superseded commits
         env:
           REVISION: ${{ github.sha }}
+          DEPLOY_REPOSITORY: ${{ github.repository }}
+          DEPLOY_REF: ${{ github.ref }}
         run: |
-          latest=$(git ls-remote https://github.com/manifund/mox-sf.git refs/heads/main | cut -f1)
-          test "$latest" = "$REVISION" || { echo 'main has moved; deploy its newer run instead.'; exit 1; }
+          latest=$(git ls-remote "https://github.com/${DEPLOY_REPOSITORY}.git" "$DEPLOY_REF" | cut -f1)
+          test "$latest" = "$REVISION" || { echo 'Branch has moved; deploy its newer run instead.'; exit 1; }
       - name: Join the TVs' Tailscale network
         uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4
         with:

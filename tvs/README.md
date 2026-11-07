@@ -54,7 +54,13 @@ Python 3.12+ and OpenSSH. Keep fictional preview data out of commits.
 [`TV displays`](../.github/workflows/tvs.yml) validates PRs without secrets.
 Every push to **`main` in `manifund/mox-sf`** triggers deployment after checks,
 including pushes that only change the website. A manual workflow run on main
-can retry a failed rollout. Forks and PRs do not deploy.
+can retry a failed rollout. PRs do not deploy. The `clayjonesthomas/mox-sf`
+fork also permits manual deployments from `tvs-deployment`, using its own
+`tvs` environment and the same four secret names. Fork pushes never deploy.
+The workflow must be registered on the fork default branch before dispatching
+it with `gh workflow run tvs.yml --repo clayjonesthomas/mox-sf --ref tvs-deployment`.
+Do not run fork and upstream rollouts simultaneously; GitHub concurrency
+groups are scoped to each repository.
 
 The runner joins Tailscale, authenticates with ordinary SSH, then deploys 1F
 and 3F sequentially. If 1F fails, 3F is not touched. A failure on 3F rolls back
