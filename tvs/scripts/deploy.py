@@ -32,7 +32,7 @@ def package(destination):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("host", choices=["100.87.232.90", "100.72.72.35"])
+    parser.add_argument("host", choices=["100.75.230.87", "100.114.127.4"])
     parser.add_argument("revision", help="Full Git commit SHA")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):

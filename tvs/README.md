@@ -7,8 +7,8 @@ on the TVs.
 
 | Device | Tailscale IP | Page |
 | --- | --- | --- |
-| 1F | `100.87.232.90` | `web/index.html?floor=1` |
-| 3F | `100.72.72.35` | `web/index.html?floor=3` |
+| 1F | `100.75.230.87` | `web/index.html?floor=1` |
+| 3F | `100.114.127.4` | `web/index.html?floor=3` |
 
 Source was imported from the working `moxscreens-htmldesign` deployment.
 Both Pis were migrated to `/home/mox/production` on November 6, 2026.
@@ -144,8 +144,8 @@ the checked-in host keys installed in `~/.ssh/known_hosts`, and
 `TVS_AIRTABLE_TOKEN` supplied in the environment by your secret manager:
 
 ```sh
-python3 tvs/scripts/deploy.py 100.87.232.90 "$(git rev-parse HEAD)"
-python3 tvs/scripts/deploy.py 100.72.72.35 "$(git rev-parse HEAD)"
+python3 tvs/scripts/deploy.py 100.75.230.87 "$(git rev-parse HEAD)"
+python3 tvs/scripts/deploy.py 100.114.127.4 "$(git rev-parse HEAD)"
 ```
 
 If manually restoring a backup, stop `mox-html-events.timer`,

@@ -188,7 +188,7 @@ class DeploymentTests(unittest.TestCase):
 
     def test_runner_requires_secret_before_connecting(self):
         with patch.dict('os.environ', {}, clear=True), patch('sys.argv',
-                ['deploy.py', '100.87.232.90', REVISION]), \
+                ['deploy.py', '100.75.230.87', REVISION]), \
                 patch.object(upload.subprocess, 'check_output') as ssh, \
                 patch('sys.stderr', new_callable=io.StringIO):
             with self.assertRaises(SystemExit):
@@ -198,7 +198,7 @@ class DeploymentTests(unittest.TestCase):
     def test_runner_transfers_secret_only_via_stdin_and_cleans_up(self):
         remote = '/home/mox/.mox-upload-test123'
         with patch.dict('os.environ', {'TVS_AIRTABLE_TOKEN': 'new-test-token'}), \
-                patch('sys.argv', ['deploy.py', '100.87.232.90', REVISION]), \
+                patch('sys.argv', ['deploy.py', '100.75.230.87', REVISION]), \
                 patch.object(upload.subprocess, 'check_output', return_value=remote), \
                 patch.object(upload.subprocess, 'run') as run:
             upload.main()

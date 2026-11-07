@@ -66,7 +66,7 @@ jobs:
           oauth-client-id: ${{ secrets.TVS_TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TVS_TS_OAUTH_SECRET }}
           tags: tag:mox-tv-deploy
-          ping: 100.87.232.90,100.72.72.35
+          ping: 100.75.230.87,100.114.127.4
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.TVS_SSH_PRIVATE_KEY }}
@@ -79,12 +79,12 @@ jobs:
         env:
           REVISION: ${{ github.sha }}
           TVS_AIRTABLE_TOKEN: ${{ secrets.TVS_AIRTABLE_TOKEN }}
-        run: python3 tvs/scripts/deploy.py 100.87.232.90 "$REVISION"
+        run: python3 tvs/scripts/deploy.py 100.75.230.87 "$REVISION"
       - name: Deploy and verify 3F
         env:
           REVISION: ${{ github.sha }}
           TVS_AIRTABLE_TOKEN: ${{ secrets.TVS_AIRTABLE_TOKEN }}
-        run: python3 tvs/scripts/deploy.py 100.72.72.35 "$REVISION"
+        run: python3 tvs/scripts/deploy.py 100.114.127.4 "$REVISION"
       - name: Remove runner SSH key
         if: always()
         run: rm -f ~/.ssh/id_ed25519
