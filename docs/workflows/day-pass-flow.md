@@ -45,8 +45,9 @@ flowchart TD
     end
 ```
 
-There is no remote-unlock button anywhere on the site: the code on the keypad
-is the only way in. (The portal's "my day passes" card shows the same code.)
+Day passes have no remote-unlock button: the code on the keypad is the way in.
+(The portal's "my day passes" card shows the same code. Active members still
+have an unlock button in the portal's door-access box.)
 
 ## Products
 

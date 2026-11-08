@@ -35,7 +35,9 @@ record how the design was settled.
    used). The portal shows "used · arrived 1:15 PM" or "not used" the next
    day.
 
-There is no unlock button or unlock endpoint anywhere on the site any more.
+Guests, day passes and event links have no unlock button; the keypad code is
+the way in. The one remote unlock left is the member's own button in the
+portal door-access box (`POST /portal/api/unlock-door`), restored 2026-11-08.
 Event door links (`/door?evt=…`) only show the event and its hours.
 
 Verkada setup needed: the API key behind `VERKADA_MEMBER_KEY` must be allowed
@@ -84,7 +86,7 @@ Verkada API facts that matter (from apidocs.verkada.com):
   (Unix seconds). `PUT /access/v1/access_users/user/end_date` revokes all of a
   user's access methods after that time. We already call
   `PUT .../user/entry_code?override=true` in the rotation cron.
-- `POST /access/v1/door/admin_unlock` opens a door remotely. No longer used anywhere on the site.
+- `POST /access/v1/door/admin_unlock` opens a door remotely; used only by the portal's own unlock button.
 
 ## Goal
 

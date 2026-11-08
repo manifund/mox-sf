@@ -236,6 +236,13 @@ Revoke a guest pass: deletes the guest's Verkada user (so the code stops working
 - **Auth:** User (own pass) or Staff
 - **Body:** `{ "passId": "rec123" }`
 
+#### POST `/portal/api/unlock-door`
+Open the front door remotely from the portal's door-access box. The only unlock button on the site.
+
+- **Auth:** User (active member; throttled to 10 per 30s per user)
+- **Response:** `{ "success": true }` or `{ "success": false, "error": "..." }`
+- **Details:** Calls Verkada `POST /access/v1/door/admin_unlock` for `MOX_FRONT_DOOR_ID`. On refusal, logs Verkada's status and message plus the doors visible to the API key (`[portal-unlock]` lines), and staff see the Verkada reason inline; members see a plain "use your code on the keypad" message.
+
 #### POST `/portal/api/create-day-pass-checkout`
 Create day pass checkout.
 
