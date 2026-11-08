@@ -186,6 +186,14 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Syncs a member's tier and program roles from their authorized Airtable record"
   },
   {
+    "id": "portal/unlock-door",
+    "filePath": "app/portal/api/unlock-door/route.ts",
+    "routePath": "/portal/api/unlock-door",
+    "type": "portal-action",
+    "httpMethod": "POST",
+    "summary": "Unlocks the front door for an active member from the portal door-access box; logs Verkada's reason and the visible doors when refused"
+  },
+  {
     "id": "webhooks/discord",
     "filePath": "app/api/webhooks/discord/route.ts",
     "routePath": "/api/webhooks/discord",

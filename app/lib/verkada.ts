@@ -1,12 +1,12 @@
-// Verkada helpers for door codes that live outside a member's own account:
-// one short-lived access user per guest pass, with its own entry code and a
-// start/end window that Verkada enforces at the keypad. Member PINs are
-// handled in app/portal/api/verkada-pin/route.ts. There is deliberately no
-// remote-unlock helper here: the website never opens the door itself.
+// Verkada helpers: one short-lived access user per guest pass (its own entry
+// code, start/end window enforced at the keypad), and the portal's remote
+// unlock of the front door. Member PINs are handled in
+// app/portal/api/verkada-pin/route.ts.
 
 import { env } from './env'
 
 const API = 'https://api.verkada.com'
+export const MOX_FRONT_DOOR_ID = 'ffa16025-e120-4094-b6be-29a6ed19b84c'
 const TOKEN_TTL_MS = 25 * 60 * 1000
 let cachedToken: { token: string; expiresAt: number } | null = null
 let inflight: Promise<string | null> | null = null
@@ -280,4 +280,51 @@ export async function listAccessEventsForUser(
   } while (pageToken && events.length < 2000)
 
   return events
+}
+
+export interface UnlockResult {
+  ok: boolean
+  /** Verkada's HTTP status when the unlock was refused. */
+  status?: number
+  /** Verkada's own error message, for diagnosing refusals. */
+  message?: string
+}
+
+/**
+ * Open the front door remotely (Verkada admin_unlock). Only the member
+ * portal calls this, for a signed-in active member. On failure we keep
+ * Verkada's status and message so the portal can show why.
+ */
+export async function adminUnlockDoor(
+  doorId: string = MOX_FRONT_DOOR_ID
+): Promise<UnlockResult> {
+  const token = await getAdminToken()
+  if (!token) {
+    return { ok: false, message: 'could not authenticate with Verkada' }
+  }
+  const res = await verkadaFetch(token, '/access/v1/door/admin_unlock', {
+    method: 'POST',
+    body: JSON.stringify({ door_id: doorId }),
+  })
+  if (res.ok) return { ok: true }
+  const text = await res.text().catch(() => '')
+  let message = text.slice(0, 300)
+  try {
+    const parsed = JSON.parse(text)
+    if (typeof parsed?.message === 'string') message = parsed.message
+  } catch {
+    // not JSON; keep the raw text
+  }
+  return { ok: false, status: res.status, message }
+}
+
+/** Doors visible to the API key, for checking MOX_FRONT_DOOR_ID. */
+export async function listDoors(): Promise<unknown> {
+  const token = await getAdminToken()
+  if (!token) throw new Error('could not authenticate with Verkada')
+  const res = await verkadaFetch(token, '/access/v1/doors')
+  if (!res.ok) {
+    throw new Error(`list doors failed: ${await describeFailure(res)}`)
+  }
+  return res.json()
 }

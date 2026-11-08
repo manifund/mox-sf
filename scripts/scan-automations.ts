@@ -29,6 +29,7 @@ const PORTAL_AUTOMATION_ROUTES = [
   'portal/api/pause-subscription',
   'portal/api/migrate-membership-prices',
   'portal/api/send-magic-link',
+  'portal/api/unlock-door',
 ]
 
 // Other known automation routes outside standard dirs
