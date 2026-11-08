@@ -1,6 +1,7 @@
 import { getSession } from '@/app/lib/session'
 import { env } from '@/app/lib/env'
 import { isValidEmail } from '@/app/lib/airtable-helpers'
+import { sendChannelMessage, DISCORD_CHANNELS } from '@/app/lib/discord'
 import {
   isIssuableDate,
   remainingThisWeek,
@@ -41,6 +42,42 @@ async function loadContext() {
 
 function guestLink(token: string): string {
   return `${env.NEXT_PUBLIC_BASE_URL}/guest/${token}`
+}
+
+// One post per pass, when it's issued: who's coming, who invited them, and
+// how to reach them. (There's no unlock event to hook any more; the guest
+// types a code at the keypad.)
+async function announceIssued(input: {
+  guestName: string
+  guestEmail: string
+  hostName: string
+  validDate: string
+}) {
+  try {
+    await sendChannelMessage(
+      DISCORD_CHANNELS.NOTIFICATIONS,
+      `🎟️ **${input.hostName || 'A member'}** issued a guest pass for **${input.guestName}**`,
+      [
+        {
+          color: 0xd97706, // amber-600
+          fields: [
+            {
+              name: 'Guest email',
+              value: input.guestEmail || 'Not given',
+              inline: true,
+            },
+            {
+              name: 'Valid',
+              value: `${input.validDate}, 8am–11pm`,
+              inline: true,
+            },
+          ],
+        },
+      ]
+    )
+  } catch (error) {
+    console.error('[guest-passes] Discord post failed:', error)
+  }
 }
 
 export async function GET() {
@@ -146,15 +183,34 @@ export async function POST(request: Request) {
       )
     }
 
-    const pass = await createGuestPass({
-      hostId: host.id,
-      guestName,
-      guestEmail,
-      validDate,
-    })
+    let pass: GuestPassRecord
+    try {
+      pass = await createGuestPass({
+        hostId: host.id,
+        hostFirstName: host.name.split(' ')[0] || '',
+        guestName,
+        guestEmail,
+        validDate,
+      })
+    } catch (error) {
+      console.error('[guest-passes] could not create pass:', error)
+      return Response.json(
+        {
+          error:
+            "couldn't create a door code for your guest. try again in a moment, or email team@moxsf.com.",
+        },
+        { status: 502 }
+      )
+    }
     console.log(
       `[guest-passes] ${host.email} issued pass ${pass.id} for "${guestName}" <${guestEmail}> on ${validDate}`
     )
+    announceIssued({
+      guestName,
+      guestEmail,
+      hostName: host.name,
+      validDate,
+    })
     return Response.json({
       pass: { ...summarizeGuestPass(pass), link: guestLink(pass.token) },
       remaining: remainingThisWeek(

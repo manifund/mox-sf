@@ -29,16 +29,13 @@ const PORTAL_AUTOMATION_ROUTES = [
   'portal/api/pause-subscription',
   'portal/api/migrate-membership-prices',
   'portal/api/send-magic-link',
-  'portal/api/unlock-door',
 ]
 
 // Other known automation routes outside standard dirs
 const OTHER_AUTOMATION_ROUTES = [
   'eag26/api/register',
   'day-pass/activate/api',
-  'day-pass/activate/unlock-api',
   'door/api/validate',
-  'door/api/unlock',
 ]
 
 interface CronConfig {

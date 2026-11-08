@@ -33,6 +33,15 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Weekly: emails opted-in members their top 3 upcoming events, picked by Claude from their profile interests."
   },
   {
+    "id": "cron/expire-guest-passes",
+    "filePath": "app/api/cron/expire-guest-passes/route.ts",
+    "routePath": "/api/cron/expire-guest-passes",
+    "type": "cron",
+    "cronSchedule": "0 8 * * *",
+    "httpMethod": "GET",
+    "summary": "Nightly: closes out yesterday's guest passes — records whether the guest came in, deletes their Verkada user (and door code), marks the pass Activated or Expired."
+  },
+  {
     "id": "cron/gef-weekly-digest",
     "filePath": "app/api/cron/gef-weekly-digest/route.ts",
     "routePath": "/api/cron/gef-weekly-digest",
@@ -113,22 +122,6 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Activates a purchased day pass, sets date and reveals door code"
   },
   {
-    "id": "day-pass/activate/unlock-api",
-    "filePath": "app/day-pass/activate/unlock-api/route.ts",
-    "routePath": "/day-pass/activate/unlock-api",
-    "type": "event-action",
-    "httpMethod": "POST",
-    "summary": "Triggers a Verkada admin unlock of the front door from the day-pass activation page"
-  },
-  {
-    "id": "door/unlock",
-    "filePath": "app/door/api/unlock/route.ts",
-    "routePath": "/door/api/unlock",
-    "type": "event-action",
-    "httpMethod": "POST",
-    "summary": "Unlocks the front door for an event attendee with a valid event token, only during the event's hours"
-  },
-  {
     "id": "door/validate",
     "filePath": "app/door/api/validate/route.ts",
     "routePath": "/door/api/validate",
@@ -191,14 +184,6 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "type": "portal-action",
     "httpMethod": "POST",
     "summary": "Syncs a member's tier and program roles from their authorized Airtable record"
-  },
-  {
-    "id": "portal/unlock-door",
-    "filePath": "app/portal/api/unlock-door/route.ts",
-    "routePath": "/portal/api/unlock-door",
-    "type": "portal-action",
-    "httpMethod": "POST",
-    "summary": "Unlocks the front door for an active member from the portal homepage"
   },
   {
     "id": "webhooks/discord",

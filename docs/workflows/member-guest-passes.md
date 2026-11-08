@@ -1,31 +1,78 @@
 # Member-Issued Guest Passes
 
-Members issue free, single-day guest passes from the portal. A pass is an
-unlock link; the guest taps it at the front door. Built 2026-10-14; the
-"decided" and "proposed" notes below record how the design was settled.
+Members issue free, single-day guest passes from the portal. Each pass gives
+the guest **their own door code** for the front door keypad, valid 8am–11pm
+Pacific on the pass date and enforced by Verkada itself. Built 2026-10-14 as
+an unlock link; switched to per-guest codes on 2026-11-04 when the website's
+unlock buttons were removed. The "decided" and "proposed" notes further down
+record how the design was settled.
+
+## How it works now
+
+1. The member enters the guest's name and email in the portal (and
+   optionally a date up to 7 days out).
+2. `POST /portal/api/guest-passes` creates a **Verkada access user** for the
+   guest via the Core API (`POST /core/v1/user`, named "Priya Natarajan
+   (guest of Robin)", `external_id` = `guest-pass-<token>`), adds it to the
+   same access groups as the shared day-pass user (`VERKADA_UUID`), sets
+   `start_date` = 8am and `end_date` = 11pm Pacific on the pass date, and
+   gives it a random 6-digit `entry_code` (retrying on a clash;
+   `override=false` so it never steals a member's code). Only then is the
+   Airtable record written, with `Door Code` and `Verkada User ID`. If Airtable
+   fails, the Verkada user is deleted again. A Discord #notifications post
+   announces the pass (host, guest, email, date).
+3. The portal shows the code next to the pass and a link
+   (`moxsf.com/guest/<token>`) the member can send. The guest page shows the
+   code, "followed by #", only while the pass is active; before 8am it says
+   when the pass starts, after 11pm that it expired.
+4. **Revoke** (`POST /portal/api/guest-passes/revoke`) deletes the Verkada
+   user first, so the code dies immediately, then marks the record Revoked.
+   Allowed while the pass is upcoming or active.
+5. **Expiry**: Verkada refuses the code after `end_date`. The nightly cron
+   `GET /api/cron/expire-guest-passes` (08:00 UTC) then reads the guest's
+   door events (did they come in, when), deletes the Verkada user, clears
+   `Verkada User ID`, and sets Status to Activated (used) or Expired (not
+   used). The portal shows "used · arrived 1:15 PM" or "not used" the next
+   day.
+
+There is no unlock button or unlock endpoint anywhere on the site any more.
+Event door links (`/door?evt=…`) only show the event and its hours.
+
+Verkada setup needed: the API key behind `VERKADA_MEMBER_KEY` must be allowed
+to create and delete users (Core API) and edit access users and groups
+(Access API). `VERKADA_UUID` must point at the day-pass user whose access
+groups guests should copy. Airtable needs the `Door Code` and `Verkada User ID`
+text fields on Day Passes.
 
 ## Key files
 
 | Piece | File |
 |---|---|
-| Rules: allowances, week bounds, pass window, state | `app/lib/guest-passes.ts` (+ tests) |
-| Airtable reads/writes, token generation | `app/lib/guest-passes-server.ts` |
+| Rules: allowances, week bounds, pass window, state, Verkada naming | `app/lib/guest-passes.ts` (+ tests) |
+| Airtable reads/writes, token generation, Verkada user lifecycle | `app/lib/guest-passes-server.ts` |
+| Verkada API: create/delete guest users, entry codes, door events | `app/lib/verkada.ts` (+ tests) |
 | Portal API: list, issue, revoke | `app/portal/api/guest-passes/route.ts`, `.../revoke/route.ts` |
+| Nightly expiry cron | `app/api/cron/expire-guest-passes/route.ts` (schedule in `vercel.json`) |
 | Portal card | `app/portal/GuestPasses.tsx` (rendered from `app/portal/page.tsx`) |
 | Guest page | `app/guest/[token]/page.tsx` |
-| Guest API: validate, unlock | `app/guest/api/validate/route.ts`, `app/guest/api/unlock/route.ts` |
+| Guest API: validate (returns the code while active) | `app/guest/api/validate/route.ts` |
+
+## Design history
+
+The rest of this doc is the original design discussion, kept for the
+reasoning. Where it describes the unlock-link version, the section above wins.
 
 Members should be able to issue a free, single-day guest pass from the portal:
 the guest's access ends at the end of that day, each member gets a weekly
 allowance set by their tier, and we record who the guest was.
 
-## What exists today
+### What existed when this was designed (Oct 2026)
 
 | Piece | Where | Notes |
 |---|---|---|
 | Paid member guest pass ($25) | `app/portal/DayPassPurchase.tsx` → `POST /portal/api/create-day-pass-checkout` → Stripe webhook | Creates a People record for the guest, a Day Passes record with `Issued By`, emails the guest a magic link. |
 | Guest activation | `POST /portal/api/activate-day-pass`, `/day-pass/activate` | Shows the **shared** day-pass code from the Verkada "Day Pass User" (`VERKADA_UUID`). That code is static; expiry is only tracked in Airtable, not enforced at the door. |
-| Event door links | `/door?evt=<token>` → `app/door/api/{validate,unlock}` | A 12-char token on the Events record; the page shows an **Unlock door** button that calls Verkada `admin_unlock`, only inside the event's time window. Throttled per token and per IP. |
+| Event door links | `/door?evt=<token>` → `app/door/api/validate` | A 12-char token on the Events record; the page showed an **Unlock door** button (removed 2026-11-04; it now only shows the event and hours). |
 | Personal PINs | `/portal/api/verkada-pin` | Reads and sets a member's own Verkada `entry_code`. |
 | Weekly code rotation | `/api/cron/rotate-door-code` | Being deprecated. |
 | Check-in tracking | `/api/cron/sync-checkins` | Maps Verkada door events to People by email, writes Checkins with `Source` = Verkada / Day Pass / Manual. |
@@ -37,7 +84,7 @@ Verkada API facts that matter (from apidocs.verkada.com):
   (Unix seconds). `PUT /access/v1/access_users/user/end_date` revokes all of a
   user's access methods after that time. We already call
   `PUT .../user/entry_code?override=true` in the rotation cron.
-- `POST /access/v1/door/admin_unlock` opens a door remotely; we already use it.
+- `POST /access/v1/door/admin_unlock` opens a door remotely. No longer used anywhere on the site.
 
 ## Goal
 
@@ -57,7 +104,7 @@ Verkada API facts that matter (from apidocs.verkada.com):
 Two workable designs. Both share the same portal UI, quota logic, and Airtable
 records; they differ only in what the guest receives.
 
-### Option A: unlock link (recommended first step)
+### Option A: unlock link (shipped first, replaced 2026-11-04)
 
 Reuse the event door-link pattern. The pass is a link like
 `moxsf.com/guest/<token>`. The guest opens it at the door and taps **Unlock
@@ -72,9 +119,12 @@ the pass isn't revoked, then calls `admin_unlock`.
   forwarding. Verkada can't enforce one-swipe-only for PINs either.
 - Downside: the guest needs a phone with data at the door. No keypad fallback.
 
-### Option B: per-guest expiring door code
+### Option B: per-guest expiring door code (what runs now, with one change)
 
-Give the guest a real 6-digit code that works on the keypad.
+Give the guest a real 6-digit code that works on the keypad. As built, there
+is no fixed pool: a Verkada user is created per pass and deleted when the
+pass is revoked or has expired, so there is no slot limit and door events
+show the guest's own name.
 
 - Keep a small fixed pool of Verkada access users ("Guest Pass 01" … "Guest
   Pass 20"), created once in Command and placed in the front-door access group.
@@ -89,11 +139,8 @@ Give the guest a real 6-digit code that works on the keypad.
   guest show up under "Guest Pass 07" rather than the guest's name (we'd map
   them back through our own records).
 
-Recommendation: ship Option A first. It needs no Verkada or Command work, it's
-mostly code we already have, and it gives the best audit trail. Add Option B
-later if guests regularly arrive without phones. The data model below supports
-both: the `Code` field is empty for link passes and holds the PIN for code
-passes.
+Option A shipped first (2026-10-14). Option B replaced it on 2026-11-04 when
+Robin decided the website should never unlock the door itself.
 
 ## Data model (Airtable)
 
@@ -104,14 +151,14 @@ Reuse the existing **Day Passes** table rather than adding a new one.
 | `Pass Type` | add option **Guest Pass** | Distinguishes free member-issued passes from paid ones. |
 | `Guest Name` | new, text | Who the pass is for. Required. We do **not** create a People record for the guest, so the People table stays clean. |
 | `Guest Email` | new, email | The guest's email, for contacting them if needed. Required. Not used to send the link. |
-| `Token` | new, text | 12-char random token for the unlock link. |
+| `Token` | new, text | 12-char random token for the guest's link. |
 | `Valid Date` | new, date | The day the pass works. Default today. The 8am–11pm window is derived in code. |
-| `Unlock Count` | new, number | Incremented on each unlock. |
-| `First Used` | new, dateTime | First unlock. |
+| `Door Code` | new, text | The guest's keypad code. |
+| `Verkada User ID` | new, text | The guest's Verkada user; cleared once deleted. |
+| `Unlock Count` | new, number | Accepted keypad entries, from the nightly cron. |
+| `First Used` | new, dateTime | First accepted entry, from the nightly cron. |
 | `Issued By Email` | new, lookup | Host's email via Issued By, so the app can filter a host's passes. |
 | `Issued By`, `Status` | existing | Host; Unused / Activated / Expired / **Revoked** (new option, added by typecast). |
-
-A keypad-code variant (Option B) would add a `Code` field; not built.
 
 Weekly quota is computed, not stored: count Guest Pass records with
 `Issued By` = member and `Valid Date` in the current Monday-to-Sunday Pacific
@@ -128,13 +175,14 @@ flowchart TD
     E -->|No| F[Error with reason]
     E -->|Yes| G[Create Day Passes record, mint token]
     G --> H[Return link; optionally email/text it to the guest]
-    H --> I[Guest opens /guest/token at the door]
-    I --> J[POST /guest/api/unlock]
-    J --> K{Token valid? Today is Valid Date? Not revoked? Under unlock cap?}
+    G --> G2[Create Verkada guest user: groups, 8am–11pm window, entry code]
+    G2 --> O[Discord post with host, guest name, guest email]
+    H --> I[Guest opens /guest/token]
+    I --> J[POST /guest/api/validate]
+    J --> K{Token valid? Today is Valid Date, 8am–11pm? Not revoked?}
     K -->|No| L[Show why: expired / not yet valid / revoked]
-    K -->|Yes| M[Verkada admin_unlock]
-    M --> N[Status → Activated on first use, Unlock Count++]
-    N --> O[First unlock: Discord post with host, guest name, guest email]
+    K -->|Yes| M[Show the code; guest types it + # at the keypad]
+    M --> N[Nightly cron: door events → Unlock Count / First Used, delete Verkada user]
 ```
 
 Portal pieces:
@@ -144,16 +192,16 @@ Portal pieces:
   the issue form. The existing paid guest-pass purchase stays as the fallback
   once the free allowance is used up.
 - Guest page `/guest/<token>`: Mox address, "valid today until 11pm", the
-  host's first name, and the Unlock button. Built from `app/door/page.tsx`.
+  host's first name, and the door code.
 
 Server pieces:
 
 - `GET`/`POST /portal/api/guest-passes` (member auth, quota and tier checks)
   and `POST /portal/api/guest-passes/revoke`.
-- `POST /guest/api/validate` and `POST /guest/api/unlock` (public, token-gated,
-  throttled like the event door routes). The first unlock of a pass posts to
-  Discord #notifications with the host, guest name and guest email; no
-  Attendance record is written, since guests have no People record.
+- `POST /guest/api/validate` (public, token-gated, throttled per IP) returns
+  the code while the pass is active. Issuing a pass posts to Discord
+  #notifications with the host, guest name and guest email; no Attendance
+  record is written, since guests have no People record.
 - Quota rules in `app/lib/guest-passes.ts` with unit tests, next to
   `membership.ts`.
 
@@ -182,7 +230,8 @@ Portal card:
 - Heading: **guest passes**
 - Intro: "bring a friend for the day." then "**2 of 4 left this week** · resets monday"
 - Fields: "guest's name", "guest's email"; button: "create pass"
-- Helper: "valid today, 8am–11pm. click button to generate link."
+- Helper: "valid today, 8am–11pm. click button to generate a code."
+- Each live pass shows "door code 482913#", the link, copy link, and revoke.
 - Over quota: "you've used this week's 4 passes. more on monday." followed by
   "need one sooner? buy a day pass for your guest ($25)." and the existing
   purchase form.
@@ -194,9 +243,10 @@ Guest page:
 
 - "Robin invited you to **Mox**", then a green block: "Pass for Priya
   Natarajan" / "Valid today until 11pm"
-- "1680 Mission St, San Francisco. Tap below when you're at the front door."
-- Button: "Unlock front door"; footnote: "Sign in at the lobby when you arrive."
-- After tapping: "Door unlocked" / "Pull the door open. Welcome in."
+- "Your door code" / "482913#", then "1680 Mission St, San Francisco. Enter
+  the code on the keypad at the front door, followed by #." and "This code
+  is yours for today only and stops working at 11pm."; footnote: "Sign in at
+  the lobby when you arrive."
 - Expired: "This pass expired" / "It was valid on Oct 14." / "Check with
   Robin for a new one." (the host's first name, never Mox staff)
 
@@ -207,8 +257,8 @@ created for the guest.
 
 ## Remaining decisions and proposed defaults
 
-1. **Link or code first?** Proposed: unlock link, with keypad codes as a later
-   addition if guests arrive without phones.
+1. **Link or code first?** Link shipped first; codes replaced it on
+   2026-11-04 (see top of this doc).
 2. **Future-dated passes:** proposed: allow a Valid Date up to 7 days out,
    default today. A future-dated pass counts against the week it's valid in.
 4. **Hours:** proposed: valid from 8am to 11pm Pacific on the Valid Date, so a
@@ -218,14 +268,16 @@ created for the guest.
 6. **Private Office allowance:** proposed: per person, counted against the
    individual member who issues the pass.
 7. **Revocation:** the host can revoke from the portal; staff can revoke any
-   pass. **Decided (2026-10-27):** only unused passes can be revoked. Once the
-   guest has unlocked the door the pass is a record of a visit and keeps
-   counting against the week's allowance.
+   pass. **Decided (2026-10-27):** only unused passes can be revoked.
+   **Revised (2026-11-04):** with codes we don't know live whether the guest
+   has come in, so a pass can be revoked any time before 11pm on its day
+   (revoking deletes the code). It still counts against the week's allowance.
 
 ## Rough effort
 
 - Option A end to end: about a day of work, plus Airtable field creation.
-- Option B on top of A: another day, plus creating the Verkada pool users in
-  Command and confirming the create/entry-code/end-date calls against the live
-  API (the docs don't state entry-code length limits, so we should test with
-  one pool user first).
+- Option B on top of A: another day. Done without a pool (one Verkada user per
+  pass). Verkada's docs say entry codes are 4–16 digits and unique per
+  organization; the first real pass should be issued with a staff account to
+  confirm the create / group / start-end / entry-code calls against the live
+  API, since none of this can run locally.

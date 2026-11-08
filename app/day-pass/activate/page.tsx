@@ -13,9 +13,6 @@ function ActivatePageContent() {
   const [passType, setPassType] = useState<string>('Day Pass')
   const [userName, setUserName] = useState<string>('')
   const [expiresAt, setExpiresAt] = useState<string>('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlockSuccess, setUnlockSuccess] = useState(false)
-  const [unlockError, setUnlockError] = useState(false)
 
   useEffect(() => {
     if (!id) {
@@ -47,32 +44,6 @@ function ActivatePageContent() {
       .catch(() => setState('error'))
   }, [id])
 
-  const handleUnlockDoor = async () => {
-    setUnlocking(true)
-    setUnlockError(false)
-    setUnlockSuccess(false)
-
-    try {
-      const response = await fetch('/day-pass/activate/unlock-api', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: id }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setUnlockSuccess(true)
-      } else {
-        setUnlockError(true)
-      }
-    } catch {
-      setUnlockError(true)
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
   if (state === 'loading') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -95,30 +66,6 @@ function ActivatePageContent() {
               {doorCode}#
             </div>
           </div>
-
-          {/* Remote unlock option */}
-          <button
-            onClick={handleUnlockDoor}
-            disabled={unlocking || unlockSuccess}
-            className={`w-full py-3 font-semibold transition-all mb-6 ${
-              unlockSuccess
-                ? 'bg-green-600 text-white'
-                : unlocking
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-white border border-slate-200 text-gray-700 hover:border-amber-300'
-            }`}
-          >
-            {unlocking
-              ? 'Unlocking...'
-              : unlockSuccess
-                ? '✓ Door Unlocked'
-                : 'Unlock Door Remotely'}
-          </button>
-          {unlockError && (
-            <p className="text-sm text-red-600 text-center -mt-4 mb-4">
-              Couldn't unlock. Try the code on the keypad.
-            </p>
-          )}
 
           {/* Confirmation */}
           <div className="text-center mb-6">

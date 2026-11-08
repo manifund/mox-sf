@@ -41,11 +41,12 @@ flowchart TD
     end
 
     subgraph DoorAccess["Door Access"]
-        W --> X[Customer can click 'Unlock Door Now']
-        X --> Y[API calls Verkada to unlock]
-        Y --> Z[Door unlocks remotely]
+        W --> X[Customer enters the code on the front door keypad, followed by #]
     end
 ```
+
+There is no remote-unlock button anywhere on the site: the code on the keypad
+is the only way in. (The portal's "my day passes" card shows the same code.)
 
 ## Products
 
@@ -65,7 +66,6 @@ Product IDs are configured in the Stripe webhook handler.
 | Stripe Webhook | `app/api/webhooks/stripe/route.ts` | Handle payment completion, create Airtable record, send email |
 | Activation Page | `app/day-pass/activate/page.tsx` | Display door code after activation |
 | Activation API | `app/day-pass/activate/api/route.ts` | Validate pass, fetch Verkada door code |
-| Door Unlock API | `app/day-pass/activate/unlock-api/route.ts` | Remote door unlock via Verkada |
 
 ## Airtable Schema (Day Passes table)
 

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  GUEST_PASS_MAX_UNLOCKS,
   canRevokeGuestPass,
   guestPassState,
   isIssuableDate,
   passWindow,
   remainingThisWeek,
-  unlockBlocker,
+  verkadaGuestName,
   weekBounds,
   weeklyGuestPassAllowance,
 } from './guest-passes'
@@ -87,8 +86,8 @@ describe('isIssuableDate', () => {
   })
 })
 
-describe('guestPassState and unlockBlocker', () => {
-  const pass = { status: 'Unused', validDate: '2026-10-14', unlockCount: 0 }
+describe('guestPassState', () => {
+  const pass = { status: 'Unused', validDate: '2026-10-14' }
   it('is upcoming before 8am, active during the day, expired after 11pm', () => {
     expect(guestPassState(pass, new Date('2026-10-14T14:00:00Z'))).toBe(
       'upcoming'
@@ -108,32 +107,60 @@ describe('guestPassState and unlockBlocker', () => {
       )
     ).toBe('revoked')
   })
-  it('blocks unlocks outside the window, when revoked, or past the cap', () => {
+  it('ignores the Expired/Activated bookkeeping statuses', () => {
     const during = new Date('2026-10-14T20:00:00Z')
-    expect(unlockBlocker(pass, during)).toBeNull()
-    expect(unlockBlocker(pass, new Date('2026-10-14T14:00:00Z'))).toBe(
-      'not-yet'
+    expect(guestPassState({ ...pass, status: 'Activated' }, during)).toBe(
+      'active'
     )
-    expect(unlockBlocker(pass, new Date('2026-10-16T00:00:00Z'))).toBe(
-      'expired'
+    expect(guestPassState({ ...pass, status: 'Expired' }, during)).toBe(
+      'active'
     )
-    expect(unlockBlocker({ ...pass, status: 'Revoked' }, during)).toBe(
-      'revoked'
-    )
-    expect(
-      unlockBlocker({ ...pass, unlockCount: GUEST_PASS_MAX_UNLOCKS }, during)
-    ).toBe('limit')
   })
 })
 
 describe('canRevokeGuestPass', () => {
-  it('allows revoking only while the pass is unused', () => {
-    const pass = { status: 'Unused', validDate: '2026-10-14', unlockCount: 0 }
-    expect(canRevokeGuestPass(pass)).toBe(true)
-    expect(canRevokeGuestPass({ ...pass, unlockCount: 1 })).toBe(false)
+  const pass = { status: 'Unused', validDate: '2026-10-14' }
+  it('allows revoking while the code could still open the door', () => {
+    expect(canRevokeGuestPass(pass, new Date('2026-10-14T14:00:00Z'))).toBe(
+      true
+    ) // upcoming
+    expect(canRevokeGuestPass(pass, new Date('2026-10-14T20:00:00Z'))).toBe(
+      true
+    ) // active
+  })
+  it('refuses once the day is over or the pass is already revoked', () => {
+    expect(canRevokeGuestPass(pass, new Date('2026-10-15T06:30:00Z'))).toBe(
+      false
+    )
     expect(
-      canRevokeGuestPass({ ...pass, status: 'Revoked', unlockCount: 0 })
+      canRevokeGuestPass(
+        { ...pass, status: 'Revoked' },
+        new Date('2026-10-14T20:00:00Z')
+      )
     ).toBe(false)
+  })
+})
+
+describe('verkadaGuestName', () => {
+  it('keeps the guest name and tags the host', () => {
+    expect(verkadaGuestName('Priya Natarajan', 'Robin')).toEqual({
+      firstName: 'Priya',
+      lastName: 'Natarajan (guest of Robin)',
+    })
+    expect(verkadaGuestName('  Ana  Maria   de la Cruz ', 'Austin')).toEqual({
+      firstName: 'Ana',
+      lastName: 'Maria de la Cruz (guest of Austin)',
+    })
+  })
+  it('copes with one-word names and no host', () => {
+    expect(verkadaGuestName('Cher', '')).toEqual({
+      firstName: 'Cher',
+      lastName: '(guest)',
+    })
+    expect(verkadaGuestName('', 'Robin')).toEqual({
+      firstName: 'Guest',
+      lastName: '(guest of Robin)',
+    })
   })
 })
 

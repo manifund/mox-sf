@@ -31,12 +31,12 @@ export async function POST(request: Request) {
 
     if (!canRevokeGuestPass(pass)) {
       return Response.json(
-        { error: "this pass was already used, so it can't be revoked" },
+        { error: 'this pass is already over, so there is nothing to revoke' },
         { status: 409 }
       )
     }
 
-    await revokeGuestPass(pass.id)
+    await revokeGuestPass(pass)
     console.log(`[guest-passes] ${hostId} revoked pass ${pass.id}`)
     return Response.json({ ok: true })
   } catch (error) {

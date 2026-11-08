@@ -68,13 +68,13 @@ function PassCard({
     : pass.state === 'revoked'
       ? 'revoked'
       : pass.state === 'expired'
-        ? 'expired'
-        : 'not used yet'
+        ? 'not used'
+        : 'code issued'
   const badgeClass =
-    label === 'used' ? 'success' : label === 'not used yet' ? 'info' : ''
+    label === 'used' ? 'success' : label === 'code issued' ? 'info' : ''
   const canShare = pass.state === 'active' || pass.state === 'upcoming'
-  // A used pass is a record of a visit; it can't be taken back.
-  const canRevoke = canShare && !used
+  // While the code could still open the door, the host can kill it.
+  const canRevoke = canShare
 
   return (
     <div className="guest-pass">
@@ -89,6 +89,21 @@ function PassCard({
           pass.firstUsedAt &&
           ` · arrived ${formatTime(pass.firstUsedAt)}`}
       </p>
+      {canShare && pass.code && (
+        <p style={{ margin: '4px 0 0' }}>
+          door code{' '}
+          <span
+            style={{
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
+              fontSize: '1.15em',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {pass.code}#
+          </span>
+        </p>
+      )}
       {canShare && (
         <div className="guest-pass-actions">
           <code className="guest-pass-link">{pass.link}</code>
@@ -214,7 +229,8 @@ export default function GuestPasses({ canBuyPass }: { canBuyPass: boolean }) {
   return (
     <>
       <p>
-        bring a friend for the day.{' '}
+        bring a friend for the day. each guest gets their own door code for
+        the front door keypad, which stops working at 11pm.{' '}
         {unlimited ? (
           <strong>unlimited passes</strong>
         ) : (
@@ -315,7 +331,7 @@ export default function GuestPasses({ canBuyPass }: { canBuyPass: boolean }) {
                   >
                     different day?
                   </button>{' '}
-                  click button to generate link.
+                  click button to generate a code.
                 </>
               )}
             </p>
