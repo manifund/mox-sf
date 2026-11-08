@@ -34,7 +34,7 @@ export interface GuestPassFields {
   'Guest Email'?: string
   Token?: string
   'Valid Date'?: string
-  Code?: string
+  'Door Code'?: string
   'Verkada User ID'?: string
   'Unlock Count'?: number
   'First Used'?: string
@@ -80,7 +80,7 @@ export function parseGuestPass(record: {
     guestEmail: f['Guest Email'] || '',
     validDate: f['Valid Date'] || '',
     status: f.Status || 'Unused',
-    code: f.Code || '',
+    code: f['Door Code'] || '',
     verkadaUserId: f['Verkada User ID'] || '',
     unlockCount: f['Unlock Count'] || 0,
     firstUsedAt: f['First Used'] || null,
@@ -169,7 +169,7 @@ export async function createGuestPass(input: {
         'Guest Email': input.guestEmail,
         Token: token,
         'Valid Date': input.validDate,
-        Code: access.entryCode,
+        'Door Code': access.entryCode,
         'Verkada User ID': access.userId,
         'Unlock Count': 0,
         'Issued By': [input.hostId],

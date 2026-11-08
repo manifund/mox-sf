@@ -18,7 +18,7 @@ record how the design was settled.
    `start_date` = 8am and `end_date` = 11pm Pacific on the pass date, and
    gives it a random 6-digit `entry_code` (retrying on a clash;
    `override=false` so it never steals a member's code). Only then is the
-   Airtable record written, with `Code` and `Verkada User ID`. If Airtable
+   Airtable record written, with `Door Code` and `Verkada User ID`. If Airtable
    fails, the Verkada user is deleted again. A Discord #notifications post
    announces the pass (host, guest, email, date).
 3. The portal shows the code next to the pass and a link
@@ -41,7 +41,7 @@ Event door links (`/door?evt=…`) only show the event and its hours.
 Verkada setup needed: the API key behind `VERKADA_MEMBER_KEY` must be allowed
 to create and delete users (Core API) and edit access users and groups
 (Access API). `VERKADA_UUID` must point at the day-pass user whose access
-groups guests should copy. Airtable needs the `Code` and `Verkada User ID`
+groups guests should copy. Airtable needs the `Door Code` and `Verkada User ID`
 text fields on Day Passes.
 
 ## Key files
@@ -153,7 +153,7 @@ Reuse the existing **Day Passes** table rather than adding a new one.
 | `Guest Email` | new, email | The guest's email, for contacting them if needed. Required. Not used to send the link. |
 | `Token` | new, text | 12-char random token for the guest's link. |
 | `Valid Date` | new, date | The day the pass works. Default today. The 8am–11pm window is derived in code. |
-| `Code` | new, text | The guest's keypad code. |
+| `Door Code` | new, text | The guest's keypad code. |
 | `Verkada User ID` | new, text | The guest's Verkada user; cleared once deleted. |
 | `Unlock Count` | new, number | Accepted keypad entries, from the nightly cron. |
 | `First Used` | new, dateTime | First accepted entry, from the nightly cron. |

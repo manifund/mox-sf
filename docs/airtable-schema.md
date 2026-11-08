@@ -134,7 +134,7 @@ Guest day pass and week pass management.
 | `Guest Email` | email | Guest Pass only: the guest's email, so Mox can reach them if needed | ✅ Guest passes |
 | `Token` | singleLineText | Guest Pass only: 12-char token in the `/guest/<token>` link where the guest sees their code | ✅ Guest passes |
 | `Valid Date` | date | Guest Pass only: the Pacific day the pass works (8am–11pm); counts against that week's allowance | ✅ Guest passes |
-| `Code` | singleLineText | Guest Pass only: the guest's 6-digit keypad code (the Verkada entry code of their guest user) | ✅ Guest passes |
+| `Door Code` | singleLineText | Guest Pass only: the guest's 6-digit keypad code (the Verkada entry code of their guest user) | ✅ Guest passes |
 | `Verkada User ID` | singleLineText | Guest Pass only: the Verkada user holding the code. Cleared when the user is deleted (revoke, or the nightly expiry cron); empty means no live code | ✅ Guest passes |
 | `Unlock Count` | number | Guest Pass only: accepted keypad entries, filled in by the nightly expiry cron from Verkada's door events | ✅ Guest passes |
 | `First Used` | dateTime | Guest Pass only: first accepted keypad entry, from the same nightly sync | ✅ Guest passes |
@@ -144,7 +144,7 @@ Guest day pass and week pass management.
 **Status options:** Unused, Activated, Expired, Revoked
 
 The app writes `Guest Pass`, `Revoked` and `Expired` with `typecast: true`, so
-Airtable adds those select options automatically on first use. `Code` and
+Airtable adds those select options automatically on first use. `Door Code` and
 `Verkada User ID` are plain text fields and must exist before a pass can be
 issued.
 
