@@ -45,14 +45,16 @@ Skips sending when no fellows exist.
 
 ### 3. GEF interest form — `/gef`
 
-Submissions now also create a **GEF Applications** record (Status "New") in
-addition to the notification email. An Airtable failure is logged but doesn't
-block the submission or email.
+Submissions create a record in **GEF | Global Experts Fellowship** (Stage
+"Interest received") and email carolina@ and robin@. A resubmission from a
+known email updates `Last contact` and appends to `Notes` instead of creating
+a duplicate. An Airtable failure is logged and flagged in the email subject
+(`[NOT IN AIRTABLE]`) but never blocks the email, so no applicant is lost.
 
 ## Airtable tables
 
 See [airtable-schema.md](../airtable-schema.md): `Attendance` (new) and
-`GEF Applications` (new).
+`GEF | Global Experts Fellowship`.
 
 ## Key files
 

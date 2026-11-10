@@ -239,20 +239,28 @@ the weekly `scrape-roles` cron (LLM-extracts openings from member orgs'
 
 ---
 
-### GEF Applications
+### GEF | Global Experts Fellowship
 
-Global Expert Fellowship interest-form submissions from `/gef`.
+The Global Expert Fellowship pipeline, interest-to-placement. The `/gef`
+interest form writes here (`Tables.GefPipeline`); the rest is maintained by
+staff. Only the fields the app touches are listed.
 
 | Field | Type | Description | Used by App |
 |-------|------|-------------|-------------|
 | `Name` | singleLineText | Applicant name | ✅ GEF form |
-| `Email` | email | Applicant email | ✅ GEF form |
+| `Email` | email | Applicant email; the form dedupes on this (case-insensitive) | ✅ GEF form |
+| `Stage` | singleSelect | Pipeline stage; the form sets "Interest received" | ✅ GEF form (sets "Interest received") |
 | `Country` | singleLineText | Current country | ✅ GEF form |
 | `Focus area` | singleLineText | Primary focus area | ✅ GEF form |
 | `Background` | multilineText | Background | ✅ GEF form |
 | `Proud of` | multilineText | Work they are proud of | ✅ GEF form |
 | `Intentions` | multilineText | What they would work on in SF | ✅ GEF form |
-| `Status` | singleSelect | New, Reviewing, Interviewing, Accepted, Rejected | ✅ GEF form (sets "New") |
+| `First contact` | date | Set to the submission date on create | ✅ GEF form |
+| `Last contact` | date | Set on create and on a resubmission | ✅ GEF form |
+| `Notes` | multilineText | Form appends a line on create and on a resubmission | ✅ GEF form |
+
+Field names must match exactly: Airtable rejects a create with an unknown
+field name, which silently lost website interest in Nov 2026.
 
 ---
 
