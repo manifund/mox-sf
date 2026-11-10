@@ -43,10 +43,6 @@
     {
       "path": "/api/cron/sync-discord-roles",
       "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/backfill-gef-applications",
-      "schedule": "* * * * *"
     }
   ]
 }
