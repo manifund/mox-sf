@@ -54,9 +54,10 @@ Configured in `vercel.json`:
 | Path | Schedule | Description |
 |------|----------|-------------|
 | `/api/cron/sync-discord-roles` | `*/5 * * * *` | Sync Airtable membership tiers and program roles to Discord |
-| `/api/cron/rotate-door-code` | `0 17 * * 1` (Mon 5PM UTC) | Weekly door code rotation |
 
 Cron jobs require `Authorization: Bearer {CRON_SECRET}` header.
+
+The weekly door code rotation (`/api/cron/rotate-door-code`) is no longer scheduled as of November 2026. The route still exists and can be triggered manually; see [door-code-rotation.md](workflows/door-code-rotation.md).
 
 ## GitHub Actions
 
