@@ -42,8 +42,8 @@ describe('canIssueGuestDayPass', () => {
     expect(canIssueGuestDayPass({ status: 'Applied', tier: 'Staff' })).toBe(true)
   })
 
-  it('accepts Joined paying tiers and Volunteer', () => {
-    for (const tier of ['Friend', 'Core', 'Resident', 'Private Office', 'Volunteer']) {
+  it('accepts Joined paying tiers, Volunteer, and Courtesy', () => {
+    for (const tier of ['Friend', 'Core', 'Resident', 'Private Office', 'Volunteer', 'Courtesy']) {
       expect(canIssueGuestDayPass({ status: 'Joined', tier })).toBe(true)
     }
   })
@@ -60,8 +60,7 @@ describe('canIssueGuestDayPass', () => {
   })
 
   it('rejects inactive tiers', () => {
-    for (const tier of ['Courtesy', 'Paused']) {
-      expect(canIssueGuestDayPass({ status: 'Joined', tier })).toBe(false)
-    }
+    expect(canIssueGuestDayPass({ status: 'Joined', tier: 'Paused' })).toBe(false)
+    expect(canIssueGuestDayPass({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
   })
 })

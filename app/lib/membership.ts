@@ -4,7 +4,7 @@ export interface MembershipFields {
 }
 
 // Courtesy = comped or paid outside Stripe (e.g. a year upfront by invoice).
-// They are full members for door access; Stripe state is never consulted here.
+// They are treated like Core members; Stripe state is never consulted here.
 const ACTIVE_MEMBER_TIERS = [
   'Friend',
   'Core',
@@ -22,6 +22,7 @@ const GUEST_PASS_ISSUING_TIERS = [
   'Resident',
   'Private Office',
   'Volunteer',
+  'Courtesy',
 ] as const
 
 export function isActiveMember({ status, tier }: MembershipFields): boolean {

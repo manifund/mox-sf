@@ -20,6 +20,7 @@ export const WEEKLY_GUEST_PASS_ALLOWANCE: Record<string, number | null> = {
   Resident: 4,
   'Private Office': 6,
   Volunteer: 2,
+  Courtesy: 2, // same as Core
 }
 
 /**
