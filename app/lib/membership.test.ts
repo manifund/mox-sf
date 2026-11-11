@@ -19,6 +19,11 @@ describe('isActiveMember', () => {
     expect(isActiveMember({ status: 'Joined', tier: 'Volunteer' })).toBe(true)
   })
 
+  it('accepts Joined Courtesy (comped or paid outside Stripe)', () => {
+    expect(isActiveMember({ status: 'Joined', tier: 'Courtesy' })).toBe(true)
+    expect(isActiveMember({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
+  })
+
   it('rejects non-Joined statuses for non-Staff', () => {
     for (const status of ['Applied', 'Invited', 'Cancelled', 'Paused', null]) {
       expect(isActiveMember({ status, tier: 'Core' })).toBe(false)
@@ -26,7 +31,7 @@ describe('isActiveMember', () => {
   })
 
   it('rejects inactive tiers even when Joined', () => {
-    for (const tier of ['Courtesy', 'Paused', null, undefined]) {
+    for (const tier of ['Paused', null, undefined]) {
       expect(isActiveMember({ status: 'Joined', tier })).toBe(false)
     }
   })

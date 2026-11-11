@@ -57,6 +57,8 @@ Primary table for user/member management.
 
 **Tier options:** Staff, Volunteer, Private Office, Program, Resident, Core, Friend, Courtesy, Guest Program, Paused
 
+`Courtesy` is for comped members and members who paid outside Stripe. With Status `Joined` it counts as an active membership in the portal (door code, door unlock, studio booking, member day-pass pricing), but it cannot issue guest passes.
+
 **Status options:** Applied, Evaluating, Backburner, To Invite, Invited, Guest Program, Joined, Cancelled, Rejected, Payment Issue, Waitlisted, Declined, Visited, Event Host, Paused
 
 ---
