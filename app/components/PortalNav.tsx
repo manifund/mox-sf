@@ -20,6 +20,7 @@ export default function PortalNav() {
     pathname?.startsWith('/portal') ||
     pathname?.startsWith('/lobby') ||
     pathname?.startsWith('/summerseason') ||
+    pathname?.startsWith('/fallseason') ||
     pathname?.startsWith('/gef') ||
     pathname?.startsWith('/guest') || // guest pass door-code page
     pathname?.startsWith('/door') || // event door page

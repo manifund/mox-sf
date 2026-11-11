@@ -23,6 +23,13 @@ Generate iCalendar feed for calendar subscriptions.
 - **Response:** `text/calendar` iCal format
 - **Details:** Filters out events with status "idea", "maybe", or "cancelled"
 
+### GET `/api/summerseason/events` and GET `/api/fallseason/events`
+Public event lists for the season landing pages (`/summerseason`, `/fallseason`). The fall endpoint goes through `app/lib/season-events.ts`; the summer one keeps its own `app/lib/summerseason-events.ts`.
+
+- **Auth:** None
+- **Response:** JSON array of events (`id`, `category`, `title`, `date`, `time`, `location`, `speaker`, `description`, `rsvp`, optional `speakerPhoto`)
+- **Details:** Reads the Events table filtered by a season tag in `Tags`. Summer '26 uses the tag `Summer Season '26`, `Type = "Public"`, and `MSS 26 Status = "Confirmed"`; Fall '26 uses the tag `Fall Season '26`, `Type` of Public or Members (Private stays hidden), and `Status = "Confirmed"`. Returns 503 if Airtable is unreachable; the static page then falls back to its bundled `events.json`.
+
 ### GET `/api/cron/rotate-door-code`
 Weekly cron job to rotate Verkada door codes.
 
