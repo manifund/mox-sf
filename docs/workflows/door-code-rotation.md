@@ -178,6 +178,13 @@ Schedule: Every Monday at 5:00 PM UTC (9:00 AM PST / 10:00 AM PDT)
 Each active member has their own entry code on their Verkada access user,
 looked up by the email on their People record.
 
+"Active" is decided by `isActiveMember` in
+[app/lib/membership.ts](../../app/lib/membership.ts) from Airtable alone:
+Status `Joined` plus a Tier of Friend, Core, Resident, Private Office,
+Program, Guest Program, Volunteer, or Courtesy (Staff always pass). Stripe is
+not consulted, so a member who paid outside Stripe (Tier `Courtesy`) still
+gets a code.
+
 - Portal UI: [app/portal/VerkadaPin.tsx](../../app/portal/VerkadaPin.tsx),
   rendered in the "door access" section of [app/portal/page.tsx](../../app/portal/page.tsx)
 - API: [app/portal/api/verkada-pin/route.ts](../../app/portal/api/verkada-pin/route.ts)

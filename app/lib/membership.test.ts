@@ -19,6 +19,11 @@ describe('isActiveMember', () => {
     expect(isActiveMember({ status: 'Joined', tier: 'Volunteer' })).toBe(true)
   })
 
+  it('accepts Joined Courtesy (comped or paid outside Stripe)', () => {
+    expect(isActiveMember({ status: 'Joined', tier: 'Courtesy' })).toBe(true)
+    expect(isActiveMember({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
+  })
+
   it('rejects non-Joined statuses for non-Staff', () => {
     for (const status of ['Applied', 'Invited', 'Cancelled', 'Paused', null]) {
       expect(isActiveMember({ status, tier: 'Core' })).toBe(false)
@@ -26,7 +31,7 @@ describe('isActiveMember', () => {
   })
 
   it('rejects inactive tiers even when Joined', () => {
-    for (const tier of ['Courtesy', 'Paused', null, undefined]) {
+    for (const tier of ['Paused', null, undefined]) {
       expect(isActiveMember({ status: 'Joined', tier })).toBe(false)
     }
   })
@@ -37,8 +42,8 @@ describe('canIssueGuestDayPass', () => {
     expect(canIssueGuestDayPass({ status: 'Applied', tier: 'Staff' })).toBe(true)
   })
 
-  it('accepts Joined paying tiers and Volunteer', () => {
-    for (const tier of ['Friend', 'Core', 'Resident', 'Private Office', 'Volunteer']) {
+  it('accepts Joined paying tiers, Volunteer, and Courtesy', () => {
+    for (const tier of ['Friend', 'Core', 'Resident', 'Private Office', 'Volunteer', 'Courtesy']) {
       expect(canIssueGuestDayPass({ status: 'Joined', tier })).toBe(true)
     }
   })
@@ -55,8 +60,7 @@ describe('canIssueGuestDayPass', () => {
   })
 
   it('rejects inactive tiers', () => {
-    for (const tier of ['Courtesy', 'Paused']) {
-      expect(canIssueGuestDayPass({ status: 'Joined', tier })).toBe(false)
-    }
+    expect(canIssueGuestDayPass({ status: 'Joined', tier: 'Paused' })).toBe(false)
+    expect(canIssueGuestDayPass({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
   })
 })

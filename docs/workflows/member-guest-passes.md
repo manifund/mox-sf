@@ -78,7 +78,7 @@ allowance set by their tier, and we record who the guest was.
 | Personal PINs | `/portal/api/verkada-pin` | Reads and sets a member's own Verkada `entry_code`. |
 | Weekly code rotation | `/api/cron/rotate-door-code` | Being deprecated. |
 | Check-in tracking | `/api/cron/sync-checkins` | Maps Verkada door events to People by email, writes Checkins with `Source` = Verkada / Day Pass / Manual. |
-| Tier gating | `canIssueGuestDayPass()` in `app/lib/membership.ts` | Core, Resident, Private Office, Volunteer, Friend, Staff. |
+| Tier gating | `canIssueGuestDayPass()` in `app/lib/membership.ts` | Core, Resident, Private Office, Volunteer, Courtesy, Friend, Staff. |
 
 Verkada API facts that matter (from apidocs.verkada.com):
 
@@ -218,6 +218,7 @@ to Sunday 23:59 Pacific. Proposed numbers (Austin's mockup):
 | Resident | 4 |
 | Private Office | 6 per person |
 | Volunteer | 2 (same as Core, since volunteers hold a Core membership) |
+| Courtesy | 2 (same as Core; comped members and members who paid outside Stripe) |
 | Program / Guest Program / Friend | 0 (can still buy the $25 pass) |
 | Staff | unlimited |
 

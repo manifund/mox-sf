@@ -24,6 +24,15 @@ describe('weeklyGuestPassAllowance', () => {
     ).toBe(2)
   })
 
+  it('gives Courtesy the same allowance as Core', () => {
+    expect(
+      weeklyGuestPassAllowance({ status: 'Joined', tier: 'Courtesy' })
+    ).toBe(weeklyGuestPassAllowance({ status: 'Joined', tier: 'Core' }))
+    expect(
+      weeklyGuestPassAllowance({ status: 'Paused', tier: 'Courtesy' })
+    ).toBe(0)
+  })
+
   it('gives staff unlimited passes regardless of status', () => {
     expect(weeklyGuestPassAllowance({ status: null, tier: 'Staff' })).toBeNull()
   })
