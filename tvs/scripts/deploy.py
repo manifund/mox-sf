@@ -17,11 +17,13 @@ SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=20",
 
 def package(destination):
     # Runtime data, credentials, local previews, and backups never enter the upload.
-    files = [ROOT / "update_events.sh", ROOT / "network_watchdog.sh"]
+    files = [ROOT / "update_events.sh", ROOT / "network_watchdog.sh",
+             ROOT / "scripts/configure_recovery.py"]
     files += [ROOT / "web" / name for name in ("index.html", "screen.js", "screen.css")]
     files += sorted((ROOT / "web/assets").rglob("*"))
     files += [ROOT / "systemd" / name for name in
-              ("mox-display.service.in", "mox-html-events.service", "mox-html-events.timer")]
+              ("mox-display.service.in", "mox-html-events.service", "mox-html-events.timer",
+               "tessavision-network-watchdog.service", "tessavision-network-watchdog.timer")]
     with tarfile.open(destination, "w:gz") as archive:
         for path in files:
             if path.is_symlink():

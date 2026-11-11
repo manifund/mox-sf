@@ -20,7 +20,9 @@ MANAGED_UNITS = ('mox-display.service', 'mox-html-events.service', 'mox-html-eve
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
             'web/assets/mox-logo.svg', 'network_watchdog.sh',
             'systemd/mox-display.service.in', 'systemd/mox-html-events.service',
-            'systemd/mox-html-events.timer'}
+            'systemd/mox-html-events.timer', 'scripts/configure_recovery.py',
+            'systemd/tessavision-network-watchdog.service',
+            'systemd/tessavision-network-watchdog.timer'}
 
 
 def unpack(archive, stage):
@@ -133,6 +135,8 @@ def deploy(archive, revision, app=APP, key=None, run=subprocess.run, verify=veri
         since = f'{time.time():.6f}'
         run(['sudo', '-n', 'systemctl', 'start', 'mox-display.service'], check=True)
         verify(since, run)
+        # Host recovery is idempotent provisioning, retained across display rollback.
+        run(['python3', str(app / 'scripts/configure_recovery.py'), str(app)], check=True)
         run(['sudo', '-n', 'systemctl', 'start', 'mox-html-events.timer'], check=True)
         run(['systemctl', 'is-active', '--quiet', 'mox-html-events.timer'], check=True)
         timer_stopped = False

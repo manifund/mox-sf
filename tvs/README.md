@@ -71,7 +71,7 @@ and 3F sequentially.
 For each Pi the deploy script:
 
 1. Uploads `update_events.sh`, `network_watchdog.sh`, the HTML/CSS/JS source,
-   `web/assets/`, and the display/event-refresh systemd units.
+   `web/assets/`, recovery provisioning, and the display/event-refresh/watchdog systemd units.
 2. Validates the archive, shell syntax, and rendered systemd units, preserving
    the existing floor and resolving the local `mox` UID. Pauses the refresh timer and
    installs the runner-supplied credential into the staged app with private permissions and
@@ -83,11 +83,23 @@ For each Pi the deploy script:
    units in `~/deploy-backups/units-…`, and runs `daemon-reload` only if needed.
    Runs the installed event service, starts Cog, and waits up to 90 seconds
    for its successful page-load log. A failure restores both the app and units.
-5. Resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
+5. Provisions the Wi-Fi watchdog and persistent journald storage, verifies the watchdog,
+   resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
 
 Deployment manages `mox-display.service`, `mox-html-events.service`, and
-`mox-html-events.timer`. It preserves floor configuration,
-and does not modify networking units, network settings, or packages, or reboot.
+`mox-html-events.timer`. It also installs/enables `tessavision-network-watchdog.timer`
+and its service on **both** TVs, selecting the interface configured/active for the
+existing `Mox-dongle` connection. Ambiguous or missing interfaces fail deployment.
+It preserves floor configuration and does not change Wi-Fi profiles, restart
+NetworkManager, install packages, or reboot.
+
+Recovery provisioning is idempotent and remains installed after a display rollback.
+It uses the existing recovery script in `/home/mox/production`, including after rollback.
+Persistent logs are configured in `/etc/systemd/journald.conf.d/mox-tv.conf`,
+with a 100 MB cap, 500 MB free-space reserve and 14-day retention. Journald is
+restarted only when that configuration changes; its runtime journal is flushed to disk.
+The watchdog retries a disconnected interface; it does not detect broken DNS or
+internet access when NetworkManager still reports the interface connected.
 Each successful deployment replaces the Airtable credential with the supplied
 GitHub secret; rollback restores the previous credential with the old app. The existing services
 must already be active and enabled. Both TVs were provisioned this way on
@@ -191,10 +203,10 @@ git show 7592056:tvs/scripts/migrate_user.py
 
 Original account-migration unit files remain in `/home/mox/account-migration/`
 on each Pi. The unused legacy event/ticker and display fallback timers are
-disabled. On 1F, the Wi-Fi watchdog runs from
-`/home/mox/production/network_watchdog.sh`; 3F has no watchdog service.
+disabled. The Wi-Fi watchdog runs from `/home/mox/production/network_watchdog.sh`
+on both TVs. Before the November 10 recovery fix, only 1F had its service/timer installed.
 
 `systemd/` contains the deployed display and refresh units. Deployment renders
 `@FLOOR@` and `@UID@` in `mox-display.service.in` from the existing TV setup.
-The 1F watchdog unit definitions are provisioning references only; routine
-deployments never install them or change their device-specific overrides.
+Deployments also provision the watchdog units and their `device.conf` override
+using the actual `Mox-dongle` interface rather than the script’s fallback device.

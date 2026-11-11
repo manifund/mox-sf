@@ -100,6 +100,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn('?floor=3', display)
         self.assertIn('/run/user/1234', display)
         self.assertNotIn('# previous unit', display)
+        self.assertIn(['python3', str(self.app / 'scripts/configure_recovery.py'), str(self.app)], self.calls)
 
     def test_api_failure_leaves_previous_display_and_resumes_timer(self):
         self.fail_fetch = True
