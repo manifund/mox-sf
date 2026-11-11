@@ -20,8 +20,6 @@ export const Tables = {
   // The live admissions pipeline. Website interest starts here — not in a
   // separate intake table.
   GefPipeline: 'GEF | Global Experts Fellowship',
-  // Legacy standalone intake table; retained only for historical reads.
-  GefApplications: 'GEF Applications',
   Roles: 'Roles',
   // Filled by the moxsf.com/request Airtable form; shown in the portal.
   OperationsRequests: 'tbl77SjSdonCzvVMr',
