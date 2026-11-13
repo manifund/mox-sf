@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { isActiveMember, canIssueGuestDayPass } from './membership'
+import {
+  isActiveMember,
+  canIssueGuestDayPass,
+  keepsForkableAccess,
+} from './membership'
 
 describe('isActiveMember', () => {
   it('lets Staff through regardless of status', () => {
@@ -62,5 +66,37 @@ describe('canIssueGuestDayPass', () => {
   it('rejects inactive tiers', () => {
     expect(canIssueGuestDayPass({ status: 'Joined', tier: 'Paused' })).toBe(false)
     expect(canIssueGuestDayPass({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
+  })
+})
+
+describe('keepsForkableAccess', () => {
+  it('keeps Joined and Paused members on any tier', () => {
+    for (const status of ['Joined', 'Paused']) {
+      for (const tier of ['Core', 'Resident', 'Program', 'Private Office', null]) {
+        expect(keepsForkableAccess({ status, tier })).toBe(true)
+      }
+    }
+  })
+
+  it('drops every other status', () => {
+    for (const status of ['Cancelled', 'Payment Issue', 'Invited', 'Visited', 'Event Host', null, undefined]) {
+      expect(keepsForkableAccess({ status, tier: 'Program' })).toBe(false)
+    }
+  })
+
+  it('always keeps Staff', () => {
+    expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Staff' })).toBe(true)
+    expect(keepsForkableAccess({ status: null, tier: 'Staff' }, { stripeSubscriptionEnded: true })).toBe(true)
+  })
+
+  it('stops counting Stripe-billed tiers once Stripe says the subscription ended', () => {
+    const ended = { stripeSubscriptionEnded: true }
+    for (const tier of ['Friend', 'Core', 'Resident', null]) {
+      expect(keepsForkableAccess({ status: 'Joined', tier }, ended)).toBe(false)
+    }
+    for (const tier of ['Private Office', 'Program', 'Courtesy', 'Volunteer']) {
+      expect(keepsForkableAccess({ status: 'Joined', tier }, ended)).toBe(true)
+    }
+    expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Program' }, ended)).toBe(false)
   })
 })

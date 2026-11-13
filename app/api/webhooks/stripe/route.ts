@@ -17,6 +17,10 @@ import {
   FORKABLE_CLUBS,
   parseFullName,
 } from '@/app/lib/forkable';
+import {
+  offboardFromForkable,
+  describeOffboardResult,
+} from '@/app/lib/forkable-offboard';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -92,6 +96,10 @@ export async function POST(request: Request) {
 
       case 'customer.subscription.created':
         await handleNewSubscription(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleEndedSubscription(event.data.object as Stripe.Subscription);
         break;
 
       default:
@@ -453,6 +461,89 @@ async function handleNewSubscription(subscription: Stripe.Subscription) {
       tier: membershipConfig.tier,
       success: true,
     });
+  }
+}
+
+// Stripe statuses under which the customer still has a membership. Pausing
+// keeps the subscription (`pause_collection` on an active one, or the `paused`
+// status), so a paused member never loses Forkable here.
+const LIVE_SUBSCRIPTION_STATUSES: Stripe.Subscription.Status[] = [
+  'active',
+  'trialing',
+  'past_due',
+  'paused',
+];
+
+// Stripe sends customer.subscription.deleted when a subscription has actually
+// ended (cancelled immediately, or at the end of the period it was cancelled
+// in), not when the member clicks "cancel".
+async function handleEndedSubscription(subscription: Stripe.Subscription) {
+  const product = subscription.items.data[0]?.price?.product;
+  const productId = typeof product === 'string' ? product : product?.id;
+  const membershipConfig = productId ? MEMBERSHIP_PRODUCTS[productId] : undefined;
+
+  if (!membershipConfig) {
+    console.log('[Stripe Webhook] Ended subscription is not a membership:', productId);
+    return;
+  }
+
+  // Same rule as the add path: a tier that never came with Forkable has
+  // nothing to be removed from.
+  if (membershipConfig.forkableClubIds.length === 0) {
+    console.log(
+      `[Stripe Webhook] No Forkable clubs configured for ${membershipConfig.tier}, skipping`
+    );
+    return;
+  }
+
+  const customerId =
+    typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer.id;
+
+  // Changing plan or billing interval can end one subscription while another
+  // carries on; only a customer with nothing left has stopped being a member.
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'all',
+    limit: 100,
+  });
+  const stillSubscribed = subscriptions.data.some(
+    (s) =>
+      s.id !== subscription.id && LIVE_SUBSCRIPTION_STATUSES.includes(s.status)
+  );
+  if (stillSubscribed) {
+    console.log(
+      `[Stripe Webhook] ${customerId} still has a live subscription, keeping Forkable`
+    );
+    return;
+  }
+
+  const customerResponse = await stripe.customers.retrieve(customerId);
+  if (customerResponse.deleted || !customerResponse.email) {
+    console.error('[Stripe Webhook] No customer email for ended subscription');
+    return;
+  }
+
+  console.log(
+    `[Stripe Webhook] ${membershipConfig.tier} subscription ended for ${customerResponse.email}`
+  );
+
+  const result = await offboardFromForkable(customerResponse.email, {
+    stripeSubscriptionEnded: true,
+  });
+
+  // Kept because Airtable has them on a staff-managed tier: nothing to report.
+  if (result.outcome === 'skipped') return;
+
+  const channelId = DISCORD_CHANNELS.NOTIFICATIONS;
+  if (!channelId) {
+    console.log('[Stripe Webhook] No Discord notifications channel configured, skipping notification');
+    return;
+  }
+  const sent = await sendChannelMessage(channelId, describeOffboardResult(result));
+  if (!sent) {
+    console.error('[Stripe Webhook] Failed to send Forkable Discord notification');
   }
 }
 

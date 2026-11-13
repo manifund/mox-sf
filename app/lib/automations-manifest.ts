@@ -143,7 +143,7 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/api/forkable-sync",
     "type": "integration",
     "httpMethod": "POST",
-    "summary": "Adds members to Forkable meal club when Airtable tier changes to Private Office or Program"
+    "summary": "Adds members to Forkable meal club when Airtable tier changes to Private Office or Program; removes them once they are no longer Joined or Paused"
   },
   {
     "id": "portal/bulk-sync-discord-roles",
@@ -207,6 +207,6 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/api/webhooks/stripe",
     "type": "webhook",
     "httpMethod": "POST",
-    "summary": "Handles Stripe events: day pass purchases create Airtable records and send activation emails; new subscriptions add members to Forkable"
+    "summary": "Handles Stripe events: day pass purchases create Airtable records and send activation emails; new subscriptions add members to Forkable; ended subscriptions remove them"
   }
 ]

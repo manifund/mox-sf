@@ -69,6 +69,17 @@ Handle Stripe webhook events.
 - **Handles:**
   - `checkout.session.completed` - Day pass purchases
   - `customer.subscription.created` - New subscriptions (triggers Forkable onboarding)
+  - `customer.subscription.deleted` - A membership subscription has ended (triggers Forkable removal, unless the customer still has another active, trialing, past-due or paused subscription, or Airtable has them `Joined`/`Paused` on a staff-managed tier). Pausing does not fire this event.
+
+### POST `/api/forkable-sync`
+Add or remove a member in the Mox Forkable meal clubs. Called by Airtable automations; see [forkable-tier-sync.md](./workflows/forkable-tier-sync.md).
+
+- **Auth:** `secret` in the body must match `FORKABLE_SYNC_SECRET`. Removal refuses to run (503) when the secret is not configured.
+- **Add (default):** `{ "recordId": "rec123", "secret": "..." }`
+- **Remove one:** `{ "action": "remove", "recordId": "rec123", "secret": "..." }`
+- **Remove a list (max 100):** `{ "action": "remove", "emails": ["a@example.com"], "secret": "..." }`
+- **Remove response:** `{ "success": true, "removed": 1, "skipped": 0, "failed": 0, "results": [...] }` (500 if any removal failed)
+- **Details:** Removal skips anyone who still has a `Joined` or `Paused` People record, takes the rest out of the Mox Members and Mox Residents clubs only, clears `In Forkable`, and posts the outcome to Discord.
 
 ---
 

@@ -1,8 +1,9 @@
 /**
- * Forkable API integration for adding members to meal clubs
+ * Forkable API integration for adding members to (and removing them from)
+ * meal clubs
  *
- * This module provides functionality to add members to Forkable meal clubs
- * by calling their GraphQL API directly.
+ * This module provides functionality to add and remove Forkable meal club
+ * members by calling their GraphQL API directly.
  *
  * IMPORTANT: Requires FORKABLE_SESSION_COOKIE environment variable
  * To get this cookie:
@@ -23,6 +24,16 @@ export const FORKABLE_CLUBS = {
 } as const;
 
 export type ForkableClubId = (typeof FORKABLE_CLUBS)[keyof typeof FORKABLE_CLUBS];
+
+/**
+ * The clubs a Mox membership can put someone in. Offboarding only ever touches
+ * these: a person can also be in a club run by their own program (FLF, Iliad,
+ * ...) and that club is not ours to remove them from.
+ */
+export const MOX_MEMBERSHIP_CLUBS: ForkableClubId[] = [
+  FORKABLE_CLUBS.MOX_MEMBERS,
+  FORKABLE_CLUBS.MOX_RESIDENTS,
+];
 
 interface AddMemberInput {
   email: string;
@@ -175,6 +186,152 @@ export async function addMemberToForkable(
     };
   } catch (error) {
     console.error('[Forkable] Error adding member:', error);
+    return {
+      success: false,
+      errors: [error instanceof Error ? error.message : 'Unknown error'],
+    };
+  }
+}
+
+interface RemoveMemberInput {
+  email: string;
+  /** Defaults to every Mox membership club. */
+  clubIds?: ForkableClubId[];
+}
+
+interface RemoveMemberResponse {
+  success: boolean;
+  errors?: string[];
+  errorAttributes?: string[];
+}
+
+/**
+ * ⚠️ UNVERIFIED — DO NOT MERGE UNTIL CHECKED AGAINST FORKABLE.
+ *
+ * Forkable publishes no API docs. `addMemberToClubs` above was copied from the
+ * request the admin UI sends; this mutation has NOT been captured yet and is
+ * only a guess by symmetry with it. To verify:
+ *
+ * 1. Log into https://forkable.com/mc/admin/members as an admin
+ * 2. Open DevTools > Network and filter for `graphql`
+ * 3. Remove one member from a club in the UI
+ * 4. Copy the request payload (`query` + `variables`) and replace
+ *    REMOVE_MEMBER_MUTATION and `removeMemberVariables` below to match
+ *
+ * If the guess is wrong Forkable rejects the request before doing anything,
+ * so the failure mode is "nobody is removed and staff get a Discord alert",
+ * never a wrong removal.
+ */
+const REMOVE_MEMBER_MUTATION = `
+mutation ($input: RemoveMemberFromClubsInput!) {
+  removeMemberFromClubs(input: $input) {
+    errors
+    errorAttributes
+  }
+}
+`;
+
+const REMOVE_MEMBER_RESULT_FIELD = 'removeMemberFromClubs';
+
+function removeMemberVariables(input: RemoveMemberInput) {
+  return {
+    input: {
+      clubIds: input.clubIds ?? MOX_MEMBERSHIP_CLUBS,
+      email: input.email,
+    },
+  };
+}
+
+/**
+ * Remove a member from Forkable meal club(s)
+ *
+ * Only removes the club membership; the person's Forkable account and any
+ * memberships in other clubs are left alone.
+ *
+ * @example
+ * const result = await removeMemberFromForkable({
+ *   email: 'formermember@example.com',
+ * });
+ */
+export async function removeMemberFromForkable(
+  input: RemoveMemberInput
+): Promise<RemoveMemberResponse> {
+  const sessionCookie = env.FORKABLE_SESSION_COOKIE;
+
+  if (!sessionCookie) {
+    console.error('[Forkable] Missing FORKABLE_SESSION_COOKIE environment variable');
+    return {
+      success: false,
+      errors: ['Missing Forkable session cookie configuration'],
+    };
+  }
+
+  const variables = removeMemberVariables(input);
+
+  try {
+    const response = await fetch(FORKABLE_GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'forkable-referrer': 'mc',
+        Cookie: `_easyorder_session=${sessionCookie}`,
+      },
+      body: JSON.stringify({
+        query: REMOVE_MEMBER_MUTATION,
+        variables,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Forkable] HTTP error:', response.status, response.statusText);
+      return {
+        success: false,
+        errors: [`HTTP ${response.status}: ${response.statusText}`],
+      };
+    }
+
+    const data = await response.json();
+
+    if (data.errors) {
+      console.error('[Forkable] GraphQL errors:', data.errors);
+      return {
+        success: false,
+        errors: data.errors.map((e: { message: string }) => e.message),
+      };
+    }
+
+    const result = data.data?.[REMOVE_MEMBER_RESULT_FIELD];
+
+    // A response with no payload at all means the mutation did not run (e.g.
+    // an expired session that still answers 200). Never report that as removed.
+    if (!result) {
+      console.error('[Forkable] Removal returned no result for:', input.email);
+      return {
+        success: false,
+        errors: ['Forkable returned no result for the removal'],
+      };
+    }
+
+    if (result.errors?.length) {
+      console.error('[Forkable] Mutation errors:', result.errors);
+      return {
+        success: false,
+        errors: result.errors,
+        errorAttributes: result.errorAttributes,
+      };
+    }
+
+    console.log(
+      '[Forkable] Successfully removed member:',
+      input.email,
+      'from clubs:',
+      variables.input.clubIds
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('[Forkable] Error removing member:', error);
     return {
       success: false,
       errors: [error instanceof Error ? error.message : 'Unknown error'],

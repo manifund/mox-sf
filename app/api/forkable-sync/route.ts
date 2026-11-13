@@ -6,6 +6,17 @@ import {
   FORKABLE_CLUBS,
   type ForkableClubId,
 } from '@/app/lib/forkable'
+import {
+  offboardFromForkable,
+  describeOffboardResult,
+  type OffboardResult,
+} from '@/app/lib/forkable-offboard'
+
+// A bulk removal makes one Forkable call per person.
+export const maxDuration = 300
+
+// Upper bound on one bulk removal request.
+const MAX_REMOVE_EMAILS = 100
 
 // Map Airtable Tier to Forkable club IDs
 // Private Office → MOX_RESIDENTS (they get resident-level meal access)
@@ -26,16 +37,28 @@ interface PersonFields {
 }
 
 interface SyncPayload {
-  recordId: string
+  recordId?: string
   secret?: string
+  /** Defaults to 'add'. */
+  action?: 'add' | 'remove'
+  /** Remove only: a list of emails instead of a single recordId. */
+  emails?: string[]
 }
 
 /**
- * API endpoint for syncing members to Forkable based on their Airtable Tier.
- * Called by Airtable automation when a member's Tier is set to Private Office or Program.
+ * API endpoint for syncing members to Forkable based on their Airtable record.
+ *
+ * Add (default): called by Airtable automation when a member's Tier is set to
+ * Private Office or Program.
+ *   Body: { recordId: string, secret?: string }
+ *
+ * Remove: called by Airtable automation when a member who is "In Forkable" is
+ * no longer Joined or Paused, or by staff with a list of emails for a cleanup.
+ * Anyone whose membership is still active or paused is skipped, never removed.
+ *   Body: { action: 'remove', recordId: string, secret: string }
+ *   Body: { action: 'remove', emails: string[], secret: string }
  *
  * POST /api/forkable-sync
- * Body: { recordId: string, secret?: string }
  */
 export async function POST(request: Request) {
   let payload: SyncPayload
@@ -52,6 +75,10 @@ export async function POST(request: Request) {
   if (expectedSecret && payload.secret !== expectedSecret) {
     console.error('[Forkable Sync] Invalid secret')
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (payload.action === 'remove') {
+    return handleRemove(payload)
   }
 
   const { recordId } = payload
@@ -162,6 +189,117 @@ export async function POST(request: Request) {
     success: true,
     memberships: result.memberships,
   })
+}
+
+async function handleRemove(payload: SyncPayload) {
+  // The add path only acts on what Airtable says about one record. Removal can
+  // be driven by a bare list of emails, so it refuses to run unauthenticated.
+  if (!env.FORKABLE_SYNC_SECRET) {
+    console.error('[Forkable Sync] Removal requires FORKABLE_SYNC_SECRET to be configured')
+    return Response.json(
+      { error: 'FORKABLE_SYNC_SECRET is not configured' },
+      { status: 503 }
+    )
+  }
+
+  let emails: string[]
+
+  if (payload.recordId) {
+    const person = await getRecord<PersonFields>(Tables.People, payload.recordId)
+    if (!person) {
+      console.error(`[Forkable Sync] Person not found: ${payload.recordId}`)
+      return Response.json({ error: 'Person not found' }, { status: 404 })
+    }
+    if (!person.fields.Email) {
+      console.error(`[Forkable Sync] No email for record ${payload.recordId}`)
+      return Response.json({ error: 'Missing email' }, { status: 400 })
+    }
+    emails = [person.fields.Email]
+  } else if (
+    Array.isArray(payload.emails) &&
+    payload.emails.length > 0 &&
+    payload.emails.every((e) => typeof e === 'string' && e.trim())
+  ) {
+    emails = [...new Set(payload.emails.map((e) => e.trim().toLowerCase()))]
+    if (emails.length > MAX_REMOVE_EMAILS) {
+      return Response.json(
+        { error: `Too many emails (max ${MAX_REMOVE_EMAILS} per request)` },
+        { status: 400 }
+      )
+    }
+  } else {
+    console.error('[Forkable Sync] Removal needs a recordId or a list of emails')
+    return Response.json({ error: 'Missing recordId or emails' }, { status: 400 })
+  }
+
+  console.log(`[Forkable Sync] Processing removal for ${emails.length} email(s)`)
+
+  const results: OffboardResult[] = []
+  for (const email of emails) {
+    try {
+      results.push(await offboardFromForkable(email))
+    } catch (error) {
+      console.error(`[Forkable Sync] Error removing ${email}:`, error)
+      results.push({
+        email,
+        outcome: 'failed',
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+      })
+    }
+  }
+
+  const removed = results.filter((r) => r.outcome === 'removed')
+  const skipped = results.filter((r) => r.outcome === 'skipped')
+  const failed = results.filter((r) => r.outcome === 'failed')
+
+  await sendRemovalNotification(results)
+
+  return Response.json(
+    {
+      success: failed.length === 0,
+      removed: removed.length,
+      skipped: skipped.length,
+      failed: failed.length,
+      results,
+    },
+    { status: failed.length === 0 ? 200 : 500 }
+  )
+}
+
+async function sendRemovalNotification(results: OffboardResult[]) {
+  const channelId = DISCORD_CHANNELS.NOTIFICATIONS
+  if (!channelId) {
+    console.log('[Forkable Sync] No Discord notifications channel configured, skipping notification')
+    return
+  }
+
+  let message: string
+  if (results.length === 1) {
+    // Nothing happened and nothing needs doing, so nothing to tell staff.
+    if (results[0].outcome === 'skipped') return
+    message = describeOffboardResult(results[0])
+  } else {
+    const count = (outcome: OffboardResult['outcome']) =>
+      results.filter((r) => r.outcome === outcome).length
+    const failed = results.filter((r) => r.outcome === 'failed')
+    message =
+      `🍽️ **Forkable cleanup:** ${count('removed')} removed from the Mox clubs, ` +
+      `${count('skipped')} kept (still active or paused), ${failed.length} failed.`
+    if (failed.length > 0) {
+      // Discord caps a message at 2000 characters.
+      const list = failed.map((r) => r.email).join(', ')
+      message +=
+        `\nRemove these manually at https://forkable.com/mc/admin/members: ` +
+        (list.length > 1500 ? `${list.slice(0, 1500)}…` : list)
+    }
+  }
+
+  const sent = await sendChannelMessage(channelId, message)
+  if (sent) {
+    console.log('[Forkable Sync] Sent Discord notification')
+  } else {
+    console.error('[Forkable Sync] Failed to send Discord notification')
+  }
 }
 
 async function sendNotification({
