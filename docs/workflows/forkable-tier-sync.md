@@ -77,21 +77,14 @@ Rule: someone stays in the Mox Forkable clubs while they are `Joined` or `Paused
 
 > ⚠️ The Forkable "remove" request in `app/lib/forkable.ts` (`REMOVE_MEMBER_MUTATION`) has not been verified against Forkable yet. Forkable has no API docs, so it has to be copied from the admin UI the same way the "add" request was. Until then every removal fails safely with a Discord alert. Steps are in the comment above that constant.
 
-There are three ways a removal starts. All of them go through `offboardFromForkable` (`app/lib/forkable-offboard.ts`), which looks up every People record with that email and **skips** the person if any of them is still `Joined` or `Paused`.
+There are two ways a removal starts. Both go through `offboardFromForkable` (`app/lib/forkable-offboard.ts`), which looks up every People record with that email and **skips** the person if any of them is still `Joined` or `Paused`.
 
 | Trigger | Covers |
 |---------|--------|
-| Stripe `customer.subscription.deleted` webhook | Core / Resident members whose subscription has ended |
-| Airtable automation (below) | Program, Private Office and anyone else staff mark as no longer `Joined`/`Paused` |
+| Airtable automation (below) | Anyone who is `In Forkable` and no longer `Joined`/`Paused` |
 | Manual call with a list of emails | One-off cleanups, e.g. a program that has finished |
 
-Removal only touches the Mox Members and Mox Residents clubs. A person who is also in their own program's Forkable club (FLF, Iliad, ...) stays in that one.
-
-### Stripe
-
-Nothing to set up in the code, but the Stripe webhook endpoint must be subscribed to `customer.subscription.deleted` (Stripe Dashboard → Developers → Webhooks → the moxsf.com endpoint → events).
-
-Stripe sends that event when a subscription has actually ended, not when the member clicks cancel, so members keep their meals until the end of the period they paid for. A paused subscription does not end, so pausing never removes anyone. A customer who still has another active, trialing, past-due or paused subscription is left alone, as is anyone Airtable shows as `Joined`/`Paused` on a tier that is not billed through Stripe (e.g. a Core member who moved into a Private Office).
+Airtable `Status` is the only thing that decides this; Stripe is not consulted. Removal only touches the Mox Members and Mox Residents clubs. A person who is also in their own program's Forkable club (FLF, Iliad, ...) stays in that one.
 
 ### Airtable automation
 
@@ -156,6 +149,5 @@ curl -X POST https://moxsf.com/api/forkable-sync \
 
 - API endpoint: [app/api/forkable-sync/route.ts](../../app/api/forkable-sync/route.ts)
 - Removal rule and orchestration: [app/lib/forkable-offboard.ts](../../app/lib/forkable-offboard.ts), `keepsForkableAccess` in [app/lib/membership.ts](../../app/lib/membership.ts)
-- Stripe webhook: [app/api/webhooks/stripe/route.ts](../../app/api/webhooks/stripe/route.ts)
 - Forkable client: [app/lib/forkable.ts](../../app/lib/forkable.ts)
 - Environment config: [app/lib/env.ts](../../app/lib/env.ts)

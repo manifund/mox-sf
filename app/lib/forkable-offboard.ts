@@ -31,16 +31,11 @@ export type OffboardResult =
 interface OffboardOptions {
   /** Defaults to every Mox membership club. */
   clubIds?: ForkableClubId[]
-  /**
-   * Set when Stripe has just reported the subscription as ended, so a
-   * Stripe-billed record that still says "Joined" in Airtable does not count.
-   */
-  stripeSubscriptionEnded?: boolean
 }
 
 export async function offboardFromForkable(
   rawEmail: string,
-  { clubIds, stripeSubscriptionEnded = false }: OffboardOptions = {}
+  { clubIds }: OffboardOptions = {}
 ): Promise<OffboardResult> {
   const email = rawEmail.trim().toLowerCase()
   if (!email) {
@@ -57,10 +52,7 @@ export async function offboardFromForkable(
   const name = people.find((p) => p.fields.Name)?.fields.Name
 
   const live = people.find((p) =>
-    keepsForkableAccess(
-      { status: p.fields.Status, tier: p.fields.Tier },
-      { stripeSubscriptionEnded }
-    )
+    keepsForkableAccess({ status: p.fields.Status, tier: p.fields.Tier })
   )
   if (live) {
     const reason = `Membership still active or paused (${live.fields.Status ?? 'no status'} / ${live.fields.Tier ?? 'no tier'})`

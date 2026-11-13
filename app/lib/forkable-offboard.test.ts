@@ -116,29 +116,6 @@ describe('offboardFromForkable', () => {
     )
   })
 
-  describe('when Stripe reports the subscription ended', () => {
-    const ended = { stripeSubscriptionEnded: true }
-
-    it('removes a Stripe-billed member Airtable still shows as Joined', async () => {
-      m.find.mockResolvedValue([
-        person('rec1', { Status: 'Joined', Tier: 'Core' }),
-      ])
-      expect(
-        (await offboardFromForkable('ada@example.com', ended)).outcome
-      ).toBe('removed')
-    })
-
-    it('keeps a member who moved to a staff-managed tier', async () => {
-      m.find.mockResolvedValue([
-        person('rec1', { Status: 'Joined', Tier: 'Private Office' }),
-      ])
-      expect(
-        (await offboardFromForkable('ada@example.com', ended)).outcome
-      ).toBe('skipped')
-      expect(m.remove).not.toHaveBeenCalled()
-    })
-  })
-
   it('fails on an empty email without calling anything', async () => {
     expect((await offboardFromForkable('  ')).outcome).toBe('failed')
     expect(m.find).not.toHaveBeenCalled()

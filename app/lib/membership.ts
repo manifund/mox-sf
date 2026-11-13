@@ -41,28 +41,8 @@ export function canIssueGuestDayPass({ status, tier }: MembershipFields): boolea
 // membership is live or paused, and loses it once it has ended.
 const FORKABLE_KEEP_STATUSES = ['Joined', 'Paused'] as const
 
-// Tiers billed through a Stripe subscription. Every other tier (Program,
-// Private Office, Courtesy, Volunteer, ...) is managed by staff in Airtable.
-const STRIPE_BILLED_TIERS = ['Friend', 'Core', 'Resident'] as const
-
-/**
- * Whether this People record still entitles the person to their Forkable club.
- *
- * `stripeSubscriptionEnded` is for the moment Stripe reports that a
- * subscription is gone: Airtable is updated by hand and still says "Joined",
- * so a Stripe-billed record no longer counts. A record on a staff-managed tier
- * still does (e.g. a Core member who moved into a Private Office).
- */
-export function keepsForkableAccess(
-  { status, tier }: MembershipFields,
-  { stripeSubscriptionEnded = false }: { stripeSubscriptionEnded?: boolean } = {}
-): boolean {
+/** Whether this People record still entitles the person to their Forkable club. */
+export function keepsForkableAccess({ status, tier }: MembershipFields): boolean {
   if (tier === 'Staff') return true
-  if (!status || !(FORKABLE_KEEP_STATUSES as readonly string[]).includes(status)) {
-    return false
-  }
-  if (stripeSubscriptionEnded) {
-    return !!tier && !(STRIPE_BILLED_TIERS as readonly string[]).includes(tier)
-  }
-  return true
+  return !!status && (FORKABLE_KEEP_STATUSES as readonly string[]).includes(status)
 }

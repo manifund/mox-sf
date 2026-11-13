@@ -86,17 +86,6 @@ describe('keepsForkableAccess', () => {
 
   it('always keeps Staff', () => {
     expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Staff' })).toBe(true)
-    expect(keepsForkableAccess({ status: null, tier: 'Staff' }, { stripeSubscriptionEnded: true })).toBe(true)
-  })
-
-  it('stops counting Stripe-billed tiers once Stripe says the subscription ended', () => {
-    const ended = { stripeSubscriptionEnded: true }
-    for (const tier of ['Friend', 'Core', 'Resident', null]) {
-      expect(keepsForkableAccess({ status: 'Joined', tier }, ended)).toBe(false)
-    }
-    for (const tier of ['Private Office', 'Program', 'Courtesy', 'Volunteer']) {
-      expect(keepsForkableAccess({ status: 'Joined', tier }, ended)).toBe(true)
-    }
-    expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Program' }, ended)).toBe(false)
+    expect(keepsForkableAccess({ status: null, tier: 'Staff' })).toBe(true)
   })
 })

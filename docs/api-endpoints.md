@@ -69,7 +69,6 @@ Handle Stripe webhook events.
 - **Handles:**
   - `checkout.session.completed` - Day pass purchases
   - `customer.subscription.created` - New subscriptions (triggers Forkable onboarding)
-  - `customer.subscription.deleted` - A membership subscription has ended (triggers Forkable removal, unless the customer still has another active, trialing, past-due or paused subscription, or Airtable has them `Joined`/`Paused` on a staff-managed tier). Pausing does not fire this event.
 
 ### POST `/api/forkable-sync`
 Add or remove a member in the Mox Forkable meal clubs. Called by Airtable automations; see [forkable-tier-sync.md](./workflows/forkable-tier-sync.md).
