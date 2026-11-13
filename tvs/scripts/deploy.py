@@ -18,7 +18,7 @@ SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=20",
 def package(destination):
     # Runtime data, credentials, local previews, and backups never enter the upload.
     files = [ROOT / "update_events.sh", ROOT / "network_watchdog.sh",
-             ROOT / "scripts/configure_recovery.py"]
+             ROOT / "scripts/configure_recovery.py", ROOT / "scripts/watchdog_monitor.py"]
     files += [ROOT / "web" / name for name in ("index.html", "screen.js", "screen.css")]
     files += sorted((ROOT / "web/assets").rglob("*"))
     files += [ROOT / "systemd" / name for name in

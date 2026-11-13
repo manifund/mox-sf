@@ -20,7 +20,7 @@ MANAGED_UNITS = ('mox-display.service', 'mox-html-events.service', 'mox-html-eve
 REQUIRED = {'update_events.sh', 'web/index.html', 'web/screen.js', 'web/screen.css',
             'web/assets/mox-logo.svg', 'network_watchdog.sh',
             'systemd/mox-display.service.in', 'systemd/mox-html-events.service',
-            'systemd/mox-html-events.timer', 'scripts/configure_recovery.py',
+            'systemd/mox-html-events.timer', 'scripts/configure_recovery.py', 'scripts/watchdog_monitor.py',
             'systemd/tessavision-network-watchdog.service',
             'systemd/tessavision-network-watchdog.timer'}
 

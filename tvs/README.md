@@ -83,7 +83,7 @@ For each Pi the deploy script:
    units in `~/deploy-backups/units-…`, and runs `daemon-reload` only if needed.
    Runs the installed event service, starts Cog, and waits up to 90 seconds
    for its successful page-load log. A failure restores both the app and units.
-5. Provisions the Wi-Fi watchdog and persistent journald storage, verifies the watchdog,
+5. Provisions the Wi-Fi watchdog and RAM-only journald storage, verifies the watchdog,
    resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
 
 Deployment manages `mox-display.service`, `mox-html-events.service`, and
@@ -95,9 +95,16 @@ NetworkManager, install packages, or reboot.
 
 Recovery provisioning is idempotent and remains installed after a display rollback.
 It uses the existing recovery script in `/home/mox/production`, including after rollback.
-Persistent logs are configured in `/etc/systemd/journald.conf.d/mox-tv.conf`,
-with a 100 MB cap, 500 MB free-space reserve and 14-day retention. Journald is
-restarted only when that configuration changes; its runtime journal is flushed to disk.
+Routine journals use RAM only (`Storage=volatile`, 16 MB cap, syslog forwarding off).
+The watchdog monitor saves only Wi-Fi disconnected/unavailable/recovered transitions
+in `/var/log/mox-tv-recovery/events.log`. Identical states cause no writes; healthy
+checks produce no persistent record. Transition state and rate limits live in `/run`.
+At most eight records per hour are persisted (additional transitions are suppressed),
+with one rotated backup and approximately 128 KB total storage. A reboot resets the
+RAM state/rate limit; a healthy boot creates no record. This is Wi-Fi diagnostics,
+not persistent logging of every application failure.
+Existing archived journals are left intact; the new configuration stops ongoing
+journal writes to the SD card. Journald restarts only when its configuration changes.
 The watchdog retries a disconnected interface; it does not detect broken DNS or
 internet access when NetworkManager still reports the interface connected.
 Each successful deployment replaces the Airtable credential with the supplied
