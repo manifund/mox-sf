@@ -88,18 +88,23 @@ Airtable `Status` is the only thing that decides this; Stripe is not consulted. 
 
 ### Airtable automation
 
+The automation is "Remove from Forkable when membership ends" in the Mox base. It was created turned off; turn it on only once this endpoint is deployed.
+
 **Trigger type:** When a record matches conditions
 
 **Table:** People
 
 **Conditions:**
 - `In Forkable` is checked
+- `Status` is not empty
 - `Status` is none of: "Joined", "Paused"
+- `Email` is not empty
 
-**Action:** Run a script, same as the add automation above but with `action: 'remove'` in the body:
+**Action:** Run a script, same as the Forkable step in "Auto-Onboarding" but with `action: 'remove'` in the body. The step needs the `FORKABLE_SYNC_SECRET` Airtable secret attached, like the add step.
 
 ```javascript
 const config = input.config();
+const secret = input.secret('FORKABLE_SYNC_SECRET');
 
 const response = await fetch('https://moxsf.com/api/forkable-sync', {
   method: 'POST',
@@ -107,14 +112,21 @@ const response = await fetch('https://moxsf.com/api/forkable-sync', {
   body: JSON.stringify({
     action: 'remove',
     recordId: config.recordId,
-    secret: config.secret,
+    secret: secret,
   }),
 });
 
-output.set('result', await response.json());
+const result = await response.json();
+output.set('result', result);
+
+if (!response.ok) {
+  throw new Error('Forkable removal failed (HTTP ' + response.status + '): ' + JSON.stringify(result));
+}
 ```
 
-On success the endpoint unchecks `In Forkable`. That does not re-trigger the add automation, because that one also requires `Status` = "Joined".
+On success the endpoint unchecks `In Forkable`. That does not re-trigger the add path, because adding requires `Status` = "Joined".
+
+Every status other than Joined and Paused counts as ended, including Payment Issue and Guest Program. The trigger only fires when a record starts matching, so turning it on does not sweep people who already match.
 
 ### One-off cleanup by email
 
