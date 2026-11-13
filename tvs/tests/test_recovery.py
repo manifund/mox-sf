@@ -33,7 +33,7 @@ class RecoveryTests(unittest.TestCase):
             recovery.configure(ROOT, run=run, etc=etc, support=etc / 'support')
             config = etc / 'systemd/system/tessavision-network-watchdog.service.d/device.conf'
             self.assertIn('TESSAVISION_WIFI_DEVICE=wlan1', config.read_text())
-            journal = (etc / 'systemd/journald.conf.d/mox-tv.conf').read_text()
+            journal = (etc / 'systemd/journald.conf.d/zz-mox-tv.conf').read_text()
             self.assertIn('Storage=volatile', journal)
             self.assertIn('RuntimeMaxUse=16M', journal)
             self.assertIn('watchdog_monitor.py', config.read_text())
@@ -53,3 +53,22 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             recovery.configure(ROOT, run=run)
         self.assertEqual(len(calls), 1)
+
+    def test_activation_failure_is_retryable_but_monitor_failure_is_not(self):
+        for code in ('4', '1'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                def run(args, **kwargs):
+                    if args[0] == 'nmcli':
+                        return subprocess.CompletedProcess(args, 0, stdout='wlan1\nwlan1\n')
+                    if args[:3] == ['sudo', '-n', 'install']:
+                        dest = Path(args[-1]); dest.parent.mkdir(parents=True, exist_ok=True)
+                        dest.write_text(Path(args[-2]).read_text())
+                    if 'start' in args:
+                        return subprocess.CompletedProcess(args, 1)
+                    return subprocess.CompletedProcess(args, 0, stdout=code)
+                if code == '4':
+                    recovery.configure(ROOT, run=run, etc=root, support=root / 'support')
+                else:
+                    with self.assertRaisesRegex(RuntimeError, 'Watchdog failed'):
+                        recovery.configure(ROOT, run=run, etc=root, support=root / 'support')

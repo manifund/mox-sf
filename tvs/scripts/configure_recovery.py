@@ -33,7 +33,7 @@ def configure(source, run=subprocess.run, etc=Path('/etc'),
         '/home/mox/production/network_watchdog.sh\n')
     # Keep the monitor outside app rollback directories so recovery survives rollback.
     files[support / 'watchdog_monitor.py'] = (source / 'scripts/watchdog_monitor.py').read_text()
-    journal = etc / 'systemd/journald.conf.d/mox-tv.conf'
+    journal = etc / 'systemd/journald.conf.d/zz-mox-tv.conf'
     files[journal] = ('[Journal]\nStorage=volatile\nRuntimeMaxUse=16M\n'
                       'ForwardToSyslog=no\n')
     changed = []
@@ -51,7 +51,15 @@ def configure(source, run=subprocess.run, etc=Path('/etc'),
         run(['sudo', '-n', 'systemctl', 'restart', 'systemd-journald'], check=True)
     timer = 'tessavision-network-watchdog.timer'
     run(['sudo', '-n', 'systemctl', 'enable', '--now', timer], check=True)
-    run(['sudo', '-n', 'systemctl', 'start', 'tessavision-network-watchdog.service'], check=True)
+    started = run(['sudo', '-n', 'systemctl', 'start', 'tessavision-network-watchdog.service'], check=False)
+    if started.returncode:
+        status = run(['systemctl', 'show', 'tessavision-network-watchdog.service',
+                      '-p', 'ExecMainStatus', '--value'], check=True, capture_output=True, text=True)
+        # nmcli exit 4 means activation failed (e.g. AP unavailable). The timer
+        # must keep retrying; this is not a broken logging installation.
+        if status.stdout.strip() != '4':
+            raise RuntimeError('Watchdog failed with exit status ' + status.stdout.strip())
+        print('Wi-Fi activation failed; watchdog timer will continue retrying')
     run(['systemctl', 'is-enabled', '--quiet', timer], check=True)
     run(['systemctl', 'is-active', '--quiet', timer], check=True)
     print(f'Wi-Fi recovery enabled on {device}; routine journal in RAM; bounded Wi-Fi failure/recovery records on disk')
