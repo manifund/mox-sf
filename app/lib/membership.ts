@@ -46,3 +46,13 @@ export function keepsForkableAccess({ status, tier }: MembershipFields): boolean
   if (tier === 'Staff') return true
   return !!status && (FORKABLE_KEEP_STATUSES as readonly string[]).includes(status)
 }
+
+/**
+ * Whether this status means the membership is over. Deliberately narrower
+ * than "not Joined or Paused": Invited, Applied, Payment Issue and the like
+ * are not an ended membership. Airtable has two "Cancelled" options, one with
+ * a trailing space.
+ */
+export function hasEndedMembership(status: string | null | undefined): boolean {
+  return status?.trim() === 'Cancelled'
+}

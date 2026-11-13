@@ -42,6 +42,15 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Nightly: closes out yesterday's guest passes — records whether the guest came in, deletes their Verkada user (and door code), marks the pass Activated or Expired."
   },
   {
+    "id": "cron/forkable-offboard",
+    "filePath": "app/api/cron/forkable-offboard/route.ts",
+    "routePath": "/api/cron/forkable-offboard",
+    "type": "cron",
+    "cronSchedule": "0 23 * * *",
+    "httpMethod": "GET",
+    "summary": "Daily: removes people from the Mox Forkable clubs once Airtable shows their membership as Cancelled (anyone still Joined or Paused is kept), and unchecks In Forkable."
+  },
+  {
     "id": "cron/gef-weekly-digest",
     "filePath": "app/api/cron/gef-weekly-digest/route.ts",
     "routePath": "/api/cron/gef-weekly-digest",
@@ -143,7 +152,7 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "routePath": "/api/forkable-sync",
     "type": "integration",
     "httpMethod": "POST",
-    "summary": "Adds members to Forkable meal club when Airtable tier changes to Private Office or Program; removes them once they are no longer Joined or Paused"
+    "summary": "Adds members to Forkable meal club when Airtable tier changes to Private Office or Program"
   },
   {
     "id": "portal/bulk-sync-discord-roles",

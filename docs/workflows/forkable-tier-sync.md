@@ -73,72 +73,26 @@ openssl rand -hex 32
 
 ## Removing Members When Their Membership Ends
 
-Rule: someone stays in the Mox Forkable clubs while they are `Joined` or `Paused`, and is removed once they are neither.
+Removal lives in the code, not in an Airtable automation. A daily cron (`/api/cron/forkable-offboard`, 23:00 UTC, mid-afternoon Pacific) reads Airtable and does the rest; nothing in Airtable needs to be set up for it.
 
-> ⚠️ The Forkable "remove" request in `app/lib/forkable.ts` (`REMOVE_MEMBER_MUTATION`) has not been verified against Forkable yet. Forkable has no API docs, so it has to be copied from the admin UI the same way the "add" request was. Until then every removal fails safely with a Discord alert. Steps are in the comment above that constant.
+**What it reads:** People records where `In Forkable` is checked and `Status` is Cancelled.
 
-There are two ways a removal starts. Both go through `offboardFromForkable` (`app/lib/forkable-offboard.ts`), which looks up every People record with that email and **skips** the person if any of them is still `Joined` or `Paused`.
+**What it does for each person:**
 
-| Trigger | Covers |
-|---------|--------|
-| Airtable automation (below) | Anyone who is `In Forkable` and no longer `Joined`/`Paused` |
-| Manual call with a list of emails | One-off cleanups, e.g. a program that has finished |
+1. Looks up every People record with that email. If any of them is still `Joined` or `Paused` (or is Staff), the person is kept.
+2. Otherwise removes them from the Mox Members and Mox Residents clubs in Forkable. A club run by their own program (FLF, Iliad, ...) is left alone.
+3. Unchecks `In Forkable`, so they drop out of the next run.
+4. Posts one summary to the Discord notifications channel if anyone was removed or a removal failed.
 
-Airtable `Status` is the only thing that decides this; Stripe is not consulted. Removal only touches the Mox Members and Mox Residents clubs. A person who is also in their own program's Forkable club (FLF, Iliad, ...) stays in that one.
+So to take someone out of Forkable, set their `Status` to Cancelled. If they are in Forkable but `In Forkable` is not checked (the checkbox only roughly tracks Forkable), check it and the next run picks them up.
 
-### Airtable automation
+Only Cancelled counts as ended. Invited, Applied, Payment Issue, Guest Program and other statuses are left alone.
 
-The automation is "Remove from Forkable when membership ends" in the Mox base. It was created turned off; turn it on only once this endpoint is deployed.
+### If Forkable refuses the request
 
-**Trigger type:** When a record matches conditions
+Forkable has no API docs, and the removal request in `app/lib/forkable.ts` (`REMOVE_MEMBER_MUTATION`) was written by symmetry with the add request rather than copied from the Forkable admin UI. If Forkable does not accept it, nothing is removed, the run stops at the first person, and the Discord message lists the club and member operations Forkable does offer, with their arguments. Update `REMOVE_MEMBER_MUTATION`, `REMOVE_MEMBER_RESULT_FIELD` and `removeMemberVariables` to match and the next run goes through.
 
-**Table:** People
-
-**Conditions:**
-- `In Forkable` is checked
-- `Status` is not empty
-- `Status` is none of: "Joined", "Paused"
-- `Email` is not empty
-
-**Action:** Run a script, same as the Forkable step in "Auto-Onboarding" but with `action: 'remove'` in the body. The step needs the `FORKABLE_SYNC_SECRET` Airtable secret attached, like the add step.
-
-```javascript
-const config = input.config();
-const secret = input.secret('FORKABLE_SYNC_SECRET');
-
-const response = await fetch('https://moxsf.com/api/forkable-sync', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    action: 'remove',
-    recordId: config.recordId,
-    secret: secret,
-  }),
-});
-
-const result = await response.json();
-output.set('result', result);
-
-if (!response.ok) {
-  throw new Error('Forkable removal failed (HTTP ' + response.status + '): ' + JSON.stringify(result));
-}
-```
-
-On success the endpoint unchecks `In Forkable`. That does not re-trigger the add path, because adding requires `Status` = "Joined".
-
-Every status other than Joined and Paused counts as ended, including Payment Issue and Guest Program. The trigger only fires when a record starts matching, so turning it on does not sweep people who already match.
-
-### One-off cleanup by email
-
-`In Forkable` only roughly tracks Forkable, so people can be in a club without the checkbox. For those, send a list (max 100 per request):
-
-```bash
-curl -X POST https://moxsf.com/api/forkable-sync \
-  -H "Content-Type: application/json" \
-  -d '{"action": "remove", "emails": ["someone@example.com"], "secret": "your-secret"}'
-```
-
-The response lists each email as `removed`, `skipped` (still active or paused, with the reason) or `failed`, and one summary is posted to Discord. Removal requires `FORKABLE_SYNC_SECRET` to be set; without it the endpoint answers 503.
+The run also stops after three failures in a row (for example when the Forkable session cookie has expired; see `.claude/skills/browser-cookie-refresh`). A person Forkable refuses individually, such as someone who is not in the club, does not count toward that and does not hold up the people after them.
 
 ## What the API Does
 
@@ -160,6 +114,7 @@ curl -X POST https://moxsf.com/api/forkable-sync \
 ## Key Files
 
 - API endpoint: [app/api/forkable-sync/route.ts](../../app/api/forkable-sync/route.ts)
-- Removal rule and orchestration: [app/lib/forkable-offboard.ts](../../app/lib/forkable-offboard.ts), `keepsForkableAccess` in [app/lib/membership.ts](../../app/lib/membership.ts)
+- Removal cron: [app/api/cron/forkable-offboard/route.ts](../../app/api/cron/forkable-offboard/route.ts)
+- Removal rule and orchestration: [app/lib/forkable-offboard.ts](../../app/lib/forkable-offboard.ts), `hasEndedMembership` and `keepsForkableAccess` in [app/lib/membership.ts](../../app/lib/membership.ts)
 - Forkable client: [app/lib/forkable.ts](../../app/lib/forkable.ts)
 - Environment config: [app/lib/env.ts](../../app/lib/env.ts)

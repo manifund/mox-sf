@@ -3,6 +3,7 @@ import {
   isActiveMember,
   canIssueGuestDayPass,
   keepsForkableAccess,
+  hasEndedMembership,
 } from './membership'
 
 describe('isActiveMember', () => {
@@ -87,5 +88,18 @@ describe('keepsForkableAccess', () => {
   it('always keeps Staff', () => {
     expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Staff' })).toBe(true)
     expect(keepsForkableAccess({ status: null, tier: 'Staff' })).toBe(true)
+  })
+})
+
+describe('hasEndedMembership', () => {
+  it('is true only for Cancelled, including the option with a trailing space', () => {
+    expect(hasEndedMembership('Cancelled')).toBe(true)
+    expect(hasEndedMembership('Cancelled ')).toBe(true)
+  })
+
+  it('is false for live, pending and unknown statuses', () => {
+    for (const status of ['Joined', 'Paused', 'Invited', 'Applied', 'Payment Issue', 'Guest Program', 'Duplicate', 'Rejected', '', null, undefined]) {
+      expect(hasEndedMembership(status)).toBe(false)
+    }
   })
 })

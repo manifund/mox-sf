@@ -70,6 +70,98 @@ describe('removeMemberFromForkable', () => {
     expect(result).toEqual({
       success: false,
       errors: ["Field 'removeMemberFromClubs' doesn't exist"],
+      rejectedBySchema: true,
+      apiHints: [],
+    })
+  })
+
+  it("returns Forkable's own club/member operations when the mutation is rejected", async () => {
+    const id = {
+      kind: 'NON_NULL',
+      name: null,
+      ofType: { kind: 'SCALAR', name: 'ID' },
+    }
+    const input = (name: string) => ({
+      kind: 'NON_NULL',
+      name: null,
+      ofType: { kind: 'INPUT_OBJECT', name },
+    })
+    fetchMock
+      .mockResolvedValueOnce(reply({ errors: [{ message: 'unknown field' }] }))
+      .mockResolvedValueOnce(
+        reply({
+          data: {
+            __schema: {
+              mutationType: {
+                fields: [
+                  {
+                    name: 'addMemberToClubs',
+                    args: [
+                      { name: 'input', type: input('AddMemberToClubsInput') },
+                    ],
+                  },
+                  {
+                    name: 'endMembership',
+                    args: [
+                      { name: 'input', type: input('EndMembershipInput') },
+                    ],
+                  },
+                  { name: 'placeOrder', args: [] },
+                ],
+              },
+              queryType: {
+                fields: [
+                  { name: 'club', args: [{ name: 'id', type: id }] },
+                  { name: 'restaurants', args: [] },
+                ],
+              },
+            },
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        reply({
+          data: {
+            t0: {
+              name: 'AddMemberToClubsInput',
+              inputFields: [
+                {
+                  name: 'clubIds',
+                  type: { kind: 'LIST', name: null, ofType: id },
+                },
+              ],
+            },
+            t1: {
+              name: 'EndMembershipInput',
+              inputFields: [{ name: 'membershipId', type: id }],
+            },
+          },
+        })
+      )
+    const result = await removeMemberFromForkable({ email: 'a@example.com' })
+    expect(result.success).toBe(false)
+    expect(result.rejectedBySchema).toBe(true)
+    expect(result.apiHints).toEqual([
+      'mutation addMemberToClubs(input: AddMemberToClubsInput!) { clubIds: [ID!] }',
+      'mutation endMembership(input: EndMembershipInput!) { membershipId: ID! }',
+      'query club(id: ID!)',
+    ])
+    // The schema questions carry no member data.
+    for (const call of fetchMock.mock.calls.slice(1)) {
+      expect(call[1].body).not.toContain('a@example.com')
+    }
+  })
+
+  it('still reports the rejection when Forkable will not describe itself', async () => {
+    fetchMock
+      .mockResolvedValueOnce(reply({ errors: [{ message: 'unknown field' }] }))
+      .mockRejectedValueOnce(new Error('introspection disabled'))
+    const result = await removeMemberFromForkable({ email: 'a@example.com' })
+    expect(result).toEqual({
+      success: false,
+      errors: ['unknown field'],
+      rejectedBySchema: true,
+      apiHints: [],
     })
   })
 
@@ -89,6 +181,7 @@ describe('removeMemberFromForkable', () => {
       success: false,
       errors: ['Not a member'],
       errorAttributes: ['email'],
+      refusedForMember: true,
     })
   })
 

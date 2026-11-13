@@ -39,6 +39,13 @@ Weekly cron job to rotate Verkada door codes.
   ```
 - **Details:** Updates Verkada weekly access code, renames Discord channel, posts notification
 
+### GET `/api/cron/forkable-offboard`
+Daily cron job (23:00 UTC, mid-afternoon Pacific) that removes people from the Mox Forkable clubs once their membership has ended. See [forkable-tier-sync.md](./workflows/forkable-tier-sync.md).
+
+- **Auth:** Cron secret (Bearer token)
+- **Response:** `{ "success": true, "candidates": 2, "removed": 2, "skipped": 0, "failed": 0, "results": [...] }`
+- **Details:** Reads the Airtable People table for anyone marked `In Forkable` whose `Status` is Cancelled. Each is removed from the Mox Members and Mox Residents clubs and has `In Forkable` unchecked, unless another record with the same email is still `Joined` or `Paused`. Posts a summary to Discord when anyone was removed or a removal failed. If Forkable rejects the request itself, the run stops at the first person and the Discord message includes the club/member operations Forkable offers.
+
 ### GET `/api/cron/expire-guest-passes`
 Nightly (08:00 UTC, after every pass has ended at 11pm Pacific): closes out guest passes whose day is over.
 
@@ -69,16 +76,6 @@ Handle Stripe webhook events.
 - **Handles:**
   - `checkout.session.completed` - Day pass purchases
   - `customer.subscription.created` - New subscriptions (triggers Forkable onboarding)
-
-### POST `/api/forkable-sync`
-Add or remove a member in the Mox Forkable meal clubs. Called by Airtable automations; see [forkable-tier-sync.md](./workflows/forkable-tier-sync.md).
-
-- **Auth:** `secret` in the body must match `FORKABLE_SYNC_SECRET`. Removal refuses to run (503) when the secret is not configured.
-- **Add (default):** `{ "recordId": "rec123", "secret": "..." }`
-- **Remove one:** `{ "action": "remove", "recordId": "rec123", "secret": "..." }`
-- **Remove a list (max 100):** `{ "action": "remove", "emails": ["a@example.com"], "secret": "..." }`
-- **Remove response:** `{ "success": true, "removed": 1, "skipped": 0, "failed": 0, "results": [...] }` (500 if any removal failed)
-- **Details:** Removal skips anyone who still has a `Joined` or `Paused` People record, takes the rest out of the Mox Members and Mox Residents clubs only, clears `In Forkable`, and posts the outcome to Discord.
 
 ---
 

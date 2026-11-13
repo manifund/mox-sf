@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   offboardFromForkable,
-  describeOffboardResult,
+  findEndedMembersInForkable,
+  offboardEndedMembers,
+  describeOffboardRun,
 } from './forkable-offboard'
 
 const m = vi.hoisted(() => ({
@@ -123,16 +125,203 @@ describe('offboardFromForkable', () => {
   })
 })
 
-describe('describeOffboardResult', () => {
-  it('points staff at the admin page when removal fails', () => {
-    const text = describeOffboardResult({
-      email: 'ada@example.com',
-      outcome: 'failed',
-      errors: ['boom'],
-      name: 'Ada',
+describe('findEndedMembersInForkable', () => {
+  it('asks Airtable for cancelled people marked In Forkable, one email each', async () => {
+    m.find.mockResolvedValue([
+      person('rec1', { Email: 'Ada@Example.com ', Status: 'Cancelled' }),
+      person('rec2', { Email: 'ada@example.com', Status: 'Cancelled ' }),
+      person('rec3', { Email: 'bob@example.com', Status: 'Cancelled' }),
+      person('rec4', { Email: 'eve@example.com', Status: 'Joined' }),
+      person('rec5', { Status: 'Cancelled' }),
+    ])
+    expect(await findEndedMembersInForkable()).toEqual([
+      'ada@example.com',
+      'bob@example.com',
+    ])
+    expect(m.find.mock.calls[0][1]).toContain('{In Forkable}')
+    expect(m.find.mock.calls[0][1]).toContain("'Cancelled'")
+  })
+})
+
+describe('offboardEndedMembers', () => {
+  const cancelled = (email: string, extra: Record<string, unknown> = {}) =>
+    person(`rec-${email}`, {
+      Email: email,
+      Status: 'Cancelled',
+      'In Forkable': true,
+      ...extra,
     })
-    expect(text).toContain('Ada (ada@example.com)')
-    expect(text).toContain('https://forkable.com/mc/admin/members')
-    expect(text).toContain('boom')
+  // First call lists the candidates; later calls look one person up by email.
+  const airtable = (people: ReturnType<typeof person>[]) =>
+    m.find.mockImplementation(async (_table: string, formula: string) =>
+      formula.includes('{In Forkable}')
+        ? people
+        : people.filter((p) => formula.includes(`'${p.fields.Email}'`))
+    )
+
+  it('removes every cancelled member and reports the run', async () => {
+    airtable([cancelled('a@example.com'), cancelled('b@example.com')])
+    const run = await offboardEndedMembers({ limit: 10 })
+    expect(run.candidates).toBe(2)
+    expect(run.results.map((r) => r.outcome)).toEqual(['removed', 'removed'])
+    expect(run.stopped).toBeUndefined()
+    expect(m.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops at the first person when Forkable rejects the request itself', async () => {
+    airtable([
+      cancelled('a@example.com'),
+      cancelled('b@example.com'),
+      cancelled('c@example.com'),
+    ])
+    m.remove.mockResolvedValue({
+      success: false,
+      errors: ['unknown field'],
+      rejectedBySchema: true,
+      apiHints: ['mutation endMembership(input: EndMembershipInput!)'],
+    })
+    const run = await offboardEndedMembers({ limit: 10 })
+    expect(m.remove).toHaveBeenCalledTimes(1)
+    expect(run.results).toHaveLength(1)
+    expect(run.stopped).toContain('does not accept')
+    expect(run.results[0]).toMatchObject({
+      apiHints: ['mutation endMembership(input: EndMembershipInput!)'],
+    })
+  })
+
+  it('stops after three failures in a row, but not for scattered ones', async () => {
+    const people = ['a', 'b', 'c', 'd', 'e', 'f'].map((n) =>
+      cancelled(`${n}@example.com`)
+    )
+    airtable(people)
+    m.remove
+      .mockResolvedValueOnce({ success: false, errors: ['x'] })
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValue({ success: false, errors: ['HTTP 401: Unauthorized'] })
+    const run = await offboardEndedMembers({ limit: 10 })
+    expect(run.results.map((r) => r.outcome)).toEqual([
+      'failed',
+      'removed',
+      'failed',
+      'failed',
+      'failed',
+    ])
+    expect(run.stopped).toContain('3 removals failed in a row')
+  })
+
+  it('does not stop for people Forkable refuses individually', async () => {
+    const people = ['a', 'b', 'c', 'd', 'e'].map((n) =>
+      cancelled(`${n}@example.com`)
+    )
+    airtable(people)
+    m.remove
+      .mockResolvedValueOnce({
+        success: false,
+        errors: ['Not a member'],
+        refusedForMember: true,
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        errors: ['Not a member'],
+        refusedForMember: true,
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        errors: ['Not a member'],
+        refusedForMember: true,
+      })
+      .mockResolvedValue({ success: true })
+    const run = await offboardEndedMembers({ limit: 10 })
+    expect(run.results.map((r) => r.outcome)).toEqual([
+      'failed',
+      'failed',
+      'failed',
+      'removed',
+      'removed',
+    ])
+    expect(run.stopped).toBeUndefined()
+  })
+
+  it('keeps going when one lookup throws, and respects the per-run limit', async () => {
+    const people = ['a', 'b', 'c'].map((n) => cancelled(`${n}@example.com`))
+    let lookups = 0
+    m.find.mockImplementation(async (_table: string, formula: string) => {
+      if (formula.includes('{In Forkable}')) return people
+      if (++lookups === 1) throw new Error('Airtable 503')
+      return people.filter((p) => formula.includes(`'${p.fields.Email}'`))
+    })
+    const run = await offboardEndedMembers({ limit: 2 })
+    expect(run.candidates).toBe(3)
+    expect(run.results.map((r) => r.outcome)).toEqual(['failed', 'removed'])
+    expect(run.stopped).toContain('limit of 2')
+  })
+})
+
+describe('describeOffboardRun', () => {
+  it('says nothing when nobody was removed and nothing failed', () => {
+    expect(describeOffboardRun({ candidates: 0, results: [] })).toBeNull()
+    expect(
+      describeOffboardRun({
+        candidates: 1,
+        results: [
+          { email: 'a@example.com', outcome: 'skipped', reason: 'Joined' },
+        ],
+      })
+    ).toBeNull()
+  })
+
+  it('lists who was removed', () => {
+    const text = describeOffboardRun({
+      candidates: 2,
+      results: [
+        { email: 'a@example.com', outcome: 'removed', name: 'Ada' },
+        { email: 'b@example.com', outcome: 'removed' },
+      ],
+    })
+    expect(text).toContain('2 removed')
+    expect(text).toContain('Removed: Ada, b@example.com')
+  })
+
+  it("includes Forkable's operations when the request was rejected", () => {
+    const text = describeOffboardRun({
+      candidates: 5,
+      stopped: 'Forkable does not accept the removal request',
+      results: [
+        {
+          email: 'a@example.com',
+          outcome: 'failed',
+          errors: ['unknown field'],
+          rejectedBySchema: true,
+          apiHints: [
+            'mutation endMembership(input: EndMembershipInput!) { membershipId: ID! }',
+          ],
+        },
+      ],
+    })!
+    expect(text).toContain('Stopped early')
+    expect(text).toContain('unknown field')
+    expect(text).toContain(
+      'mutation endMembership(input: EndMembershipInput!) { membershipId: ID! }'
+    )
+  })
+
+  it('fits in one Discord message with the code block closed', () => {
+    const text = describeOffboardRun({
+      candidates: 1,
+      results: [
+        {
+          email: 'a@example.com',
+          outcome: 'failed',
+          errors: ['unknown field'],
+          apiHints: Array.from(
+            { length: 30 },
+            (_, i) =>
+              `mutation someLongMemberOperation${i}(input: SomeLongMemberOperation${i}Input!) { clubId: ID!, userId: ID! }`
+          ),
+        },
+      ],
+    })!
+    expect(text.length).toBeLessThanOrEqual(2000)
+    expect(text.split('```').length % 2).toBe(1)
   })
 })
