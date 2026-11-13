@@ -1,0 +1,5 @@
+auth/
+__pycache__/
+*.pyc
+*.backup*
+web/events.js.*

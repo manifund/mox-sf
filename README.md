@@ -1,5 +1,8 @@
 # mox-sf
 
+The Raspberry Pi event displays live in [`tvs/`](tvs/README.md), including the
+display source and GitHub Actions deployment setup for 1F and 3F.
+
 ## Using bun
 
 Bun (https://bun.sh/) is a fast Javascript runtime & package manager.
