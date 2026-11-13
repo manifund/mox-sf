@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { isActiveMember, canIssueGuestDayPass } from './membership'
+import {
+  isActiveMember,
+  canIssueGuestDayPass,
+  keepsForkableAccess,
+  hasEndedMembership,
+} from './membership'
 
 describe('isActiveMember', () => {
   it('lets Staff through regardless of status', () => {
@@ -62,5 +67,39 @@ describe('canIssueGuestDayPass', () => {
   it('rejects inactive tiers', () => {
     expect(canIssueGuestDayPass({ status: 'Joined', tier: 'Paused' })).toBe(false)
     expect(canIssueGuestDayPass({ status: 'Paused', tier: 'Courtesy' })).toBe(false)
+  })
+})
+
+describe('keepsForkableAccess', () => {
+  it('keeps Joined and Paused members on any tier', () => {
+    for (const status of ['Joined', 'Paused']) {
+      for (const tier of ['Core', 'Resident', 'Program', 'Private Office', null]) {
+        expect(keepsForkableAccess({ status, tier })).toBe(true)
+      }
+    }
+  })
+
+  it('drops every other status', () => {
+    for (const status of ['Cancelled', 'Payment Issue', 'Invited', 'Visited', 'Event Host', null, undefined]) {
+      expect(keepsForkableAccess({ status, tier: 'Program' })).toBe(false)
+    }
+  })
+
+  it('always keeps Staff', () => {
+    expect(keepsForkableAccess({ status: 'Cancelled', tier: 'Staff' })).toBe(true)
+    expect(keepsForkableAccess({ status: null, tier: 'Staff' })).toBe(true)
+  })
+})
+
+describe('hasEndedMembership', () => {
+  it('is true only for Cancelled, including the option with a trailing space', () => {
+    expect(hasEndedMembership('Cancelled')).toBe(true)
+    expect(hasEndedMembership('Cancelled ')).toBe(true)
+  })
+
+  it('is false for live, pending and unknown statuses', () => {
+    for (const status of ['Joined', 'Paused', 'Invited', 'Applied', 'Payment Issue', 'Guest Program', 'Duplicate', 'Rejected', '', null, undefined]) {
+      expect(hasEndedMembership(status)).toBe(false)
+    }
   })
 })

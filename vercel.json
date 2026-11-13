@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/sync-discord-roles",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/forkable-offboard",
+      "schedule": "0 23 * * *"
     }
   ]
 }
