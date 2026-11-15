@@ -6,6 +6,9 @@ vi.mock('./door-store', () => ({
   storeSet: async (key: string, value: unknown) => {
     store.set(key, structuredClone(value))
   },
+  storeDelete: async (key: string) => {
+    store.delete(key)
+  },
 }))
 vi.mock('./env', () => ({ env: { VERKADA_MEMBER_KEY: 'test-key' } }))
 
@@ -19,6 +22,7 @@ vi.mock('./verkada', () => ({
 }))
 
 let resolvePin: typeof import('./door-pins').resolvePin
+let refreshPinIndex: typeof import('./door-pins').refreshPinIndex
 
 interface FakeUser {
   name: string
@@ -61,7 +65,8 @@ beforeEach(async () => {
       end: u.end ?? null,
     }
   })
-  ;({ resolvePin } = await import('./door-pins'))
+  ;({ resolvePin, refreshPinIndex } = await import('./door-pins'))
+  await refreshPinIndex(0)
 })
 
 afterEach(() => {
@@ -85,8 +90,8 @@ describe('resolvePin', () => {
   it('rejects a guest code before its start and after its end', async () => {
     const early = new Date('2026-11-15T15:00:00Z').getTime()
     const late = new Date('2026-11-16T07:00:00Z').getTime()
-    expect((await resolvePin('771204', early)).match).toBeNull()
-    expect((await resolvePin('771204', late)).match).toBeNull()
+    expect((await resolvePin('771204', { now: early })).match).toBeNull()
+    expect((await resolvePin('771204', { now: late })).match).toBeNull()
     expect((await resolvePin('771204')).match).not.toBeNull()
   })
 })

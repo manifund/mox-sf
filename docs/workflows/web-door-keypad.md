@@ -17,8 +17,8 @@ name and hours and has no unlock.)
 flowchart TB
     A[Code typed at /door] --> B{Too many wrong codes?}
     B -->|Yes| X[429: wait]
-    B -->|No| C[Look the code up in the index]
-    C -->|Not found, index over a minute old| D[Rebuild index from Verkada] --> C
+    B -->|No| C[Look the code up:<br/>just-issued codes, then the index]
+    C -->|No index exists yet| W[503 'starting up';<br/>rebuild starts in the background]
     C -->|Not found| R[Count a wrong code]
     C -->|Found a user| E[Re-read that user from Verkada:<br/>same code? inside start/end dates?]
     E -->|No| R
@@ -37,13 +37,43 @@ flowchart TB
   read from Verkada again, and the live code and start/end dates must match.
   A changed, revoked or expired code is refused even if the index still
   lists it.
-- **New codes.** A code newer than the index is not found at first. A miss
-  rebuilds the index (at most once a minute), so a just-issued code works on
-  the first try but takes a few seconds longer. A successful unlock on an
-  index older than five minutes refreshes it in the background.
 - **The unlock.** `POST /access/v1/door/user_unlock` with the user's id.
   Verkada decides whether that user may open that door (access groups and
   schedules), so a guest code outside pass hours is refused by Verkada.
+
+## Keeping the index current
+
+Rebuilding the index reads every access user (about 690 in November 2026)
+and has taken anywhere from 26 seconds to over two minutes, depending on how
+hard Verkada rate-limits it. So it is never done while someone waits:
+
+- **Every 30 minutes** the `refresh-door-codes` cron rebuilds it. This is
+  what picks up codes set or changed by hand in Verkada Command, so those
+  can take up to 30 minutes to work at `/door`.
+- **Codes the site issues work at once.** When the portal generates a
+  member's code or a guest pass is created, the code is registered directly
+  (`rememberDoorCode`) without waiting for a rebuild.
+- **No index at all** (first deploy to an environment, or the cache evicted
+  it): the keypad answers "starting up", starts a rebuild in the background,
+  and works a minute or two later. The same background rebuild starts if the
+  index is over two hours old, meaning the cron has stopped.
+- Only one rebuild runs at a time. Production and preview deployments keep
+  separate indexes.
+
+The first version rebuilt the index inside the unlock request when it was
+missing or a code wasn't found. On the first production use both rebuilds
+ran past the 120-second function limit and were killed, leaving the page
+spinning. That is why rebuilding is now always in the background.
+
+## What the person sees while waiting
+
+A normal unlock answers in a second or two. The page steps through progress
+messages as time passes ("Checking your code", "Asking the door system to
+unlock", "The door system is slow to answer") and gives up after 15 seconds
+with "The door system didn't answer in time", keeping the code on screen so
+trying again is one tap. On the server the two Verkada calls made during an
+unlock have their own time limits (4 and 6 seconds) so an answer normally
+arrives before the page gives up.
 
 ## Tracking who came in
 
@@ -82,6 +112,7 @@ in the portal.
 - `app/door/page.tsx`, `app/door/DoorKeypad.tsx`: the page
 - `app/door/api/unlock/route.ts`: the endpoint
 - `app/lib/door-pins.ts`: code index and live check
+- `app/api/cron/refresh-door-codes/route.ts`: scheduled index rebuild
 - `app/lib/door-throttle.ts`: wrong-code limits
 - `app/lib/door-store.ts`: shared store (Vercel Runtime Cache)
 - `app/lib/verkada.ts`: `userUnlockDoor`, `listAccessUsers`, `getAccessUserCredentials`

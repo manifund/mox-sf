@@ -18,11 +18,18 @@ import { userUnlockDoor } from '@/app/lib/verkada'
 // the unlock against them. No sign-in; the code is the credential, which is
 // why wrong codes are limited hard (see door-throttle.ts).
 
-// Building the code index for the first time reads every access user.
-export const maxDuration = 120
+// Answering is quick (a store read and two Verkada calls). The long limit
+// is for the background index rebuild this route starts when it finds no
+// index at all; see scheduleRebuild.
+export const maxDuration = 300
 
-/** Refresh the index in the background once it is this old. */
-const BACKGROUND_REFRESH_MS = 5 * 60 * 1000
+/** The cron rebuilds every 30 minutes; past this it has stopped working. */
+const STALE_INDEX_MS = 2 * 60 * 60 * 1000
+
+// Bounds on the two Verkada calls made while the person waits, so the page
+// gets an answer before its own 15-second limit.
+const VERIFY_TIMEOUT_MS = 4000
+const UNLOCK_TIMEOUT_MS = 6000
 
 const noStore = { 'Cache-Control': 'no-store' }
 
@@ -69,7 +76,23 @@ async function handle(request: Request): Promise<Response> {
   }
 
   try {
-    const { match, indexAgeMs } = await resolvePin(pin)
+    const { match, indexReady, indexAgeMs } = await resolvePin(pin, {
+      timeoutMs: VERIFY_TIMEOUT_MS,
+    })
+
+    if (!indexReady || (indexAgeMs !== null && indexAgeMs > STALE_INDEX_MS)) {
+      scheduleRebuild()
+    }
+
+    // No index yet, so we can't tell a wrong code from one we haven't
+    // learned. Don't count it; ask the person to try again shortly.
+    if (!match && !indexReady) {
+      console.warn(`[door-unlock] ip=${ip} no code index yet, rebuilding`)
+      return Response.json(
+        { success: false, reason: 'warming' },
+        { status: 503, headers: noStore }
+      )
+    }
 
     if (!match) {
       const failure = await recordDoorFailure(ip)
@@ -97,15 +120,9 @@ async function handle(request: Request): Promise<Response> {
       )
     }
 
-    if (indexAgeMs > BACKGROUND_REFRESH_MS) {
-      after(() =>
-        refreshPinIndex(BACKGROUND_REFRESH_MS).catch((error) =>
-          console.error('[door-unlock] background index refresh failed:', error)
-        )
-      )
-    }
-
-    const result = await userUnlockDoor(match.userId)
+    const result = await userUnlockDoor(match.userId, {
+      timeoutMs: UNLOCK_TIMEOUT_MS,
+    })
     if (result.ok) {
       console.log(
         `[door-unlock] ip=${ip} unlocked as user=${match.userId} (${match.name})`
@@ -138,4 +155,17 @@ async function handle(request: Request): Promise<Response> {
       { status: 502, headers: noStore }
     )
   }
+}
+
+/**
+ * Rebuild the code index after the response has gone out. Normally the cron
+ * keeps it fresh; this covers a missing index (first deploy, cache eviction)
+ * or a cron that has stopped. refreshPinIndex makes sure only one runs.
+ */
+function scheduleRebuild() {
+  after(() =>
+    refreshPinIndex(STALE_INDEX_MS).catch((error) =>
+      console.error('[door-unlock] background index rebuild failed:', error)
+    )
+  )
 }

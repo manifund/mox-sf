@@ -9,17 +9,25 @@ import { env } from './env'
 const API = 'https://api.verkada.com'
 export const MOX_FRONT_DOOR_ID = 'ffa16025-e120-4094-b6be-29a6ed19b84c'
 const TOKEN_TTL_MS = 25 * 60 * 1000
+const TOKEN_TIMEOUT_MS = 8000
 let cachedToken: { token: string; expiresAt: number } | null = null
 let inflight: Promise<string | null> | null = null
 
 async function fetchAdminToken(): Promise<string | null> {
-  const res = await fetch(`${API}/token`, {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'x-api-key': env.VERKADA_MEMBER_KEY,
-    },
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API}/token`, {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'x-api-key': env.VERKADA_MEMBER_KEY,
+      },
+      signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS),
+    })
+  } catch (error) {
+    console.error('Failed to reach Verkada for a token:', error)
+    return null
+  }
 
   if (!res.ok) {
     console.error('Failed to get Verkada token:', res.status)
@@ -332,7 +340,7 @@ async function unlockResult(res: Response): Promise<UnlockResult> {
  */
 export async function userUnlockDoor(
   userId: string,
-  doorId: string = MOX_FRONT_DOOR_ID
+  options: { doorId?: string; timeoutMs?: number } = {}
 ): Promise<UnlockResult> {
   const token = await getAdminToken()
   if (!token) {
@@ -340,9 +348,18 @@ export async function userUnlockDoor(
   }
   const res = await verkadaFetch(token, '/access/v1/door/user_unlock', {
     method: 'POST',
-    body: JSON.stringify({ door_id: doorId, user_id: userId }),
+    body: JSON.stringify({
+      door_id: options.doorId ?? MOX_FRONT_DOOR_ID,
+      user_id: userId,
+    }),
+    signal: timeoutSignal(options.timeoutMs),
   })
   return unlockResult(res)
+}
+
+/** Gives up on a Verkada call after `timeoutMs` (the fetch then throws). */
+function timeoutSignal(timeoutMs?: number): AbortSignal | undefined {
+  return timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined
 }
 
 export interface AccessUserSummary {
@@ -402,13 +419,15 @@ function parseSeconds(value: unknown): Date | null {
  * reading many users can slow down.
  */
 export async function getAccessUserCredentials(
-  userId: string
+  userId: string,
+  options: { timeoutMs?: number } = {}
 ): Promise<AccessUserCredentials | null> {
   const token = await getAdminToken()
   if (!token) throw new Error('could not authenticate with Verkada')
   const res = await verkadaFetch(
     token,
-    `/access/v1/access_users/user?user_id=${encodeURIComponent(userId)}`
+    `/access/v1/access_users/user?user_id=${encodeURIComponent(userId)}`,
+    { signal: timeoutSignal(options.timeoutMs) }
   )
   if (res.status === 404) return null
   if (res.status === 429) throw new VerkadaRateLimitError()

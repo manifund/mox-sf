@@ -46,6 +46,13 @@ Nightly (08:00 UTC, after every pass has ended at 11pm Pacific): closes out gues
 - **Response:** `{ "success", "today", "closed", "failed", "results": [{ id, guestName, validDate, ok, used?, error? }] }`
 - **Details:** For each Guest Pass record that still has a `Verkada User ID` and a `Valid Date` before today: reads the guest's door events from Verkada (sets `Unlock Count` and `First Used`), deletes the guest's Verkada user so the code is gone, clears `Verkada User ID`, and sets `Status` to Activated (used) or Expired (not used). Verkada already refuses the code after the user's end date; this is the cleanup. Safe to re-run.
 
+### GET `/api/cron/refresh-door-codes`
+Rebuild the index the web keypad (`/door`) uses to match a typed code to its Verkada user. Runs every 30 minutes.
+
+- **Auth:** Cron secret (Bearer token)
+- **Response:** `{ "success": true, "built": true, "users", "codes", "unread", "ms" }`, or `{ "success": true, "built": false, "reason": "fresh" | "already-building" }` when it skipped
+- **Details:** Reads every Verkada access user once (takes from half a minute to a couple of minutes). This is what makes codes set by hand in Verkada Command work at `/door`; codes the site issues are registered at once and don't wait for it. See [web-door-keypad.md](./workflows/web-door-keypad.md).
+
 ### POST `/guest/api/validate`
 What the guest pass page should show for a token.
 
@@ -59,8 +66,8 @@ The web keypad at `/door`: type any current Verkada entry code to open the front
 
 - **Auth:** None. The code is the credential; wrong codes are limited (5 per 10 minutes per address, and 20 per 10 minutes from everyone combined closes the keypad for 30 minutes and posts to Discord #notifications)
 - **Body:** `{ "pin": "482913" }` (4 to 16 digits)
-- **Response:** `{ "success": true }` or `{ "success": false, "reason": "rejected" | "denied" | "locked" | "invalid" | "error", "attemptsLeft"?, "retryAfterSec"? }`
-- **Details:** Finds the Verkada access user who owns the code, re-reads that user from Verkada to confirm the code and its start/end dates, then calls Verkada `POST /access/v1/door/user_unlock` for `MOX_FRONT_DOOR_ID` as that user. Verkada applies the user's own access rules and logs the unlock against them ("User Unlock API"). `denied` means the code is right but Verkada refused the unlock; `error` (502) means Verkada couldn't be reached. `[door-unlock]` log lines record each attempt (never the code).
+- **Response:** `{ "success": true }` or `{ "success": false, "reason": "rejected" | "denied" | "locked" | "warming" | "invalid" | "error", "attemptsLeft"?, "retryAfterSec"? }`
+- **Details:** Finds the Verkada access user who owns the code, re-reads that user from Verkada to confirm the code and its start/end dates, then calls Verkada `POST /access/v1/door/user_unlock` for `MOX_FRONT_DOOR_ID` as that user. Verkada applies the user's own access rules and logs the unlock against them ("User Unlock API"). `denied` means the code is right but Verkada refused the unlock; `error` (502) means Verkada couldn't be reached or didn't answer in time; `warming` (503) means there is no code index yet, so the code wasn't judged and a rebuild has started in the background. `[door-unlock]` log lines record each attempt (never the code).
 
 ### POST `/api/membership-checkout`
 Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.

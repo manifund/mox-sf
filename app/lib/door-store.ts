@@ -47,3 +47,12 @@ export async function storeSet(
     console.error('[door-store] cache write failed, using memory:', error)
   }
 }
+
+export async function storeDelete(key: string): Promise<void> {
+  fallback.delete(key)
+  try {
+    await getCache({ namespace: NAMESPACE }).delete(key)
+  } catch (error) {
+    console.error('[door-store] cache delete failed:', error)
+  }
+}

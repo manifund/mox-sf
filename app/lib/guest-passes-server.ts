@@ -25,6 +25,7 @@ import {
   deleteAccessUser,
   listAccessEventsForUser,
 } from './verkada'
+import { rememberDoorCode } from './door-pins'
 
 export interface GuestPassFields {
   Name?: string
@@ -156,6 +157,8 @@ export async function createGuestPass(input: {
     start,
     end,
   })
+  // Make the guest's code work on the web keypad (/door) straight away.
+  await rememberDoorCode(access.userId, input.guestName, access.entryCode)
 
   try {
     // typecast lets Airtable add the "Guest Pass" select option on first use.

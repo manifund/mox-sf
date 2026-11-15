@@ -13,11 +13,13 @@ type Status =
   | 'rejected'
   | 'denied'
   | 'locked'
+  | 'warming'
+  | 'timeout'
   | 'error'
 
 interface UnlockResponse {
   success: boolean
-  reason?: 'invalid' | 'rejected' | 'denied' | 'locked' | 'error'
+  reason?: 'invalid' | 'rejected' | 'denied' | 'locked' | 'warming' | 'error'
   attemptsLeft?: number
   retryAfterSec?: number
 }
@@ -25,6 +27,17 @@ interface UnlockResponse {
 const MIN_DIGITS = 4
 const MAX_DIGITS = 16
 const SUCCESS_RESET_MS = 6000
+/** Give up on an attempt after this long and say so. */
+const TIMEOUT_MS = 15_000
+
+// What to say while waiting, by seconds waited. A normal unlock answers in
+// a second or two; the later lines are for when Verkada is slow.
+const PROGRESS: Array<{ after: number; text: string }> = [
+  { after: 0, text: 'Checking your code…' },
+  { after: 3, text: 'Asking the door system to unlock…' },
+  { after: 7, text: 'The door system is slow to answer. Still trying…' },
+  { after: 11, text: 'Almost out of time. Giving it a few more seconds…' },
+]
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
@@ -38,6 +51,7 @@ export default function DoorKeypad() {
   const [status, setStatus] = useState<Status>('idle')
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null)
   const [retryAfterSec, setRetryAfterSec] = useState(0)
+  const [waitedSec, setWaitedSec] = useState(0)
 
   // Key handlers read the latest values through refs, so the listener is
   // attached once.
@@ -70,32 +84,54 @@ export default function DoorKeypad() {
     const code = pinRef.current
     if (busyRef.current || code.length < MIN_DIGITS) return
     busyRef.current = true
+    setWaitedSec(0)
     setStatus('submitting')
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
     try {
       const res = await fetch('/door/api/unlock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin: code }),
+        signal: controller.signal,
       })
       const data: UnlockResponse = await res.json()
-      setPin('')
       if (data.success) {
+        setPin('')
         setStatus('success')
         return
       }
+      // Keep the code on screen when it wasn't judged, so trying again is
+      // one tap.
+      if (data.reason !== 'warming' && data.reason !== 'error') setPin('')
       setAttemptsLeft(data.attemptsLeft ?? null)
       setRetryAfterSec(data.retryAfterSec ?? 0)
       setStatus(
-        data.reason === 'locked' || data.reason === 'denied'
+        data.reason === 'locked' ||
+          data.reason === 'denied' ||
+          data.reason === 'warming'
           ? data.reason
           : data.reason === 'rejected' || data.reason === 'invalid'
             ? 'rejected'
             : 'error'
       )
     } catch {
-      setStatus('error')
+      setStatus(controller.signal.aborted ? 'timeout' : 'error')
+    } finally {
+      clearTimeout(timer)
     }
   }, [])
+
+  // Count seconds while waiting, to step through the progress messages.
+  useEffect(() => {
+    if (status !== 'submitting') return
+    const started = Date.now()
+    const tick = setInterval(
+      () => setWaitedSec(Math.floor((Date.now() - started) / 1000)),
+      500
+    )
+    return () => clearInterval(tick)
+  }, [status])
 
   useEffect(() => {
     if (status !== 'success') return
@@ -128,6 +164,7 @@ export default function DoorKeypad() {
   }, [addDigit, removeDigit, clear, submit])
 
   const submitting = status === 'submitting'
+  const progress = [...PROGRESS].reverse().find((p) => waitedSec >= p.after)
   const canSubmit = pin.length >= MIN_DIGITS && !submitting
 
   const keyClass =
@@ -163,7 +200,7 @@ export default function DoorKeypad() {
           {status === 'submitting' && (
             <div className="flex items-center justify-center gap-2 pt-2 text-gray-600">
               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-amber-800"></div>
-              Checking your code…
+              {progress?.text}
             </div>
           )}
           {status === 'success' && (
@@ -205,12 +242,42 @@ export default function DoorKeypad() {
               </div>
             </div>
           )}
+          {status === 'warming' && (
+            <div className="bg-amber-50 border border-amber-200 p-3 text-amber-900">
+              <div className="font-semibold">The keypad is starting up</div>
+              <div>
+                Your code wasn’t checked yet. Press Unlock door again in a
+                minute, or members can unlock from the{' '}
+                <a href="/portal" className="underline">
+                  portal
+                </a>
+                .
+              </div>
+            </div>
+          )}
+          {status === 'timeout' && (
+            <div className="bg-red-50 border border-red-200 p-3 text-red-900">
+              <div className="font-semibold">
+                The door system didn’t answer in time
+              </div>
+              <div className="text-red-800">
+                If the door didn’t open, press Unlock door to try again. Members
+                can also unlock from the{' '}
+                <a href="/portal" className="underline">
+                  portal
+                </a>
+                .
+              </div>
+            </div>
+          )}
           {status === 'error' && (
             <div className="bg-red-50 border border-red-200 p-3 text-red-900">
               <div className="font-semibold">
                 Couldn’t reach the door system
               </div>
-              <div className="text-red-800">Try again in a moment.</div>
+              <div className="text-red-800">
+                Press Unlock door to try again in a moment.
+              </div>
             </div>
           )}
         </div>

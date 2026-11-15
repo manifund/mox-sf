@@ -40,8 +40,12 @@ function attempt(pin: string, ip = '1.2.3.4') {
   )
 }
 
-const rightCode = { match: { userId: 'u-ada', name: 'Ada' }, indexAgeMs: 0 }
-const wrongCode = { match: null, indexAgeMs: 0 }
+const rightCode = {
+  match: { userId: 'u-ada', name: 'Ada' },
+  indexReady: true,
+  indexAgeMs: 0,
+}
+const wrongCode = { match: null, indexReady: true, indexAgeMs: 0 }
 
 beforeEach(async () => {
   vi.resetModules()
@@ -74,7 +78,7 @@ describe('POST /door/api/unlock wrong-code limits', () => {
     // Another address is unaffected, and gets the door opened as the owner.
     const other = await attempt('482913', '5.6.7.8')
     expect(await other.json()).toEqual({ success: true })
-    expect(userUnlockDoor).toHaveBeenCalledWith('u-ada')
+    expect(userUnlockDoor.mock.calls[0][0]).toBe('u-ada')
   })
 
   it('closes for everyone and alerts Discord once after 20 wrong codes', async () => {

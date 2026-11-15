@@ -2,6 +2,7 @@ import { getSession } from '@/app/lib/session'
 import { getRecord, updateRecord, Tables } from '@/app/lib/airtable'
 import { env } from '@/app/lib/env'
 import { isActiveMember } from '@/app/lib/membership'
+import { rememberDoorCode } from '@/app/lib/door-pins'
 
 interface PersonFields {
   Email?: string
@@ -364,6 +365,9 @@ export async function POST() {
     if (!newPin) {
       return Response.json({ error: 'Failed to update PIN' }, { status: 500 })
     }
+
+    // Make the new code work on the web keypad (/door) straight away.
+    await rememberDoorCode(user.user_id, member.fields.Name || '', newPin)
 
     // Keep the member record in sync. A stale checkbox must never prevent a
     // successfully provisioned member from receiving their code.

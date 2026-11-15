@@ -51,6 +51,15 @@ export const AUTOMATIONS: AutomationManifestEntry[] =
     "summary": "Emails Carolina a Monday-morning summary of GEF fellow attendance for the past week, flagging fellows not seen in 7+ days."
   },
   {
+    "id": "cron/refresh-door-codes",
+    "filePath": "app/api/cron/refresh-door-codes/route.ts",
+    "routePath": "/api/cron/refresh-door-codes",
+    "type": "cron",
+    "cronSchedule": "*/30 * * * *",
+    "httpMethod": "GET",
+    "summary": "Every 30 minutes: rebuilds the index the web keypad (/door) uses to match a typed door code to its Verkada user, so codes set by hand in Verkada Command start working there."
+  },
+  {
     "id": "cron/room-availability",
     "filePath": "app/api/cron/room-availability/route.ts",
     "routePath": "/api/cron/room-availability",
