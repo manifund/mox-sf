@@ -22,7 +22,7 @@ export default function PortalNav() {
     pathname?.startsWith('/summerseason') ||
     pathname?.startsWith('/gef') ||
     pathname?.startsWith('/guest') || // guest pass door-code page
-    pathname?.startsWith('/door') || // event door page
+    pathname?.startsWith('/door') || // web door keypad and event door page
     pathname?.startsWith('/tasks') // task board has its own header
 
   useEffect(() => {

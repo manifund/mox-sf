@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import DoorKeypad from './DoorKeypad'
 
 type PageState = 'loading' | 'active' | 'inactive' | 'not-found' | 'error'
 
@@ -19,10 +20,7 @@ function DoorPageContent() {
   const [formattedHours, setFormattedHours] = useState('')
 
   useEffect(() => {
-    if (!token) {
-      setState('not-found')
-      return
-    }
+    if (!token) return
 
     fetch('/door/api/validate', {
       method: 'POST',
@@ -37,6 +35,10 @@ function DoorPageContent() {
       })
       .catch(() => setState('error'))
   }, [token])
+
+  // Without an event link this is the web keypad: type a door code to
+  // unlock. With ?evt=... it is the event page (name and hours only).
+  if (!token) return <DoorKeypad />
 
   if (state === 'loading') {
     return (
