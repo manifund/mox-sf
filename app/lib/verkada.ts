@@ -1,6 +1,7 @@
 // Verkada helpers: one short-lived access user per guest pass (its own entry
-// code, start/end window enforced at the keypad), and the portal's remote
-// unlock of the front door. Member PINs are handled in
+// code, start/end window enforced at the keypad), the portal's remote
+// unlock of the front door, and the reads and per-user unlock behind the web
+// keypad at /door (see door-pins.ts). Member PINs are handled in
 // app/portal/api/verkada-pin/route.ts.
 
 import { env } from './env'
@@ -306,6 +307,10 @@ export async function adminUnlockDoor(
     method: 'POST',
     body: JSON.stringify({ door_id: doorId }),
   })
+  return unlockResult(res)
+}
+
+async function unlockResult(res: Response): Promise<UnlockResult> {
   if (res.ok) return { ok: true }
   const text = await res.text().catch(() => '')
   let message = text.slice(0, 300)
@@ -316,6 +321,110 @@ export async function adminUnlockDoor(
     // not JSON; keep the raw text
   }
   return { ok: false, status: res.status, message }
+}
+
+/**
+ * Open the front door as one particular access user (Verkada user_unlock).
+ * Unlike admin_unlock, Verkada decides whether this user may open this door
+ * right now (access levels, schedules) and records the unlock against them
+ * in the access log, the same way a keypad entry would be. The web keypad at
+ * /door uses this once it has matched a typed code to its owner.
+ */
+export async function userUnlockDoor(
+  userId: string,
+  doorId: string = MOX_FRONT_DOOR_ID
+): Promise<UnlockResult> {
+  const token = await getAdminToken()
+  if (!token) {
+    return { ok: false, message: 'could not authenticate with Verkada' }
+  }
+  const res = await verkadaFetch(token, '/access/v1/door/user_unlock', {
+    method: 'POST',
+    body: JSON.stringify({ door_id: doorId, user_id: userId }),
+  })
+  return unlockResult(res)
+}
+
+export interface AccessUserSummary {
+  userId: string
+  name: string
+  email: string
+}
+
+/**
+ * Every access user in the organization. This list carries no entry codes;
+ * those come one user at a time from getAccessUserCredentials.
+ */
+export async function listAccessUsers(): Promise<AccessUserSummary[]> {
+  const token = await getAdminToken()
+  if (!token) throw new Error('could not authenticate with Verkada')
+  const res = await verkadaFetch(token, '/access/v1/access_users')
+  if (!res.ok) {
+    throw new Error(`list access users failed: ${await describeFailure(res)}`)
+  }
+  const data = await res.json()
+  const members: Record<string, unknown>[] = data.access_members || []
+  return members
+    .filter((m) => typeof m.user_id === 'string' && m.user_id)
+    .map((m) => ({
+      userId: m.user_id as string,
+      name: typeof m.full_name === 'string' ? m.full_name : '',
+      email: typeof m.email === 'string' ? m.email : '',
+    }))
+}
+
+export interface AccessUserCredentials {
+  userId: string
+  /** The keypad code, or null when the user has none. */
+  entryCode: string | null
+  /** When the user's access starts and stops, if limited. */
+  start: Date | null
+  end: Date | null
+}
+
+export class VerkadaRateLimitError extends Error {
+  constructor() {
+    super('Verkada rate limit reached')
+    this.name = 'VerkadaRateLimitError'
+  }
+}
+
+function parseSeconds(value: unknown): Date | null {
+  const n = Number(value)
+  if (value === null || value === undefined || value === '') return null
+  if (!Number.isFinite(n) || n <= 0) return null
+  return new Date(n > 1e12 ? n : n * 1000)
+}
+
+/**
+ * One access user's entry code and validity window. Returns null if the
+ * user no longer exists. Throws VerkadaRateLimitError on a 429 so a caller
+ * reading many users can slow down.
+ */
+export async function getAccessUserCredentials(
+  userId: string
+): Promise<AccessUserCredentials | null> {
+  const token = await getAdminToken()
+  if (!token) throw new Error('could not authenticate with Verkada')
+  const res = await verkadaFetch(
+    token,
+    `/access/v1/access_users/user?user_id=${encodeURIComponent(userId)}`
+  )
+  if (res.status === 404) return null
+  if (res.status === 429) throw new VerkadaRateLimitError()
+  if (!res.ok) {
+    throw new Error(`access user lookup failed: ${await describeFailure(res)}`)
+  }
+  const data = await res.json()
+  return {
+    userId,
+    entryCode:
+      typeof data.entry_code === 'string' && data.entry_code
+        ? data.entry_code
+        : null,
+    start: parseSeconds(data.start_date),
+    end: parseSeconds(data.end_date),
+  }
 }
 
 /** Doors visible to the API key, for checking MOX_FRONT_DOOR_ID. */

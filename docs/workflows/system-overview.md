@@ -189,5 +189,6 @@ flowchart TB
 | [Day Pass](./day-pass-flow.md) | Stripe checkout | Stripe → Airtable → Verkada |
 | [Subscription Pause](./pause-subscription-flow.md) | User action | Stripe → Email |
 | [Door Code Rotation](./door-code-rotation.md) | Weekly cron | Verkada → Discord |
+| [Web Door Keypad](./web-door-keypad.md) | Code typed at `/door` | Verkada |
 | [Discord Role Sync](./discord-role-sync.md) | Profile update | Airtable → Discord |
 | [Active Members Roster](./active-members.md) | Page view (ISR) | Airtable + Stripe |

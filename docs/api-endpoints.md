@@ -52,7 +52,15 @@ What the guest pass page should show for a token.
 - **Auth:** None (12-char token; throttled per IP)
 - **Body:** `{ "token": "k7Qp2mX9bT4w" }`
 - **Response:** `{ "status": "active" | "upcoming" | "expired" | "revoked" | "not-found", "guestName", "hostFirstName", "validDate", "code" }`
-- **Details:** `code` is the guest's own keypad code and is only returned while the pass is `active` (8am–11pm Pacific on Valid Date, host still has an allowance, pass not revoked); otherwise `null`. There is no unlock endpoint: the guest types the code at the door.
+- **Details:** `code` is the guest's own keypad code and is only returned while the pass is `active` (8am–11pm Pacific on Valid Date, host still has an allowance, pass not revoked); otherwise `null`. The guest types the code on the door keypad, or on the web keypad at `/door` (below).
+
+### POST `/door/api/unlock`
+The web keypad at `/door`: type any current Verkada entry code to open the front door, as on the keypad at the door. See [web-door-keypad.md](./workflows/web-door-keypad.md).
+
+- **Auth:** None. The code is the credential; wrong codes are limited (5 per 10 minutes per address, and 20 per 10 minutes from everyone combined closes the keypad for 30 minutes and posts to Discord #notifications)
+- **Body:** `{ "pin": "482913" }` (4 to 16 digits)
+- **Response:** `{ "success": true }` or `{ "success": false, "reason": "rejected" | "denied" | "locked" | "invalid" | "error", "attemptsLeft"?, "retryAfterSec"? }`
+- **Details:** Finds the Verkada access user who owns the code, re-reads that user from Verkada to confirm the code and its start/end dates, then calls Verkada `POST /access/v1/door/user_unlock` for `MOX_FRONT_DOOR_ID` as that user. Verkada applies the user's own access rules and logs the unlock against them ("User Unlock API"). `denied` means the code is right but Verkada refused the unlock; `error` (502) means Verkada couldn't be reached. `[door-unlock]` log lines record each attempt (never the code).
 
 ### POST `/api/membership-checkout`
 Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
@@ -237,7 +245,7 @@ Revoke a guest pass: deletes the guest's Verkada user (so the code stops working
 - **Body:** `{ "passId": "rec123" }`
 
 #### POST `/portal/api/unlock-door`
-Open the front door remotely from the portal's door-access box. The only unlock button on the site.
+Open the front door remotely from the portal's door-access box, for a signed-in member (no code needed). The public web keypad is `POST /door/api/unlock`.
 
 - **Auth:** User (active member; throttled to 10 per 30s per user)
 - **Response:** `{ "success": true }` or `{ "success": false, "error": "..." }`
