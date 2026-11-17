@@ -3,10 +3,11 @@ import { POST } from './route'
 
 const m = vi.hoisted(() => ({
   event: vi.fn(), lines: vi.fn(), find: vi.fn(), create: vi.fn(), update: vi.fn(),
-  magic: vi.fn(), send: vi.fn(),
+  magic: vi.fn(), send: vi.fn(), sub: vi.fn(), subs: vi.fn(), discord: vi.fn(),
 }))
 vi.mock('@/app/lib/stripe', () => ({ stripe: {
   webhooks: { constructEvent: m.event }, checkout: { sessions: { listLineItems: m.lines } },
+  subscriptions: { retrieve: m.sub, list: m.subs },
 } }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: m.send } } }))
 vi.mock('@/app/lib/airtable', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/app/lib/airtable', () => ({
   escapeAirtableString: (s: string) => s,
 }))
 vi.mock('@/app/lib/magic-link', () => ({ createMagicLink: m.magic }))
-vi.mock('@/app/lib/discord', () => ({ sendChannelMessage: vi.fn(), DISCORD_CHANNELS: {} }))
+vi.mock('@/app/lib/discord', () => ({ sendChannelMessage: m.discord, DISCORD_CHANNELS: { NOTIFICATIONS: 'staff' } }))
 vi.mock('@/app/lib/forkable', () => ({ addMemberToForkable: vi.fn(), FORKABLE_CLUBS: {}, parseFullName: vi.fn() }))
 const request = () => new Request('https://moxsf.com/api/webhooks/stripe', {
   method: 'POST', headers: { 'stripe-signature': 'verified-by-mock' }, body: '{}',
@@ -86,5 +87,129 @@ describe('paid day pass fulfillment', () => {
     m.event.mockImplementation(() => { throw new Error('invalid signature') })
     expect((await POST(request())).status).toBe(400)
     expect(m.find).not.toHaveBeenCalled()
+  })
+})
+
+describe('subscription changes sync to Airtable', () => {
+  const stripeSub = (over = {}) => ({
+    id: 'sub_1', customer: 'cus_1', status: 'active', pause_collection: null,
+    items: { data: [{ price: { product: 'prod_RpkYg9EMJoi5oi' } }] }, ...over,
+  })
+  const member = (fields: Record<string, string>) =>
+    m.find.mockResolvedValue({ id: 'recMember', fields: { Name: 'Member', ...fields } })
+  beforeEach(() => {
+    m.event.mockReturnValue({ type: 'customer.subscription.updated', data: {
+      object: { id: 'sub_1' }, previous_attributes: { items: {} },
+    } })
+    m.sub.mockResolvedValue(stripeSub())
+  })
+  it('moves a paused Friend who resumed onto Core to Joined Core', async () => {
+    member({ Tier: 'Friend', Status: 'Paused' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.find).toHaveBeenCalledWith('People', '{Stripe Customer ID}="cus_1"')
+    expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Tier: 'Core', Status: 'Joined' })
+  })
+  it('marks a member Paused using the live subscription, not the event payload', async () => {
+    member({ Tier: 'Core', Status: 'Joined' })
+    m.sub.mockResolvedValue(stripeSub({ pause_collection: { behavior: 'void' } }))
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Status: 'Paused' })
+  })
+  it('writes nothing when Airtable already matches (e.g. a renewal)', async () => {
+    member({ Tier: 'Core', Status: 'Joined' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+  })
+  it('ignores non-membership subscriptions without touching Airtable', async () => {
+    m.sub.mockResolvedValue(stripeSub({ items: { data: [{ price: { product: 'prod_other' } }] } }))
+    expect((await POST(request())).status).toBe(200)
+    expect(m.find).not.toHaveBeenCalled()
+  })
+  it('returns 200 when no People record matches the customer', async () => {
+    m.find.mockResolvedValue(null)
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+  })
+  it('returns 500 when the Airtable write fails so Stripe retries', async () => {
+    member({ Tier: 'Friend', Status: 'Paused' })
+    m.update.mockRejectedValue(new Error('Airtable 403'))
+    expect((await POST(request())).status).toBe(500)
+  })
+})
+
+describe('payment failures and cancellations sync to Airtable', () => {
+  const stripeSub = (over = {}) => ({
+    id: 'sub_1', customer: 'cus_1', status: 'active', pause_collection: null,
+    items: { data: [{ price: { product: 'prod_RpkYg9EMJoi5oi' } }] }, ...over,
+  })
+  const member = (fields: Record<string, string>) =>
+    m.find.mockResolvedValue({ id: 'recMember', fields: { Name: 'Member', ...fields } })
+  const updated = (previous: Record<string, unknown>) =>
+    m.event.mockReturnValue({ type: 'customer.subscription.updated', data: {
+      object: { id: 'sub_1' }, previous_attributes: previous,
+    } })
+  const deleted = () =>
+    m.event.mockReturnValue({ type: 'customer.subscription.deleted', data: {
+      object: stripeSub({ status: 'canceled' }),
+    } })
+  beforeEach(() => {
+    m.discord.mockResolvedValue(true)
+    m.subs.mockResolvedValue({ data: [] })
+  })
+
+  it('a first failed charge alerts staff but leaves Airtable alone', async () => {
+    updated({ status: 'active' })
+    m.sub.mockResolvedValue(stripeSub({ status: 'past_due' }))
+    member({ Tier: 'Core', Status: 'Joined' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+    expect(m.discord).toHaveBeenCalledWith('staff', expect.stringContaining('payment failed for Member'))
+  })
+  it('marks Payment Issue when Stripe gives up, and Joined again once paid', async () => {
+    updated({ status: 'past_due' })
+    m.sub.mockResolvedValue(stripeSub({ status: 'unpaid' }))
+    member({ Tier: 'Core', Status: 'Joined' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Status: 'Payment Issue' })
+
+    updated({ status: 'unpaid' })
+    m.sub.mockResolvedValue(stripeSub())
+    member({ Tier: 'Core', Status: 'Payment Issue' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenLastCalledWith('People', 'recMember', { Status: 'Joined' })
+  })
+  it('marks a member Cancelled when their subscription ends', async () => {
+    deleted()
+    member({ Tier: 'Core', Status: 'Joined' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.subs).toHaveBeenCalledWith({ customer: 'cus_1', limit: 20 })
+    expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Status: 'Cancelled' })
+  })
+  it('keeps a member whose cancelled subscription was replaced by another', async () => {
+    deleted()
+    member({ Tier: 'Core', Status: 'Joined' })
+    m.subs.mockResolvedValue({ data: [stripeSub({ id: 'sub_2' })] })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+  })
+  it('ignores the end of a non-membership subscription', async () => {
+    m.event.mockReturnValue({ type: 'customer.subscription.deleted', data: {
+      object: stripeSub({ status: 'canceled', items: { data: [{ price: { product: 'prod_other' } }] } }),
+    } })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.find).not.toHaveBeenCalled()
+  })
+  it('warns staff when a cancelled subscription matches no People record', async () => {
+    deleted()
+    m.find.mockResolvedValue(null)
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+    expect(m.discord).toHaveBeenCalledWith('staff', expect.stringContaining('cus_1'))
+  })
+  it('returns 500 when the cancellation write fails so Stripe retries', async () => {
+    deleted()
+    member({ Tier: 'Core', Status: 'Joined' })
+    m.update.mockRejectedValue(new Error('Airtable 403'))
+    expect((await POST(request())).status).toBe(500)
   })
 })
