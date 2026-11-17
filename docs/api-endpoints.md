@@ -84,6 +84,8 @@ Handle Stripe webhook events.
 - **Handles:**
   - `checkout.session.completed` - Day pass purchases
   - `customer.subscription.created` - New subscriptions (triggers Forkable onboarding)
+  - `customer.subscription.updated` - Keeps the member's Airtable `Tier` and `Status` (Joined / Paused / Payment Issue) in step with Stripe; see `docs/workflows/stripe-airtable-sync.md`. Returns 500 on failure so Stripe retries.
+  - `customer.subscription.deleted` - Sets `Status` to `Cancelled` unless the customer still holds another membership subscription. Returns 500 on failure so Stripe retries.
 
 ---
 

@@ -134,8 +134,10 @@ stripe.subscriptions.update(sub.id, {
   and metadata are not in the request, so Stripe leaves them as they are.
 - Prices stay on the existing Products, so the Stripe webhook's product → tier
   mapping keeps working.
-- Updating a subscription in place fires `customer.subscription.updated`,
-  which `/api/webhooks/stripe` ignores. No onboarding re-runs.
+- Updating a subscription in place fires `customer.subscription.updated`.
+  `/api/webhooks/stripe` uses that only to keep Airtable `Tier` / `Status` in
+  step (`docs/workflows/stripe-airtable-sync.md`); a price change on the same
+  product writes nothing, and no onboarding re-runs.
 - Each subscription is updated independently; one Stripe error is recorded on
   that row (`FAILED: …` in the report) and the rest continue.
 

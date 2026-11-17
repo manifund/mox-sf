@@ -17,6 +17,12 @@ import {
   FORKABLE_CLUBS,
   parseFullName,
 } from '@/app/lib/forkable';
+import {
+  decideCancellation,
+  decideMembershipSync,
+  isHeldMembership,
+  tierNameForProduct,
+} from '@/app/lib/stripe-membership-sync';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -94,13 +100,28 @@ export async function POST(request: Request) {
         await handleNewSubscription(event.data.object as Stripe.Subscription);
         break;
 
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event);
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription
+        );
+        break;
+
       default:
         console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
     }
   } catch (error) {
     console.error(`[Stripe Webhook] Error handling ${event.type}:`, error);
-    // Paid day passes must be retried if fulfillment or delivery fails.
-    if (event.type === 'checkout.session.completed') {
+    // Paid day passes must be retried if fulfillment or delivery fails, and a
+    // missed subscription change would leave Airtable wrong until the next one.
+    if (
+      event.type === 'checkout.session.completed' ||
+      event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted'
+    ) {
       return Response.json({ error: 'Processing failed' }, { status: 500 });
     }
     return Response.json({ received: true, error: 'Processing failed' });
@@ -453,6 +474,176 @@ async function handleNewSubscription(subscription: Stripe.Subscription) {
       tier: membershipConfig.tier,
       success: true,
     });
+  }
+}
+
+// ============================================================================
+// Subscription changes -> Airtable Tier / Status
+// ============================================================================
+
+type MemberFields = { Name?: string; Tier?: string; Status?: string };
+
+function subscriptionProductId(subscription: Stripe.Subscription) {
+  const product = subscription.items.data[0]?.price.product;
+  return typeof product === 'string' ? product : (product?.id ?? null);
+}
+
+function subscriptionCustomerId(subscription: Stripe.Subscription) {
+  return typeof subscription.customer === 'string'
+    ? subscription.customer
+    : subscription.customer.id;
+}
+
+function findMemberByCustomerId(customerId: string) {
+  return findRecord<MemberFields>(
+    Tables.People,
+    `{Stripe Customer ID}="${escapeAirtableString(customerId)}"`
+  );
+}
+
+// Keeps a member's Airtable Tier and Status (Joined / Paused / Payment Issue)
+// in step with their Stripe subscription, however the change was made: the
+// member portal's pause button, Stripe's customer portal, or staff in the
+// Stripe Dashboard. The rules live in app/lib/stripe-membership-sync.ts.
+async function handleSubscriptionUpdated(event: Stripe.Event) {
+  const eventSubscription = event.data.object as Stripe.Subscription;
+
+  // Events can arrive late or out of order, so sync to what Stripe says now
+  // rather than to this event's snapshot. That also makes retries harmless.
+  const subscription = await stripe.subscriptions.retrieve(
+    eventSubscription.id
+  );
+
+  const productId = subscriptionProductId(subscription);
+  if (!tierNameForProduct(productId)) {
+    console.log('[Stripe Webhook] Not a membership subscription, skipping');
+    return;
+  }
+
+  const customerId = subscriptionCustomerId(subscription);
+  const person = await findMemberByCustomerId(customerId);
+  const previous = (event.data.previous_attributes ?? {}) as Record<
+    string,
+    unknown
+  >;
+
+  // A first failed charge changes nothing in Airtable (Stripe keeps retrying),
+  // but staff should hear about it.
+  if (
+    subscription.status === 'past_due' &&
+    typeof previous.status === 'string' &&
+    previous.status !== 'past_due'
+  ) {
+    await notifyMembershipSync(
+      `💳 **Stripe:** payment failed for ${person?.fields.Name || `customer \`${customerId}\``}. ` +
+        `Stripe will retry; Airtable is unchanged for now.`
+    );
+  }
+
+  if (!person) {
+    // This event also fires on every renewal, so only speak up when the
+    // change is one a person would have to copy into Airtable by hand.
+    if (
+      'pause_collection' in previous ||
+      'items' in previous ||
+      subscription.status === 'unpaid'
+    ) {
+      await notifyMembershipSync(
+        `⚠️ **Stripe → Airtable:** a membership subscription changed for Stripe customer \`${customerId}\`, ` +
+          `but no People record has that Stripe Customer ID. Update their Tier / Status by hand.`
+      );
+    }
+    return;
+  }
+
+  const decision = decideMembershipSync(
+    { tier: person.fields.Tier ?? null, status: person.fields.Status ?? null },
+    {
+      status: subscription.status,
+      paused: !!subscription.pause_collection,
+      productId,
+    }
+  );
+
+  if (decision.changes.length === 0) {
+    console.log(
+      `[Stripe Webhook] Airtable already matches Stripe for ${person.id}` +
+        (decision.skipped ? ` (${decision.skipped})` : '')
+    );
+    return;
+  }
+
+  await updateRecord(Tables.People, person.id, decision.fields);
+  console.log(
+    `[Stripe Webhook] Synced ${person.id}: ${decision.changes.join(', ')}`
+  );
+
+  await notifyMembershipSync(
+    `🔄 **Stripe → Airtable:** ${person.fields.Name || customerId} — ${decision.changes.join(', ')}` +
+      (decision.fields.Tier ? ' (Forkable club is not changed automatically)' : '')
+  );
+}
+
+// A membership subscription ended (cancelled by the member, by staff, or by
+// Stripe after failed payments). Marks the member Cancelled unless they still
+// hold another membership subscription, e.g. one that replaced this one.
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  if (!tierNameForProduct(subscriptionProductId(subscription))) {
+    console.log('[Stripe Webhook] Not a membership subscription, skipping');
+    return;
+  }
+
+  const customerId = subscriptionCustomerId(subscription);
+  const person = await findMemberByCustomerId(customerId);
+  if (!person) {
+    await notifyMembershipSync(
+      `⚠️ **Stripe → Airtable:** a membership subscription was cancelled for Stripe customer \`${customerId}\`, ` +
+        `but no People record has that Stripe Customer ID. Update their Status by hand.`
+    );
+    return;
+  }
+
+  // Listing without a status filter returns everything except cancelled ones.
+  const others = await stripe.subscriptions.list({
+    customer: customerId,
+    limit: 20,
+  });
+  const stillHoldsAnother = others.data.some(
+    (other) =>
+      other.id !== subscription.id &&
+      isHeldMembership({
+        status: other.status,
+        productId: subscriptionProductId(other),
+      })
+  );
+
+  const decision = decideCancellation(
+    { tier: person.fields.Tier ?? null, status: person.fields.Status ?? null },
+    stillHoldsAnother
+  );
+  if (decision.changes.length === 0) {
+    console.log(
+      `[Stripe Webhook] Cancellation changes nothing for ${person.id} (${decision.skipped})`
+    );
+    return;
+  }
+
+  await updateRecord(Tables.People, person.id, decision.fields);
+  console.log(
+    `[Stripe Webhook] Synced ${person.id}: ${decision.changes.join(', ')}`
+  );
+  await notifyMembershipSync(
+    `🔄 **Stripe → Airtable:** ${person.fields.Name || customerId} cancelled — ${decision.changes.join(', ')} ` +
+      `(Forkable is not changed automatically)`
+  );
+}
+
+async function notifyMembershipSync(message: string) {
+  const channelId = DISCORD_CHANNELS.NOTIFICATIONS;
+  if (!channelId) return;
+  const sent = await sendChannelMessage(channelId, message);
+  if (!sent) {
+    console.error('[Stripe Webhook] Failed to send membership sync notification');
   }
 }
 

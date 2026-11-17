@@ -103,6 +103,14 @@ flowchart TD
 - Pause reason stored in subscription metadata
 - Resume clears `pause_collection` to `null`
 
+## Airtable
+
+The pause route itself never writes to Airtable. Stripe sends
+`customer.subscription.updated` after the pause or resume, and the Stripe
+webhook sets the member's `Status` to `Paused` or back to `Joined`. This also
+covers a pause that ends on its own at `resumes_at`. See
+`docs/workflows/stripe-airtable-sync.md`.
+
 ## Admin "View As" Feature
 
 When staff members use the "view as" feature to manage another user's subscription:
