@@ -2,8 +2,8 @@ import { stripe } from '@/app/lib/stripe'
 import { env } from '@/app/lib/env'
 import {
   MEMBERSHIP_TIERS,
-  TRIAL_DAYS,
   chargeCents,
+  checkoutTrial,
   isBillingInterval,
   isMembershipTierId,
 } from '@/app/lib/membership-pricing'
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       mode: 'subscription',
       line_items: [{ price: price.id, quantity: 1 }],
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
+        ...checkoutTrial(tierId),
         metadata: { tier: tier.name, interval },
       },
       allow_promotion_codes: true,

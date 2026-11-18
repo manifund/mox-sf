@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import MembershipPricingTable from '@/app/components/MembershipPricingTable'
+import { corePromoTrialActive } from '@/app/lib/membership-pricing'
 import {
   getAirtableData,
   getInviteByRecordId,
@@ -59,9 +60,20 @@ function JoinContent(props: {
               better fit. This includes a dedicated desk where you can leave
               belongings, and external monitor.
               <br /> <br />
-              We want you to be confident that Mox is the right choice, so every
-              membership comes with a 1-week free trial. You can also update or
-              cancel your membership at any time.
+              {corePromoTrialActive() ? (
+                <>
+                  Core membership is free through December 31, 2026: join now
+                  and billing starts January 1. Resident memberships come with
+                  a 1-week free trial. You can also update or cancel your
+                  membership at any time.
+                </>
+              ) : (
+                <>
+                  We want you to be confident that Mox is the right choice, so
+                  every membership comes with a 1-week free trial. You can also
+                  update or cancel your membership at any time.
+                </>
+              )}
             </p>
           </section>
 

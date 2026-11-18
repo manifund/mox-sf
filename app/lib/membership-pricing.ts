@@ -26,6 +26,34 @@ export interface MembershipTier {
 export const TRIAL_DAYS = 7
 export const QUARTER_MONTHS = 3
 
+// End-of-2026 promo: Core sign-ups are free until midnight Pacific going into
+// Jan 1, 2027 (08:00 UTC), however late in the year they join. Other tiers,
+// and Core sign-ups once the date has passed, get the usual TRIAL_DAYS.
+export const CORE_PROMO_TRIAL_END = Date.UTC(2027, 0, 1, 8) / 1000
+// Stripe Checkout refuses a trial_end less than 48 hours away; keep an hour
+// of slack so a session created near the cutoff isn't rejected.
+const MIN_CHECKOUT_TRIAL_MS = 49 * 60 * 60 * 1000
+
+/**
+ * Whether Core sign-ups currently get the free-through-Dec-31 trial. Site copy
+ * uses this too, so the wording flips back to the usual trial at the same
+ * moment checkout does.
+ */
+export function corePromoTrialActive(nowMs: number = Date.now()): boolean {
+  return CORE_PROMO_TRIAL_END * 1000 - nowMs >= MIN_CHECKOUT_TRIAL_MS
+}
+
+/** Trial settings for a new membership's Stripe Checkout subscription. */
+export function checkoutTrial(
+  tierId: MembershipTierId,
+  nowMs: number = Date.now()
+): { trial_end: number } | { trial_period_days: number } {
+  if (tierId === 'core' && corePromoTrialActive(nowMs)) {
+    return { trial_end: CORE_PROMO_TRIAL_END }
+  }
+  return { trial_period_days: TRIAL_DAYS }
+}
+
 export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
   core: {
     id: 'core',

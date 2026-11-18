@@ -7,6 +7,7 @@ import {
   OFFICE_PER_PERSON_MONTHLY_CENTS,
   QUARTER_MONTHS,
   TRIAL_DAYS,
+  corePromoTrialActive,
   formatDollars,
   monthlyPriceCents,
   quarterlySavingsPercent,
@@ -229,7 +230,10 @@ export default function MembershipPricingTable({
         )}
 
         <p className="mt-6 text-sm text-gray-500">
-          Every membership starts with a {TRIAL_DAYS}-day free trial. Quarterly
+          {corePromoTrialActive()
+            ? `Core is free through December 31, 2026, with billing from January 1; Resident starts with a ${TRIAL_DAYS}-day free trial.`
+            : `Every membership starts with a ${TRIAL_DAYS}-day free trial.`}{' '}
+          Quarterly
           plans are billed every {QUARTER_MONTHS} months; month-to-month plans
           can be cancelled anytime.
         </p>

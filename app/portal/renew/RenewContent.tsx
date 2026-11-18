@@ -1,6 +1,7 @@
 'use client'
 
 import MembershipPricingTable from '@/app/components/MembershipPricingTable'
+import { corePromoTrialActive } from '@/app/lib/membership-pricing'
 
 export default function RenewContent({
   firstName,
@@ -12,6 +13,9 @@ export default function RenewContent({
   status: string | null
 }) {
   const isCancelled = status === 'Cancelled'
+  const trialCopy = corePromoTrialActive()
+    ? 'Core is free through December 31; Resident starts with a 1-week free trial.'
+    : null
 
   return (
     <div className="min-h-screen bg-slate-50 text-gray-800">
@@ -30,13 +34,17 @@ export default function RenewContent({
           <p className="text-lg text-gray-700">
             {isCancelled ? (
               <>
-                Hey {firstName}! We'd love to have you back at Mox. Choose a
-                membership tier below to rejoin with a 1-week free trial.
+                Hey {firstName}! We'd love to have you back at Mox.{' '}
+                {trialCopy
+                  ? `Choose a membership tier below to rejoin. ${trialCopy}`
+                  : 'Choose a membership tier below to rejoin with a 1-week free trial.'}
               </>
             ) : (
               <>
-                Hey {firstName}! Choose a membership tier below to get started
-                with a 1-week free trial.
+                Hey {firstName}!{' '}
+                {trialCopy
+                  ? `Choose a membership tier below to get started. ${trialCopy}`
+                  : 'Choose a membership tier below to get started with a 1-week free trial.'}
               </>
             )}
           </p>

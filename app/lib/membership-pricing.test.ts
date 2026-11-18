@@ -11,6 +11,10 @@ import {
   officeMissionAlignedCents,
   officeMonthToMonthCents,
   quarterlySavingsPercent,
+  CORE_PROMO_TRIAL_END,
+  TRIAL_DAYS,
+  checkoutTrial,
+  corePromoTrialActive,
 } from './membership-pricing'
 
 describe('membership pricing', () => {
@@ -73,5 +77,44 @@ describe('membership pricing', () => {
     expect(officeMonthToMonthCents(officeMissionAlignedCents(500000))).toBe(
       500000
     )
+  })
+})
+
+describe('checkoutTrial', () => {
+  const pt = (iso: string) => Date.parse(iso)
+
+  it('gives Core sign-ups a trial ending midnight Pacific on Jan 1, 2027', () => {
+    expect(new Date(CORE_PROMO_TRIAL_END * 1000).toISOString()).toBe(
+      '2027-01-01T08:00:00.000Z'
+    )
+    expect(checkoutTrial('core', pt('2026-11-17T12:00:00-08:00'))).toEqual({
+      trial_end: CORE_PROMO_TRIAL_END,
+    })
+    expect(checkoutTrial('core', pt('2026-12-29T22:00:00-08:00'))).toEqual({
+      trial_end: CORE_PROMO_TRIAL_END,
+    })
+  })
+
+  it('falls back to the usual trial once Stripe would refuse the date', () => {
+    expect(checkoutTrial('core', pt('2026-12-30T00:00:00-08:00'))).toEqual({
+      trial_period_days: TRIAL_DAYS,
+    })
+    expect(checkoutTrial('core', pt('2027-02-01T00:00:00-08:00'))).toEqual({
+      trial_period_days: TRIAL_DAYS,
+    })
+  })
+
+  it('never applies to Resident', () => {
+    expect(checkoutTrial('resident', pt('2026-11-17T12:00:00-08:00'))).toEqual({
+      trial_period_days: TRIAL_DAYS,
+    })
+  })
+})
+
+describe('corePromoTrialActive', () => {
+  it('is on through Dec 29 and off from Dec 30 (Pacific), matching checkout', () => {
+    expect(corePromoTrialActive(Date.parse('2026-11-18T12:00:00-08:00'))).toBe(true)
+    expect(corePromoTrialActive(Date.parse('2026-12-29T22:00:00-08:00'))).toBe(true)
+    expect(corePromoTrialActive(Date.parse('2026-12-30T00:00:00-08:00'))).toBe(false)
   })
 })
