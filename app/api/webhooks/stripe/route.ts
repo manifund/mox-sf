@@ -494,7 +494,6 @@ interface SignupPersonFields {
   'Stripe Customer ID'?: string;
   'Previous Stripe Customer IDs'?: string;
   Tags?: string[];
-  'In Verkada'?: boolean;
 }
 
 // Who signed up: the Airtable record id /join and /portal/renew send as
@@ -551,7 +550,6 @@ async function handleMembershipSignup(session: Stripe.Checkout.Session) {
       stripeCustomerId: person.fields['Stripe Customer ID']?.trim() || null,
       previousStripeCustomerIds: person.fields['Previous Stripe Customer IDs'] || null,
       tags: person.fields.Tags || [],
-      inVerkada: person.fields['In Verkada'] === true,
     },
     { customerId, productId }
   );

@@ -135,7 +135,6 @@ describe('decideSignup', () => {
     stripeCustomerId: null,
     previousStripeCustomerIds: null,
     tags: ['form'],
-    inVerkada: false,
     ...over,
   })
   const core = { customerId: 'cus_new', productId: CORE }
@@ -173,39 +172,33 @@ describe('decideSignup', () => {
     expect(repeat.fields['Previous Stripe Customer IDs']).toBeUndefined()
   })
 
-  it('sends a returning lapsed member through the MoxSF automation and keeps both tags', () => {
+  it('tags a returning lapsed member and leaves the door to the Airtable automation', () => {
     const { fields } = decideSignup(
-      person({ stripeCustomerId: 'cus_old', tags: ['form', LAPSED], inVerkada: true }),
+      person({ stripeCustomerId: 'cus_old', tags: ['form', LAPSED] }),
       core,
       duringPromo
     )
-    expect(fields['In Verkada']).toBe(false)
     expect(fields.Tags).toEqual(['form', LAPSED, FREE_CORE_2026_SIGNUP_TAG])
-  })
-
-  it('does not untick In Verkada for people who were never tagged lapsed', () => {
-    const { fields } = decideSignup(person({ inVerkada: true }), core, duringPromo)
-    expect(fields['In Verkada']).toBeUndefined()
+    expect(fields).not.toHaveProperty('In Verkada')
   })
 
   it('writes nothing when the same event is delivered twice', () => {
     const done = person({
       stripeCustomerId: 'cus_new',
       tags: ['form', LAPSED, FREE_CORE_2026_SIGNUP_TAG],
-      inVerkada: false,
     })
     expect(decideSignup(done, core, duringPromo)).toEqual({ fields: {}, changes: [] })
   })
 
-  it('stops tagging on Jan 1, 2027 but still links and still moves returners', () => {
+  it('stops tagging on Jan 1, 2027 but still links', () => {
     const { fields } = decideSignup(
-      person({ tags: [LAPSED], inVerkada: true }),
+      person({ tags: [LAPSED] }),
       core,
       afterPromo
     )
     expect(fields.Tags).toBeUndefined()
     expect(fields['Stripe Customer ID']).toBe('cus_new')
-    expect(fields['In Verkada']).toBe(false)
+    expect(fields).not.toHaveProperty('In Verkada')
   })
 
   it('links a Resident sign-up without the Core tag', () => {

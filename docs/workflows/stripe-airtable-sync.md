@@ -120,9 +120,14 @@ linked and a warning is logged.
 | `Stripe Customer ID` | It differs from the checkout's customer | The sync above finds people by this id |
 | `Previous Stripe Customer IDs` | An existing id was replaced | `/join` creates a new Stripe customer on every sign-up and Stripe cannot merge them; the old one may still hold history or a paused subscription |
 | `Tags` += `Free Core 2026: NEWBIES` | Core sign-up before Jan 1, 2027 | Marks sign-ups under the free-through-2026 offer. The `Free 2026 group` formula shows Newbie, or Returner if they also have `Free Thru 2026: lapsed` |
-| `In Verkada` = unticked | The person is tagged `Free Thru 2026: lapsed` and the box is ticked | Lapsed members sit in the temporary "Free through 2026" Verkada group with the box ticked, so the "Add member to Verkada" Airtable automation skips them. Unticking lets that automation add them to MoxSF and tick the box again |
 
 It does not post to Discord. It is safe to receive the same event twice.
+
+**The door is not touched here.** A returning lapsed member is moved to the
+MoxSF Verkada group by the Airtable automation "Move returner to MoxSF door
+group", which watches the `Free 2026 group` column. `In Verkada` is never
+unticked from here: unticking re-runs "Add member to Verkada", which re-sends
+the person the Verkada mobile-pass invite.
 
 **Known gaps.**
 

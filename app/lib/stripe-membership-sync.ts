@@ -12,7 +12,6 @@
 // about a person (staff, courtesy, invited, guest program…) is left alone.
 
 import { CORE_PROMO_TRIAL_END, tierFromStripeProductId } from './membership-pricing'
-import { FREE_THRU_2026_LAPSED_TAG } from './membership'
 import { FRIEND_PRODUCT_ID } from './membership-price-migration'
 
 /** Tiers that come from a Stripe membership product. A person on any other
@@ -145,7 +144,7 @@ export function decideCancellation(
 // ============================================================================
 
 /** Marks anyone who signed up for Core under the free-through-2026 offer.
- *  Together with FREE_THRU_2026_LAPSED_TAG it drives the "Free 2026 group"
+ *  Together with the "Free Thru 2026: lapsed" tag it drives the "Free 2026 group"
  *  formula in Airtable: this tag alone = Newbie, both = Returner. */
 export const FREE_CORE_2026_SIGNUP_TAG = 'Free Core 2026: NEWBIES'
 
@@ -154,7 +153,6 @@ export interface SignupPersonSnapshot {
   /** "Previous Stripe Customer IDs", one per line */
   previousStripeCustomerIds: string | null
   tags: readonly string[]
-  inVerkada: boolean
 }
 
 export interface SignupDecision {
@@ -162,7 +160,6 @@ export interface SignupDecision {
     'Stripe Customer ID'?: string
     'Previous Stripe Customer IDs'?: string
     Tags?: string[]
-    'In Verkada'?: boolean
   }
   /** One plain line per field written, for the log. */
   changes: string[]
@@ -177,11 +174,10 @@ export interface SignupDecision {
  *   "Previous Stripe Customer IDs" rather than lost: Stripe cannot merge
  *   customers, and an old one may still hold a paused subscription.
  * - A Core sign-up during the free-through-2026 promo is tagged.
- * - A lapsed member who signs up again was put in the temporary "Free through
- *   2026" Verkada group with "In Verkada" ticked, which makes the "Add member
- *   to Verkada" Airtable automation skip them. Unticking it lets that
- *   automation add them to MoxSF like any other new member (it ticks the box
- *   again when it succeeds).
+ * - The door is not touched here. A returning lapsed member is moved to the
+ *   MoxSF Verkada group by the Airtable automation "Move returner to MoxSF
+ *   door group". "In Verkada" is never unticked: that would re-send them the
+ *   Verkada mobile-pass invite.
  */
 export function decideSignup(
   person: SignupPersonSnapshot,
@@ -219,11 +215,6 @@ export function decideSignup(
   ) {
     fields.Tags = [...person.tags, FREE_CORE_2026_SIGNUP_TAG]
     changes.push(`tagged ${FREE_CORE_2026_SIGNUP_TAG}`)
-  }
-
-  if (person.tags.includes(FREE_THRU_2026_LAPSED_TAG) && person.inVerkada) {
-    fields['In Verkada'] = false
-    changes.push('returning lapsed member: unticked In Verkada so they are added to MoxSF')
   }
 
   return { fields, changes }

@@ -231,7 +231,7 @@ describe('membership sign-ups link the person in Airtable', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('links, tags and re-homes a returning lapsed member by record id', async () => {
+  it('links and tags a returning lapsed member by record id, without touching In Verkada', async () => {
     m.event.mockReturnValue(signup())
     m.get.mockResolvedValue({ id: 'recAAAAAAAAAAAAAA', fields: {
       'Stripe Customer ID': 'cus_old', Tags: ['Free Thru 2026: lapsed'], 'In Verkada': true,
@@ -241,7 +241,6 @@ describe('membership sign-ups link the person in Airtable', () => {
       'Stripe Customer ID': 'cus_new',
       'Previous Stripe Customer IDs': 'cus_old',
       Tags: ['Free Thru 2026: lapsed', 'Free Core 2026: NEWBIES'],
-      'In Verkada': false,
     })
     expect(m.create).not.toHaveBeenCalled()
     expect(m.send).not.toHaveBeenCalled()
