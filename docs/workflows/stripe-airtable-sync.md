@@ -65,9 +65,10 @@ Everything else is left alone:
 
 ## What it does not do
 
-- **New signups and rejoining.** Setting `Status = Joined` and the
-  `Stripe Customer ID` when someone subscribes is still the Zapier Zap's job.
-  A Cancelled member who subscribes again is not moved back to Joined here.
+- **Status on signup and rejoining.** Setting `Status = Joined` (and Tier)
+  when someone subscribes is still the Zapier Zap's job. A Cancelled member
+  who subscribes again is not moved back to Joined here. Everything else about
+  a sign-up is handled by the webhook: see "Sign-ups" below.
 - **Forkable.** A tier change or cancellation does not change the member's
   Forkable clubs; the Discord message says so.
 - **Unmatched customers.** If no People record has the customer's id, nothing
@@ -100,3 +101,35 @@ Stripe's `status=paused`, not paused payment collection, which arrives as
   `handleSubscriptionDeleted`
 - `app/lib/stripe-membership-sync.ts` — the rules
 - `app/lib/stripe-membership-sync.test.ts`, `app/api/webhooks/stripe/route.test.ts` — tests
+
+## Sign-ups (`checkout.session.completed`, subscription mode)
+
+When a membership checkout finishes (free trial or paid), `handleMembershipSignup`
+in the webhook links it to the person. The rules are `decideSignup` in
+[app/lib/stripe-membership-sync.ts](../../app/lib/stripe-membership-sync.ts).
+
+**Finding the person.** The People record id that `/join` and `/portal/renew`
+send as `client_reference_id`; otherwise the one People record whose `Email`
+equals the checkout email. If several records share that email, nobody is
+linked and a warning is logged.
+
+**What it writes.**
+
+| Field | When | Why |
+|---|---|---|
+| `Stripe Customer ID` | It differs from the checkout's customer | The sync above finds people by this id |
+| `Previous Stripe Customer IDs` | An existing id was replaced | `/join` creates a new Stripe customer on every sign-up and Stripe cannot merge them; the old one may still hold history or a paused subscription |
+| `Tags` += `Free Core 2026: NEWBIES` | Core sign-up before Jan 1, 2027 | Marks sign-ups under the free-through-2026 offer. The `Free 2026 group` formula shows Newbie, or Returner if they also have `Free Thru 2026: lapsed` |
+| `In Verkada` = unticked | The person is tagged `Free Thru 2026: lapsed` and the box is ticked | Lapsed members sit in the temporary "Free through 2026" Verkada group with the box ticked, so the "Add member to Verkada" Airtable automation skips them. Unticking lets that automation add them to MoxSF and tick the box again |
+
+It does not post to Discord. It is safe to receive the same event twice.
+
+**Known gaps.**
+
+- The Zapier Zap also writes `Stripe Customer ID`. If it runs before this
+  webhook reads the record, the replaced id is not captured.
+- Anonymous `/join` still creates a new Stripe customer for someone who
+  already has one (it has no login, so it cannot safely reuse theirs).
+  `/portal/renew` does reuse it.
+- Existing duplicate customers are not merged; they are only recorded going
+  forward.

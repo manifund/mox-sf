@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   decideCancellation,
   decideMembershipSync,
+  decideSignup,
+  FREE_CORE_2026_SIGNUP_TAG,
   isHeldMembership,
   tierNameForProduct,
 } from './stripe-membership-sync'
@@ -122,5 +124,97 @@ describe('isHeldMembership', () => {
     expect(isHeldMembership({ status: 'canceled', productId: CORE })).toBe(false)
     expect(isHeldMembership({ status: 'incomplete', productId: CORE })).toBe(false)
     expect(isHeldMembership({ status: 'active', productId: 'prod_other' })).toBe(false)
+  })
+})
+
+describe('decideSignup', () => {
+  const LAPSED = 'Free Thru 2026: lapsed'
+  const duringPromo = Date.UTC(2026, 10, 20)
+  const afterPromo = Date.UTC(2027, 0, 1, 8)
+  const person = (over = {}) => ({
+    stripeCustomerId: null,
+    previousStripeCustomerIds: null,
+    tags: ['form'],
+    inVerkada: false,
+    ...over,
+  })
+  const core = { customerId: 'cus_new', productId: CORE }
+
+  it('links and tags a brand-new Core member, leaving the door automation alone', () => {
+    const { fields } = decideSignup(person(), core, duringPromo)
+    expect(fields).toEqual({
+      'Stripe Customer ID': 'cus_new',
+      Tags: ['form', FREE_CORE_2026_SIGNUP_TAG],
+    })
+  })
+
+  it('keeps the replaced customer id for someone who signs up again', () => {
+    const { fields } = decideSignup(
+      person({ stripeCustomerId: 'cus_old' }),
+      core,
+      duringPromo
+    )
+    expect(fields['Stripe Customer ID']).toBe('cus_new')
+    expect(fields['Previous Stripe Customer IDs']).toBe('cus_old')
+  })
+
+  it('adds to earlier previous ids without repeating one', () => {
+    const first = decideSignup(
+      person({ stripeCustomerId: 'cus_b', previousStripeCustomerIds: 'cus_a' }),
+      core,
+      duringPromo
+    )
+    expect(first.fields['Previous Stripe Customer IDs']).toBe('cus_a\ncus_b')
+    const repeat = decideSignup(
+      person({ stripeCustomerId: 'cus_a', previousStripeCustomerIds: 'cus_a\ncus_b' }),
+      core,
+      duringPromo
+    )
+    expect(repeat.fields['Previous Stripe Customer IDs']).toBeUndefined()
+  })
+
+  it('sends a returning lapsed member through the MoxSF automation and keeps both tags', () => {
+    const { fields } = decideSignup(
+      person({ stripeCustomerId: 'cus_old', tags: ['form', LAPSED], inVerkada: true }),
+      core,
+      duringPromo
+    )
+    expect(fields['In Verkada']).toBe(false)
+    expect(fields.Tags).toEqual(['form', LAPSED, FREE_CORE_2026_SIGNUP_TAG])
+  })
+
+  it('does not untick In Verkada for people who were never tagged lapsed', () => {
+    const { fields } = decideSignup(person({ inVerkada: true }), core, duringPromo)
+    expect(fields['In Verkada']).toBeUndefined()
+  })
+
+  it('writes nothing when the same event is delivered twice', () => {
+    const done = person({
+      stripeCustomerId: 'cus_new',
+      tags: ['form', LAPSED, FREE_CORE_2026_SIGNUP_TAG],
+      inVerkada: false,
+    })
+    expect(decideSignup(done, core, duringPromo)).toEqual({ fields: {}, changes: [] })
+  })
+
+  it('stops tagging on Jan 1, 2027 but still links and still moves returners', () => {
+    const { fields } = decideSignup(
+      person({ tags: [LAPSED], inVerkada: true }),
+      core,
+      afterPromo
+    )
+    expect(fields.Tags).toBeUndefined()
+    expect(fields['Stripe Customer ID']).toBe('cus_new')
+    expect(fields['In Verkada']).toBe(false)
+  })
+
+  it('links a Resident sign-up without the Core tag', () => {
+    const { fields } = decideSignup(person(), { customerId: 'cus_new', productId: RESIDENT }, duringPromo)
+    expect(fields).toEqual({ 'Stripe Customer ID': 'cus_new' })
+  })
+
+  it('ignores checkouts that are not for a membership', () => {
+    const result = decideSignup(person(), { customerId: 'cus_new', productId: 'prod_daypass' }, duringPromo)
+    expect(result).toEqual({ fields: {}, changes: [] })
   })
 })

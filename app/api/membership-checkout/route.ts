@@ -7,12 +7,19 @@ import {
   isBillingInterval,
   isMembershipTierId,
 } from '@/app/lib/membership-pricing'
+import { getSessionMember } from '@/app/lib/session-member'
 
-// Starts a Stripe Checkout subscription for a membership tier. Unauthenticated
-// on purpose: /join is reached by invite link before the person has a portal
-// login, same as the Stripe pricing table it replaces. The Airtable record id
-// rides along as client_reference_id so downstream automations can link the
-// subscription to the person.
+// Starts a Stripe Checkout subscription for a membership tier. Works without
+// a login on purpose: /join is reached by invite link before the person has a
+// portal account. The Airtable record id rides along as client_reference_id so
+// the Stripe webhook can link the subscription to the person.
+//
+// When the request does come from a logged-in portal session (/portal/renew,
+// or a member who opens /join while signed in), checkout reuses the Stripe
+// customer already on their People record. Without that every sign-up creates
+// another Stripe customer for the same person. An anonymous request never
+// reuses a customer: the record id it sends comes from the URL and could be
+// anyone's.
 export async function POST(request: Request) {
   let body: Record<string, unknown>
   try {
@@ -60,6 +67,8 @@ export async function POST(request: Request) {
     const baseUrl =
       env.NEXT_PUBLIC_BASE_URL || `${requestUrl.protocol}//${requestUrl.host}`
 
+    const who = await checkoutIdentity(clientReferenceId, email)
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: price.id, quantity: 1 }],
@@ -68,10 +77,7 @@ export async function POST(request: Request) {
         metadata: { tier: tier.name, interval },
       },
       allow_promotion_codes: true,
-      ...(typeof clientReferenceId === 'string' && clientReferenceId
-        ? { client_reference_id: clientReferenceId }
-        : {}),
-      ...(typeof email === 'string' && email ? { customer_email: email } : {}),
+      ...who,
       success_url: `${baseUrl}/portal/login?joined=1`,
       cancel_url: `${baseUrl}/join`,
     })
@@ -80,5 +86,47 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[membership-checkout] Failed to create session:', error)
     return Response.json({ error: 'Failed to start checkout' }, { status: 500 })
+  }
+}
+
+// Who Checkout should bill and which People record the sign-up belongs to.
+async function checkoutIdentity(
+  clientReferenceId: unknown,
+  email: unknown
+): Promise<{
+  client_reference_id?: string
+  customer?: string
+  customer_email?: string
+}> {
+  const member = await getSessionMember().catch(() => null)
+  if (member) {
+    if (member.stripeCustomerId && (await customerExists(member.stripeCustomerId))) {
+      return {
+        client_reference_id: member.recordId,
+        customer: member.stripeCustomerId,
+      }
+    }
+    return {
+      client_reference_id: member.recordId,
+      ...(member.email ? { customer_email: member.email } : {}),
+    }
+  }
+
+  return {
+    ...(typeof clientReferenceId === 'string' && clientReferenceId
+      ? { client_reference_id: clientReferenceId }
+      : {}),
+    ...(typeof email === 'string' && email ? { customer_email: email } : {}),
+  }
+}
+
+// A stale or deleted customer id would make Checkout fail outright; fall back
+// to a fresh customer instead.
+async function customerExists(customerId: string): Promise<boolean> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId)
+    return !customer.deleted
+  } catch {
+    return false
   }
 }

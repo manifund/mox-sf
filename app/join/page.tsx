@@ -276,11 +276,24 @@ export default function JoinPage() {
 
   // Find matching invite entry by first name
   function findMatch(firstName: string): InviteEntry | undefined {
-    return inviteList?.find(
+    return matchesFor(firstName)[0]
+  }
+
+  function matchesFor(firstName: string): InviteEntry[] {
+    return (inviteList ?? []).filter(
       (entry) =>
         entry.name.split(' ')[0].trim().toLowerCase() ===
         firstName.trim().toLowerCase()
     )
+  }
+
+  // The record a first name identifies, only when it identifies one person.
+  // Two invited people can share a first name; attaching the first match would
+  // link this sign-up to the wrong People record. With no record id the Stripe
+  // webhook links the sign-up by checkout email instead.
+  function recordIdFor(firstName: string): string | null {
+    const matches = matchesFor(firstName)
+    return matches.length === 1 ? matches[0].recordId : null
   }
 
   // Auto-authorize if name is prefilled from URL and matches invite list
@@ -296,7 +309,7 @@ export default function JoinPage() {
     if (match) {
       // Use URL record ID if provided, otherwise fall back to name-matched record
       if (!airtableRecordId) {
-        setAirtableRecordId(match.recordId)
+        setAirtableRecordId(recordIdFor(name))
       }
       setIsSubmitted(true)
       setIsAuthorized(true)
@@ -320,7 +333,7 @@ export default function JoinPage() {
     const match = findMatch(name)
     if (match) {
       if (!airtableRecordId) {
-        setAirtableRecordId(match.recordId)
+        setAirtableRecordId(recordIdFor(name))
       }
       setIsAuthorized(true)
     } else {

@@ -7,6 +7,8 @@ import {
   createRecord,
   updateRecord,
   findRecord,
+  findRecords,
+  getRecord,
   escapeAirtableString,
 } from '@/app/lib/airtable';
 import { sendChannelMessage, DISCORD_CHANNELS } from '@/app/lib/discord';
@@ -20,6 +22,7 @@ import {
 import {
   decideCancellation,
   decideMembershipSync,
+  decideSignup,
   isHeldMembership,
   tierNameForProduct,
 } from '@/app/lib/stripe-membership-sync';
@@ -90,11 +93,15 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleDayPassPurchase(
-          event.data.object as Stripe.Checkout.Session
-        );
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode === 'subscription') {
+          await handleMembershipSignup(session);
+        } else {
+          await handleDayPassPurchase(session);
+        }
         break;
+      }
 
       case 'customer.subscription.created':
         await handleNewSubscription(event.data.object as Stripe.Subscription);
@@ -475,6 +482,85 @@ async function handleNewSubscription(subscription: Stripe.Subscription) {
       success: true,
     });
   }
+}
+
+// ============================================================================
+// Membership sign-up -> the person's People record
+// ============================================================================
+
+interface SignupPersonFields {
+  Name?: string;
+  Email?: string;
+  'Stripe Customer ID'?: string;
+  'Previous Stripe Customer IDs'?: string;
+  Tags?: string[];
+  'In Verkada'?: boolean;
+}
+
+// Who signed up: the Airtable record id /join and /portal/renew send as
+// client_reference_id, otherwise the one person with the checkout email.
+// Never guesses between several people.
+async function findSignupPerson(session: Stripe.Checkout.Session) {
+  const recordId = session.client_reference_id;
+  if (recordId && /^rec[A-Za-z0-9]{14}$/.test(recordId)) {
+    const record = await getRecord<SignupPersonFields>(Tables.People, recordId);
+    if (record) return record;
+  }
+  const email = session.customer_details?.email?.trim().toLowerCase();
+  if (!email) return null;
+  const matches = await findRecords<SignupPersonFields>(
+    Tables.People,
+    `LOWER(TRIM({Email}))="${escapeAirtableString(email)}"`,
+    { maxRecords: 2 }
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+// A membership checkout finished (free trial or paid). Links the Stripe
+// customer to the person and applies the sign-up bookkeeping in decideSignup.
+// Status and Tier are still set by onboarding (the Zapier Zap).
+async function handleMembershipSignup(session: Stripe.Checkout.Session) {
+  const customerId =
+    typeof session.customer === 'string' ? session.customer : session.customer?.id;
+  const subscriptionId =
+    typeof session.subscription === 'string'
+      ? session.subscription
+      : session.subscription?.id;
+  if (!customerId || !subscriptionId) {
+    console.log('[Stripe Webhook] Subscription checkout without customer/subscription, skipping');
+    return;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const productId = subscriptionProductId(subscription);
+  if (!tierNameForProduct(productId)) {
+    console.log('[Stripe Webhook] Checkout is not for a membership, skipping');
+    return;
+  }
+
+  const person = await findSignupPerson(session);
+  if (!person) {
+    console.warn(
+      `[Stripe Webhook] Membership sign-up for customer ${customerId} matched no single People record; nothing linked`
+    );
+    return;
+  }
+
+  const decision = decideSignup(
+    {
+      stripeCustomerId: person.fields['Stripe Customer ID']?.trim() || null,
+      previousStripeCustomerIds: person.fields['Previous Stripe Customer IDs'] || null,
+      tags: person.fields.Tags || [],
+      inVerkada: person.fields['In Verkada'] === true,
+    },
+    { customerId, productId }
+  );
+  if (decision.changes.length === 0) return;
+
+  await updateRecord(Tables.People, person.id, decision.fields);
+  console.log(
+    `[Stripe Webhook] Sign-up ${person.id}: ${decision.changes.join('; ')}`
+  );
 }
 
 // ============================================================================

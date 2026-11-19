@@ -37,6 +37,8 @@ Primary table for user/member management.
 | `magic_link_token` | singleLineText | Auth token (32-byte hex) | ✅ Magic link auth |
 | `token_expires` | dateTime | Token expiration timestamp | ✅ Magic link auth |
 | `Stripe Customer ID` | multilineText | Link to Stripe customer | ✅ Billing, subscriptions |
+| `Previous Stripe Customer IDs` | multilineText | Earlier Stripe customers for this person, one per line. Written by the Stripe webhook when a sign-up replaces `Stripe Customer ID` (Stripe cannot merge customers) | ✅ Sign-up webhook; batch checks |
+| `Free 2026 group` | formula | From `Tags`: Lapsed, Newbie or Returner for the free-through-2026 offer | |
 | `First Name` | formula | Extracts the first name from the 'Name' field | |
 | `Last Name` | formula | Extracts the last name from the 'Name' field | |
 | `Stripe Dashboard Link` | formula | Creates a direct URL to the Stripe customer dashboard | |

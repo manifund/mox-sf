@@ -11,7 +11,8 @@
 // after a cancellation) is onboarding, which this does not do. Anything else
 // about a person (staff, courtesy, invited, guest program…) is left alone.
 
-import { tierFromStripeProductId } from './membership-pricing'
+import { CORE_PROMO_TRIAL_END, tierFromStripeProductId } from './membership-pricing'
+import { FREE_THRU_2026_LAPSED_TAG } from './membership'
 import { FRIEND_PRODUCT_ID } from './membership-price-migration'
 
 /** Tiers that come from a Stripe membership product. A person on any other
@@ -137,4 +138,93 @@ export function decideCancellation(
     fields: { Status: 'Cancelled' },
     changes: [`Status ${person.status} → Cancelled`],
   }
+}
+
+// ============================================================================
+// A finished membership sign-up -> the person's People record
+// ============================================================================
+
+/** Marks anyone who signed up for Core under the free-through-2026 offer.
+ *  Together with FREE_THRU_2026_LAPSED_TAG it drives the "Free 2026 group"
+ *  formula in Airtable: this tag alone = Newbie, both = Returner. */
+export const FREE_CORE_2026_SIGNUP_TAG = 'Free Core 2026: NEWBIES'
+
+export interface SignupPersonSnapshot {
+  stripeCustomerId: string | null
+  /** "Previous Stripe Customer IDs", one per line */
+  previousStripeCustomerIds: string | null
+  tags: readonly string[]
+  inVerkada: boolean
+}
+
+export interface SignupDecision {
+  fields: {
+    'Stripe Customer ID'?: string
+    'Previous Stripe Customer IDs'?: string
+    Tags?: string[]
+    'In Verkada'?: boolean
+  }
+  /** One plain line per field written, for the log. */
+  changes: string[]
+}
+
+/**
+ * What a completed membership checkout writes to the person who signed up.
+ * Status and Tier are not touched here (onboarding sets those).
+ *
+ * - Stripe Customer ID follows the customer Checkout just used. Every sign-up
+ *   through /join creates a new Stripe customer, so a replaced id is kept in
+ *   "Previous Stripe Customer IDs" rather than lost: Stripe cannot merge
+ *   customers, and an old one may still hold a paused subscription.
+ * - A Core sign-up during the free-through-2026 promo is tagged.
+ * - A lapsed member who signs up again was put in the temporary "Free through
+ *   2026" Verkada group with "In Verkada" ticked, which makes the "Add member
+ *   to Verkada" Airtable automation skip them. Unticking it lets that
+ *   automation add them to MoxSF like any other new member (it ticks the box
+ *   again when it succeeds).
+ */
+export function decideSignup(
+  person: SignupPersonSnapshot,
+  signup: { customerId: string; productId: string | null },
+  nowMs: number = Date.now()
+): SignupDecision {
+  const fields: SignupDecision['fields'] = {}
+  const changes: string[] = []
+  const tier = tierNameForProduct(signup.productId)
+  if (!tier) return { fields, changes }
+
+  if (person.stripeCustomerId !== signup.customerId) {
+    fields['Stripe Customer ID'] = signup.customerId
+    changes.push(
+      `Stripe Customer ID ${person.stripeCustomerId || '(blank)'} → ${signup.customerId}`
+    )
+    if (person.stripeCustomerId) {
+      const previous = (person.previousStripeCustomerIds || '')
+        .split(/\s+/)
+        .filter(Boolean)
+      if (!previous.includes(person.stripeCustomerId)) {
+        fields['Previous Stripe Customer IDs'] = [
+          ...previous,
+          person.stripeCustomerId,
+        ].join('\n')
+        changes.push(`kept previous customer ${person.stripeCustomerId}`)
+      }
+    }
+  }
+
+  if (
+    tier === 'Core' &&
+    nowMs < CORE_PROMO_TRIAL_END * 1000 &&
+    !person.tags.includes(FREE_CORE_2026_SIGNUP_TAG)
+  ) {
+    fields.Tags = [...person.tags, FREE_CORE_2026_SIGNUP_TAG]
+    changes.push(`tagged ${FREE_CORE_2026_SIGNUP_TAG}`)
+  }
+
+  if (person.tags.includes(FREE_THRU_2026_LAPSED_TAG) && person.inVerkada) {
+    fields['In Verkada'] = false
+    changes.push('returning lapsed member: unticked In Verkada so they are added to MoxSF')
+  }
+
+  return { fields, changes }
 }

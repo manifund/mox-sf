@@ -76,9 +76,7 @@ export default function SubscriptionInfo({
   const [switchError, setSwitchError] = useState<string | null>(null)
 
   const refreshSubscription = async () => {
-    const subResponse = await fetch(
-      `/portal/api/subscription?customerId=${stripeCustomerId}`
-    )
+    const subResponse = await fetch('/portal/api/subscription')
     const subData = await subResponse.json()
     if (subData.subscription) {
       setSubscription(subData.subscription)
@@ -99,9 +97,7 @@ export default function SubscriptionInfo({
       }
 
       try {
-        const response = await fetch(
-          `/portal/api/subscription?customerId=${stripeCustomerId}`
-        )
+        const response = await fetch('/portal/api/subscription')
         const data = await response.json()
 
         if (response.ok && data.subscription) {
@@ -131,8 +127,6 @@ export default function SubscriptionInfo({
     try {
       const response = await fetch('/portal/api/create-billing-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stripeCustomerId }),
       })
 
       const data = await response.json()
@@ -182,9 +176,7 @@ export default function SubscriptionInfo({
       const data = await response.json()
 
       if (response.ok) {
-        const subResponse = await fetch(
-          `/portal/api/subscription?customerId=${stripeCustomerId}`
-        )
+        const subResponse = await fetch('/portal/api/subscription')
         const subData = await subResponse.json()
         if (subData.subscription) {
           setSubscription(subData.subscription)
@@ -213,9 +205,7 @@ export default function SubscriptionInfo({
       const data = await response.json()
 
       if (response.ok) {
-        const subResponse = await fetch(
-          `/portal/api/subscription?customerId=${stripeCustomerId}`
-        )
+        const subResponse = await fetch('/portal/api/subscription')
         const subData = await subResponse.json()
         if (subData.subscription) {
           setSubscription(subData.subscription)

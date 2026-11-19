@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { POST } from './route'
 
 const m = vi.hoisted(() => ({
   event: vi.fn(), lines: vi.fn(), find: vi.fn(), create: vi.fn(), update: vi.fn(),
   magic: vi.fn(), send: vi.fn(), sub: vi.fn(), subs: vi.fn(), discord: vi.fn(),
+  get: vi.fn(), findAll: vi.fn(),
 }))
 vi.mock('@/app/lib/stripe', () => ({ stripe: {
   webhooks: { constructEvent: m.event }, checkout: { sessions: { listLineItems: m.lines } },
@@ -13,6 +14,7 @@ vi.mock('resend', () => ({ Resend: class { emails = { send: m.send } } }))
 vi.mock('@/app/lib/airtable', () => ({
   Tables: { People: 'People', DayPasses: 'Day Passes' },
   findRecord: m.find, createRecord: m.create, updateRecord: m.update,
+  getRecord: m.get, findRecords: m.findAll,
   escapeAirtableString: (s: string) => s,
 }))
 vi.mock('@/app/lib/magic-link', () => ({ createMagicLink: m.magic }))
@@ -210,6 +212,70 @@ describe('payment failures and cancellations sync to Airtable', () => {
     deleted()
     member({ Tier: 'Core', Status: 'Joined' })
     m.update.mockRejectedValue(new Error('Airtable 403'))
+    expect((await POST(request())).status).toBe(500)
+  })
+})
+
+describe('membership sign-ups link the person in Airtable', () => {
+  const CORE = 'prod_RpkYg9EMJoi5oi'
+  const signup = (over = {}) => ({ type: 'checkout.session.completed', data: { object: {
+    id: 'cs_signup', mode: 'subscription', customer: 'cus_new', subscription: 'sub_new',
+    client_reference_id: 'recAAAAAAAAAAAAAA',
+    customer_details: { name: 'Casey', email: 'Casey@Example.com' }, ...over,
+  } } })
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-20T20:00:00Z'))
+    m.sub.mockResolvedValue({ id: 'sub_new', items: { data: [{ price: { product: CORE } }] } })
+    m.update.mockResolvedValue({ id: 'recAAAAAAAAAAAAAA', fields: {} })
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('links, tags and re-homes a returning lapsed member by record id', async () => {
+    m.event.mockReturnValue(signup())
+    m.get.mockResolvedValue({ id: 'recAAAAAAAAAAAAAA', fields: {
+      'Stripe Customer ID': 'cus_old', Tags: ['Free Thru 2026: lapsed'], 'In Verkada': true,
+    } })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recAAAAAAAAAAAAAA', {
+      'Stripe Customer ID': 'cus_new',
+      'Previous Stripe Customer IDs': 'cus_old',
+      Tags: ['Free Thru 2026: lapsed', 'Free Core 2026: NEWBIES'],
+      'In Verkada': false,
+    })
+    expect(m.create).not.toHaveBeenCalled()
+    expect(m.send).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the checkout email when exactly one person has it', async () => {
+    m.event.mockReturnValue(signup({ client_reference_id: null }))
+    m.findAll.mockResolvedValue([{ id: 'recBBBBBBBBBBBBBB', fields: {} }])
+    await POST(request())
+    expect(m.findAll.mock.calls[0][1]).toContain('casey@example.com')
+    expect(m.update).toHaveBeenCalledWith('People', 'recBBBBBBBBBBBBBB', {
+      'Stripe Customer ID': 'cus_new', Tags: ['Free Core 2026: NEWBIES'],
+    })
+  })
+
+  it('links nobody when two people share the checkout email', async () => {
+    m.event.mockReturnValue(signup({ client_reference_id: null }))
+    m.findAll.mockResolvedValue([{ id: 'rec1', fields: {} }, { id: 'rec2', fields: {} }])
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+  })
+
+  it('ignores a subscription checkout for a non-membership product', async () => {
+    m.event.mockReturnValue(signup())
+    m.sub.mockResolvedValue({ id: 'sub_new', items: { data: [{ price: { product: 'prod_other' } }] } })
+    await POST(request())
+    expect(m.get).not.toHaveBeenCalled()
+    expect(m.update).not.toHaveBeenCalled()
+  })
+
+  it('returns 500 when the Airtable write fails so Stripe retries', async () => {
+    m.event.mockReturnValue(signup())
+    m.get.mockResolvedValue({ id: 'recAAAAAAAAAAAAAA', fields: {} })
+    m.update.mockRejectedValue(new Error('Airtable 503'))
     expect((await POST(request())).status).toBe(500)
   })
 })

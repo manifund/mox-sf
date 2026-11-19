@@ -1,21 +1,21 @@
-import { getSession } from '@/app/lib/session'
+import { getSessionMember } from '@/app/lib/session-member'
 import { stripe } from '@/app/lib/stripe'
 import { describePlan } from '@/app/lib/membership-plan'
 
-export async function GET(request: Request) {
+// The customer is always the logged-in person's own (or the member a staff
+// user is viewing as), read from Airtable. A customerId in the query string
+// is ignored: it could be anyone's.
+export async function GET() {
   try {
-    const session = await getSession()
-
-    if (!session.isLoggedIn) {
+    const member = await getSessionMember()
+    if (!member) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const stripeCustomerId = searchParams.get('customerId')
-
+    const stripeCustomerId = member.stripeCustomerId
     if (!stripeCustomerId) {
       return Response.json(
-        { error: 'No Stripe customer ID provided' },
+        { error: 'No Stripe customer on your record' },
         { status: 400 }
       )
     }

@@ -76,6 +76,7 @@ Start a Stripe Checkout subscription for a membership tier. Used by the pricing 
 - **Body:** `{ "tier": "core" | "resident", "interval": "quarterly" | "monthly", "clientReferenceId"?: "rec123", "email"?: "..." }`
 - **Response:** `{ "url": "https://checkout.stripe.com/..." }`
 - **Details:** Looks up the Stripe Price by `lookup_key` (see `app/lib/membership-pricing.ts`), applies the 7-day trial, passes `clientReferenceId` as `client_reference_id`, and warns in logs if the Stripe amount differs from the configured price. Success redirects to `/portal/login?joined=1`.
+- **Logged-in callers:** when the request carries a portal session (`/portal/renew`, or a member on `/join` while signed in), the body's `clientReferenceId` and `email` are ignored. Checkout reuses the Stripe customer on the person's People record (`customer`) and sends their record id, so renewing does not create a second Stripe customer. Anonymous requests never reuse a customer: their record id comes from the URL.
 
 ### POST `/api/webhooks/stripe`
 Handle Stripe webhook events.
@@ -176,8 +177,7 @@ it. See [door-code-rotation.md](./workflows/door-code-rotation.md).
 #### GET `/portal/api/subscription`
 Get subscription details.
 
-- **Auth:** User
-- **Query:** `?customerId=cus_xxx`
+- **Auth:** User. Always the logged-in person's own Stripe customer (or the member staff are viewing as), read from Airtable; a `customerId` in the query is ignored.
 - **Response:**
   ```json
   {
@@ -231,8 +231,8 @@ Resume paused subscription.
 #### POST `/portal/api/create-billing-session`
 Create Stripe billing portal session.
 
-- **Auth:** User
-- **Body:** `{ "stripeCustomerId": "cus_xxx" }`
+- **Auth:** User. Opens the billing page for the logged-in person's own Stripe customer (or the member staff are viewing as); a customer id in the body is ignored.
+- **Body:** none
 - **Response:** `{ "url": "https://billing.stripe.com/..." }`
 
 #### GET `/portal/api/guest-passes`

@@ -1,21 +1,21 @@
-import { getSession } from '@/app/lib/session'
+import { getSessionMember } from '@/app/lib/session-member'
 import { stripe } from '@/app/lib/stripe'
 import { env } from '@/app/lib/env'
 
-export async function POST(request: Request) {
+// Opens Stripe's billing page for the logged-in person's own customer (or the
+// member a staff user is viewing as). A customer id in the request body is
+// ignored: it could be anyone's.
+export async function POST() {
   try {
-    const session = await getSession()
-
-    if (!session.isLoggedIn) {
+    const member = await getSessionMember()
+    if (!member) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { stripeCustomerId } = body
-
+    const stripeCustomerId = member.stripeCustomerId
     if (!stripeCustomerId) {
       return Response.json(
-        { error: 'No Stripe customer ID provided' },
+        { error: 'No Stripe customer on your record' },
         { status: 400 }
       )
     }
