@@ -1,5 +1,9 @@
 import { getSession, isCurrentlyStaff } from '@/app/lib/session'
-import { isActiveMember, canIssueGuestDayPass } from '@/app/lib/membership'
+import {
+  isActiveMember,
+  canIssueGuestDayPass,
+  canUseDoor,
+} from '@/app/lib/membership'
 import { weeklyGuestPassAllowance } from '@/app/lib/guest-passes'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -43,6 +47,10 @@ export default async function DashboardPage() {
 
   const activeMember = profile
     ? isActiveMember({ status: profile.status, tier: profile.tier })
+    : false
+  // Active members, plus lapsed members on the free-through-2026 offer
+  const doorAccess = profile
+    ? canUseDoor({ status: profile.status, tier: profile.tier, tags: profile.tags })
     : false
   const canDayPass = profile
     ? canIssueGuestDayPass({ status: profile.status, tier: profile.tier })
@@ -115,16 +123,17 @@ export default async function DashboardPage() {
       )}
 
       {/* Door Access — always first for anyone who can get in */}
-      {(activeMember || dayPasses.length > 0) && (
+      {(doorAccess || dayPasses.length > 0) && (
         <>
           <section>
             <h2>door access</h2>
-            {activeMember ? (
+            {doorAccess ? (
               <VerkadaPin
                 key={effectiveUserId}
                 isViewingAs={!!session.viewingAsUserId}
                 tier={profile.tier}
-                isActiveMember={activeMember}
+                isActiveMember={doorAccess}
+                freeThru2026={doorAccess && !activeMember}
                 showGuestPassHint={guestAllowance !== 0 || canDayPass}
               />
             ) : (

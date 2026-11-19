@@ -8,6 +8,8 @@ interface VerkadaPinProps {
   isActiveMember?: boolean
   // Whether the portal page renders a guest passes section for this member
   showGuestPassHint?: boolean
+  // Lapsed member on the free-through-2026 offer rather than an active member
+  freeThru2026?: boolean
 }
 
 const doorBoxStyle = {
@@ -22,6 +24,7 @@ export default function VerkadaPin({
   tier,
   isActiveMember = false,
   showGuestPassHint = false,
+  freeThru2026 = false,
 }: VerkadaPinProps) {
   const [pin, setPin] = useState<string | null>(null)
   const [hasAccess, setHasAccess] = useState<boolean>(false)
@@ -36,7 +39,8 @@ export default function VerkadaPin({
   const [unlockedAt, setUnlockedAt] = useState<number | null>(null)
   const [unlockError, setUnlockError] = useState<string | null>(null)
 
-  const isGuestProgram = tier === 'Program' || tier === 'Guest Program'
+  const isGuestProgram =
+    !freeThru2026 && (tier === 'Program' || tier === 'Guest Program')
 
   function accessDescription(tier?: string | null): string | null {
     if (!tier) return null
@@ -46,7 +50,9 @@ export default function VerkadaPin({
     return null
   }
 
-  const accessDesc = accessDescription(tier)
+  const accessDesc = freeThru2026
+    ? 'welcome back! you have free access through dec 31, 2026.'
+    : accessDescription(tier)
 
   useEffect(() => {
     if (!isActiveMember) {

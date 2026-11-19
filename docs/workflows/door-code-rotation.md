@@ -185,6 +185,18 @@ Program, Guest Program, Volunteer, or Courtesy (Staff always pass). Stripe is
 not consulted, so a member who paid outside Stripe (Tier `Courtesy`) still
 gets a code.
 
+**Free through 2026 (temporary, ends by itself Jan 1, 2027).** Lapsed members
+invited back for the end-of-2026 promo keep their Paused / Cancelled Status
+(the Stripe sync would undo a hand edit to Joined). `canUseDoor` in the same
+file also lets in anyone tagged `Free Thru 2026: lapsed` until midnight
+Pacific going into Jan 1, 2027, whatever their Status or Tier. It covers the
+door-access box only (their code, regenerating it, and the unlock button);
+guest passes, studio and member pricing still require an active member. For
+these people the PIN route never creates a Verkada user and never adds them
+to MoxSF, since their access comes from the separate "Free through 2026"
+Verkada group that staff empty on Jan 1. After that date the tag does
+nothing and the code can be deleted.
+
 - Portal UI: [app/portal/VerkadaPin.tsx](../../app/portal/VerkadaPin.tsx),
   rendered in the "door access" section of [app/portal/page.tsx](../../app/portal/page.tsx)
 - API: [app/portal/api/verkada-pin/route.ts](../../app/portal/api/verkada-pin/route.ts)

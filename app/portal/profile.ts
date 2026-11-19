@@ -9,6 +9,7 @@ interface ProfileFields {
   'Stripe Customer ID'?: string
   Status?: string
   Tier?: string
+  Tags?: string[]
   Org?: string[]
   'Discord Username'?: string
   'Work thing'?: string
@@ -31,6 +32,7 @@ export interface UserProfile {
   stripeCustomerId: string | null
   status: string | null
   tier: string | null
+  tags: string[]
   orgId: string | null
   discordUsername: string | null
   workThing: string | null
@@ -60,6 +62,7 @@ export async function getUserProfile(
     stripeCustomerId: fields['Stripe Customer ID'] || null,
     status: fields.Status || null,
     tier: fields.Tier || null,
+    tags: fields.Tags || [],
     orgId: fields.Org?.[0] || null,
     discordUsername: fields['Discord Username'] || null,
     workThing: fields['Work thing'] || null,

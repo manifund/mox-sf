@@ -1,6 +1,6 @@
 import { getSession, isCurrentlyStaff } from '@/app/lib/session'
 import { getRecord, Tables } from '@/app/lib/airtable'
-import { isActiveMember } from '@/app/lib/membership'
+import { canUseDoor } from '@/app/lib/membership'
 import { adminUnlockDoor, listDoors, MOX_FRONT_DOOR_ID } from '@/app/lib/verkada'
 
 // Remote unlock of the front door from the portal's door-access box. The
@@ -40,13 +40,14 @@ export async function POST() {
       )
     }
 
-    const record = await getRecord<{ Status?: string; Tier?: string }>(
+    const record = await getRecord<{ Status?: string; Tier?: string; Tags?: string[] }>(
       Tables.People,
       effectiveUserId
     )
-    const memberOk = isActiveMember({
+    const memberOk = canUseDoor({
       status: record?.fields.Status ?? null,
       tier: record?.fields.Tier ?? null,
+      tags: record?.fields.Tags ?? null,
     })
     if (!memberOk) {
       return Response.json(

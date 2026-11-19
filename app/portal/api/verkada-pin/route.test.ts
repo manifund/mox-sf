@@ -23,6 +23,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.clearAllMocks()
 })
@@ -77,5 +78,78 @@ describe('personal door-code provisioning', () => {
     expect(fetch.mock.calls[4][0]).toContain('access_groups/group/user?group_id=mox-group')
     expect(fetch.mock.calls[5][0]).toContain('access_users/user/entry_code?user_id=verkada-kiel&override=false')
     expect(updateRecord).toHaveBeenCalledWith('People', 'rec-kiel', { 'In Verkada': true })
+  })
+
+  describe('lapsed members on the free-through-2026 offer', () => {
+    const lapsed = {
+      id: 'rec-lapsed',
+      fields: {
+        Name: 'Lee Lapsed',
+        Email: 'lee@example.com',
+        Status: 'Paused',
+        Tier: 'Core',
+        Tags: ['Free Thru 2026: lapsed'],
+        'In Verkada': true,
+      },
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-12-01T20:00:00Z'))
+      getSession.mockResolvedValue({ isLoggedIn: true, userId: 'rec-lapsed' })
+      getRecord.mockResolvedValue(lapsed)
+    })
+
+    it('shows them the code they already have in Verkada', async () => {
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(Response.json({ token: 'token' }))
+        .mockResolvedValueOnce(Response.json({ user_id: 'verkada-lee', entry_code: '123456' }))
+      vi.stubGlobal('fetch', fetch)
+
+      const response = await GET()
+
+      await expect(response.json()).resolves.toMatchObject({ pin: '123456', hasAccess: true })
+    })
+
+    it('gives them a new code without adding them to MoxSF', async () => {
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(Response.json({ token: 'token' }))
+        .mockResolvedValueOnce(Response.json({ user_id: 'verkada-lee' }))
+        .mockResolvedValueOnce(new Response('', { status: 200 }))
+        .mockResolvedValueOnce(new Response('', { status: 200 }))
+      vi.stubGlobal('fetch', fetch)
+
+      const response = await POST()
+
+      expect(response.status).toBe(200)
+      expect((await response.json()).pin).toMatch(/^\d{6}$/)
+      const urls = fetch.mock.calls.map(([url]) => String(url))
+      expect(urls.some((url) => url.includes('access_groups'))).toBe(false)
+      expect(urls.some((url) => url.includes('entry_code?user_id=verkada-lee'))).toBe(true)
+      expect(updateRecord).not.toHaveBeenCalled()
+    })
+
+    it('never creates a Verkada account for them', async () => {
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(Response.json({ token: 'token' }))
+        .mockResolvedValueOnce(new Response('', { status: 404 }))
+      vi.stubGlobal('fetch', fetch)
+
+      const response = await POST()
+
+      expect(response.status).toBe(409)
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it('stops on Jan 1, 2027', async () => {
+      vi.setSystemTime(new Date('2027-01-01T08:00:00Z'))
+      const fetch = vi.fn()
+      vi.stubGlobal('fetch', fetch)
+
+      const response = await GET()
+
+      await expect(response.json()).resolves.toMatchObject({ pin: null, hasAccess: false })
+      expect(fetch).not.toHaveBeenCalled()
+    })
   })
 })

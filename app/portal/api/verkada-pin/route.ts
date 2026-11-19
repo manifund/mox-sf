@@ -1,7 +1,7 @@
 import { getSession } from '@/app/lib/session'
 import { getRecord, updateRecord, Tables } from '@/app/lib/airtable'
 import { env } from '@/app/lib/env'
-import { isActiveMember } from '@/app/lib/membership'
+import { canUseDoor, isActiveMember } from '@/app/lib/membership'
 import { rememberDoorCode } from '@/app/lib/door-pins'
 
 interface PersonFields {
@@ -9,6 +9,7 @@ interface PersonFields {
   Name?: string
   Status?: string
   Tier?: string
+  Tags?: string[]
   'In Verkada'?: boolean
 }
 
@@ -259,12 +260,20 @@ async function setVerkadaPin(userId: string, pin: string, token: string): Promis
 async function getMemberAndToken(userId: string) {
   const record = await getMember(userId)
   const fields = record?.fields
-  if (!record || !fields?.Email || !isActiveMember({ status: fields.Status, tier: fields.Tier })) {
+  if (
+    !record ||
+    !fields?.Email ||
+    !canUseDoor({ status: fields.Status, tier: fields.Tier, tags: fields.Tags })
+  ) {
     return null
   }
   const token = await getVerkadaToken()
   if (!token) return null
-  return { record, fields, token }
+  // Lapsed members on the free-through-2026 offer get in through their own
+  // Verkada group, which staff empty on Jan 1. They must never be created in
+  // Verkada or added to MoxSF from here: that would make their access permanent.
+  const promoOnly = !isActiveMember({ status: fields.Status, tier: fields.Tier })
+  return { record, fields, token, promoOnly }
 }
 
 async function fetchPinForUser(effectiveUserId: string): Promise<Response> {
@@ -335,6 +344,12 @@ export async function POST() {
     }
 
     let { user, notFound } = await fetchVerkadaUserByEmail(member.fields.Email!, member.token)
+    if (!user && notFound && member.promoOnly) {
+      return Response.json(
+        { error: "your door-access account isn't set up yet. email team@moxsf.com and we'll sort it out." },
+        { status: 409 }
+      )
+    }
     if (!user && notFound) {
       const userId = await createVerkadaUser(member.fields.Email!, member.fields.Name || '', member.token)
       if (!userId) {
@@ -346,7 +361,7 @@ export async function POST() {
       return Response.json({ error: 'Door system is temporarily unavailable' }, { status: 502 })
     }
 
-    if (!await ensureMoxAccessGroup(user, member.token)) {
+    if (!member.promoOnly && !await ensureMoxAccessGroup(user, member.token)) {
       return Response.json({ error: 'Failed to grant door access' }, { status: 502 })
     }
 
@@ -371,7 +386,7 @@ export async function POST() {
 
     // Keep the member record in sync. A stale checkbox must never prevent a
     // successfully provisioned member from receiving their code.
-    if (!member.fields['In Verkada']) {
+    if (!member.promoOnly && !member.fields['In Verkada']) {
       try {
         await updateRecord<PersonFields>(Tables.People, member.record.id, { 'In Verkada': true })
       } catch (error) {

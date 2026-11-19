@@ -155,6 +155,11 @@ Generate or regenerate the member's personal door code.
 
 - **Auth:** User (403 while viewing as another user)
 - **Response:** `{ "pin": "654321", "hasAccess": true }`
+- **Details:** For active members, creates the Verkada user if needed and adds
+  them to MoxSF. For lapsed members on the free-through-2026 offer (tag
+  `Free Thru 2026: lapsed`, until Jan 1, 2027) it only sets a new code on their
+  existing Verkada user; it returns 409 if they have none. See
+  [door-code-rotation.md](./workflows/door-code-rotation.md).
 
 #### GET `/portal/api/weekly-door-code`
 Get the shared weekly door code. **Deprecated**: no longer shown in the member
@@ -256,7 +261,7 @@ Revoke a guest pass: deletes the guest's Verkada user (so the code stops working
 #### POST `/portal/api/unlock-door`
 Open the front door remotely from the portal's door-access box, for a signed-in member (no code needed). The public web keypad is `POST /door/api/unlock`.
 
-- **Auth:** User (active member; throttled to 10 per 30s per user)
+- **Auth:** User (active member, or tagged `Free Thru 2026: lapsed` until Jan 1, 2027; throttled to 10 per 30s per user)
 - **Response:** `{ "success": true }` or `{ "success": false, "error": "..." }`
 - **Details:** Calls Verkada `POST /access/v1/door/admin_unlock` for `MOX_FRONT_DOOR_ID`. On refusal, logs Verkada's status and message plus the doors visible to the API key (`[portal-unlock]` lines), and staff see the Verkada reason inline; members see a plain "use your code on the keypad" message.
 
