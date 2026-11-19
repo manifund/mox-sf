@@ -28,3 +28,14 @@ it('does not send an unusable link when token persistence fails', async () => {
   expect((await POST(request())).status).toBe(500)
   expect(m.send).not.toHaveBeenCalled()
 })
+it('finds a person whose Airtable email has capital letters', async () => {
+  const typed = new Request('https://moxsf.com/portal/api/send-magic-link', {
+    method: 'POST', body: JSON.stringify({ email: ' Capital.Case@Example.com ' }),
+  })
+  expect((await POST(typed)).status).toBe(200)
+  // Compared against a lowercased copy of the stored email, not the raw value
+  expect(m.find).toHaveBeenCalledWith(
+    'People',
+    "LOWER(TRIM({Email})) = 'capital.case@example.com'"
+  )
+})

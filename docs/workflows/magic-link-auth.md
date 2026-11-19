@@ -23,7 +23,7 @@ sequenceDiagram
     alt Rate limited
         API-->>L: 429 Too Many Requests
     else OK
-        API->>AT: Find user by email
+        API->>AT: Find user by email (case-insensitive)
 
         alt User not found
             API-->>L: 200 OK (silent fail)
