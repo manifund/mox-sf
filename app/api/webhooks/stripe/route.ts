@@ -640,6 +640,20 @@ async function handleSubscriptionUpdated(event: Stripe.Event) {
     return;
   }
 
+  // A paused subscription says nothing about someone who also holds a live
+  // one on the same customer (e.g. an old paused Friend plan next to a Core
+  // plan they renewed from the portal). Without this, every monthly renewal of
+  // the paused one would set them back to Paused and to its Tier.
+  if (
+    subscription.pause_collection &&
+    (await hasAnotherLiveMembership(customerId, subscription.id))
+  ) {
+    console.log(
+      `[Stripe Webhook] ${subscription.id} is paused but ${person.id} holds another live membership; leaving Airtable alone`
+    );
+    return;
+  }
+
   const decision = decideMembershipSync(
     { tier: person.fields.Tier ?? null, status: person.fields.Status ?? null },
     {
@@ -665,6 +679,25 @@ async function handleSubscriptionUpdated(event: Stripe.Event) {
   await notifyMembershipSync(
     `🔄 **Stripe → Airtable:** ${person.fields.Name || customerId} — ${decision.changes.join(', ')}` +
       (decision.fields.Tier ? ' (Forkable club is not changed automatically)' : '')
+  );
+}
+
+// True when the customer has a different membership subscription that is
+// active or trialing and not paused.
+async function hasAnotherLiveMembership(
+  customerId: string,
+  exceptSubscriptionId: string
+): Promise<boolean> {
+  const others = await stripe.subscriptions.list({
+    customer: customerId,
+    limit: 20,
+  });
+  return others.data.some(
+    (other) =>
+      other.id !== exceptSubscriptionId &&
+      !other.pause_collection &&
+      (other.status === 'active' || other.status === 'trialing') &&
+      tierNameForProduct(subscriptionProductId(other)) !== null
   );
 }
 

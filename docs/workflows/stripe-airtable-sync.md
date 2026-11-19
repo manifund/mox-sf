@@ -63,6 +63,13 @@ Everything else is left alone:
 - Subscriptions that are `incomplete`, `incomplete_expired` or Stripe-`paused`
   (a trial that ended with no payment method) are skipped.
 
+**A paused subscription beside a live one is ignored.** If the customer has
+another membership subscription that is active or trialing and not paused, an
+update to the paused one changes nothing. Otherwise an old paused plan left on
+the same Stripe customer (possible once portal renewals reuse the customer)
+would set the member back to Paused, and to the old plan's Tier, at every
+monthly renewal. See `hasAnotherLiveMembership` in the webhook.
+
 ## What it does not do
 
 - **Status on signup and rejoining.** Setting `Status = Joined` (and Tier)

@@ -104,6 +104,7 @@ describe('subscription changes sync to Airtable', () => {
       object: { id: 'sub_1' }, previous_attributes: { items: {} },
     } })
     m.sub.mockResolvedValue(stripeSub())
+    m.subs.mockResolvedValue({ data: [] })
   })
   it('moves a paused Friend who resumed onto Core to Joined Core', async () => {
     member({ Tier: 'Friend', Status: 'Paused' })
@@ -114,6 +115,31 @@ describe('subscription changes sync to Airtable', () => {
   it('marks a member Paused using the live subscription, not the event payload', async () => {
     member({ Tier: 'Core', Status: 'Joined' })
     m.sub.mockResolvedValue(stripeSub({ pause_collection: { behavior: 'void' } }))
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Status: 'Paused' })
+  })
+  it('leaves a member alone when a paused subscription sits beside a live one', async () => {
+    member({ Tier: 'Core', Status: 'Joined' })
+    // The old paused Friend plan renews; the same customer also has live Core.
+    m.sub.mockResolvedValue(stripeSub({
+      id: 'sub_1', pause_collection: { behavior: 'void' },
+      items: { data: [{ price: { product: 'prod_Rq9VzfM9QoJwPD' } }] },
+    }))
+    m.subs.mockResolvedValue({ data: [
+      stripeSub({ id: 'sub_1', pause_collection: { behavior: 'void' } }),
+      stripeSub({ id: 'sub_2', status: 'trialing' }),
+    ] })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.subs).toHaveBeenCalledWith({ customer: 'cus_1', limit: 20 })
+    expect(m.update).not.toHaveBeenCalled()
+  })
+  it('still pauses when the only other subscription is itself paused', async () => {
+    member({ Tier: 'Core', Status: 'Joined' })
+    m.sub.mockResolvedValue(stripeSub({ pause_collection: { behavior: 'void' } }))
+    m.subs.mockResolvedValue({ data: [
+      stripeSub({ id: 'sub_1', pause_collection: { behavior: 'void' } }),
+      stripeSub({ id: 'sub_2', pause_collection: { behavior: 'void' } }),
+    ] })
     expect((await POST(request())).status).toBe(200)
     expect(m.update).toHaveBeenCalledWith('People', 'recMember', { Status: 'Paused' })
   })
