@@ -125,7 +125,10 @@ export async function POST(request: Request) {
 async function findUserByEmail(email: string) {
   // Use escapeAirtableString to prevent formula injection
   const escapedEmail = escapeAirtableString(email)
-  const formula = `{Email} = '${escapedEmail}'`
+  // The typed email is lowercased before it gets here, so compare against a
+  // lowercased copy of the Airtable value. An exact match missed anyone whose
+  // record has a capital letter in it, and they never got a login link.
+  const formula = `LOWER(TRIM({Email})) = '${escapedEmail}'`
 
   const record = await findRecord<PersonFields>(Tables.People, formula)
 
