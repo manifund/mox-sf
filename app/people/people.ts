@@ -200,7 +200,7 @@ export async function getPrograms(): Promise<Map<string, Program>> {
 // order. Anything not listed keeps the default size-then-alphabetical sort.
 // Matched on the Airtable program name, so renaming a program here means
 // renaming it in Airtable too.
-const PINNED_PROGRAMS = ['Surplus']
+const PINNED_PROGRAMS = ['Pivotal Fellows', 'Surplus']
 
 // Finished programs we no longer surface in the directory. Their Airtable
 // rows and participant rosters are left untouched — members of a hidden

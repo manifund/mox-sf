@@ -31,6 +31,15 @@ export function isActiveMember({ status, tier }: MembershipFields): boolean {
   return (ACTIVE_MEMBER_TIERS as readonly string[]).includes(tier)
 }
 
+// Fellowship and guest-program members share one Verkada guest identity, and
+// the portal shows them its code. Mirrors isGuestProgram in VerkadaPin.tsx.
+const SHARED_GUEST_CODE_TIERS = ['Program', 'Guest Program'] as const
+
+export function canSeeSharedGuestCode({ status, tier }: MembershipFields): boolean {
+  if (!tier || !isActiveMember({ status, tier })) return false
+  return (SHARED_GUEST_CODE_TIERS as readonly string[]).includes(tier)
+}
+
 export function canIssueGuestDayPass({ status, tier }: MembershipFields): boolean {
   if (tier === 'Staff') return true
   if (status !== 'Joined' || !tier) return false

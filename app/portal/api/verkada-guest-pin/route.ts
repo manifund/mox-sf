@@ -1,5 +1,7 @@
 import { getSession } from '@/app/lib/session'
 import { env } from '@/app/lib/env'
+import { getRecord, Tables } from '@/app/lib/airtable'
+import { canSeeSharedGuestCode } from '@/app/lib/membership'
 
 // Cache for Verkada API token (valid for 30 minutes, we refresh at 25 min to be safe)
 let cachedToken: string | null = null
@@ -84,6 +86,14 @@ export async function GET() {
     const session = await getSession()
     if (!session.isLoggedIn || !session.userId) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Only active Program / Guest Program members get the shared code; the
+    // portal hides it from everyone else, so the API must too.
+    const effectiveUserId = session.viewingAsUserId || session.userId
+    const person = await getRecord<{ Status?: string; Tier?: string }>(Tables.People, effectiveUserId)
+    if (!person || !canSeeSharedGuestCode({ status: person.fields.Status, tier: person.fields.Tier })) {
+      return Response.json({ pin: null, hasAccess: false })
     }
 
     const guestUserId = env.VERKADA_GUEST_USER_ID.trim()

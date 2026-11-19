@@ -25,7 +25,8 @@ export type MemberTier = 'Private Office' | 'Resident' | 'Core' | 'Friend' | 'Pr
 // PINNED_PROGRAMS in people.ts), so update this when a cohort starts or
 // wraps up — Programs has no reliable "current" flag (Sentient Futures
 // Residency is still Confirmed with no end date).
-export const CURRENT_PROGRAMS = ['Surplus', 'Frame Fellowship #2']
+// Surplus ended Oct 23, 2026 but its fellows keep access through Dec 31.
+export const CURRENT_PROGRAMS = ['Pivotal Fellows', 'Frame Fellowship #2', 'Surplus']
 
 // Cohorts whose roster isn't linked in Airtable yet. Counted in the stats
 // and shown as a headcount-only group; drop the entry once the People are
