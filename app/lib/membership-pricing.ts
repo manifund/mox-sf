@@ -54,13 +54,36 @@ export function checkoutTrial(
   return { trial_period_days: TRIAL_DAYS }
 }
 
+// Legacy Friend product. It has no tier here because nobody can sign up for
+// it any more, but paused Friend subscriptions still exist and can be resumed.
+const FRIEND_PRODUCT_ID = 'prod_Rq9VzfM9QoJwPD'
+
+/**
+ * Extra Stripe update params for resuming a paused subscription from the
+ * portal. During the free-through-2026 promo a resumed Core or Friend
+ * subscription goes onto the same free trial as everyone else, so coming back
+ * never charges anyone before Jan 1, 2027. Without this, clearing the pause
+ * leaves the old billing date in place and Stripe charges full price on it.
+ * Other products, and resumes after the promo, get nothing extra.
+ */
+export function promoResumeTrial(
+  productId: string | null | undefined,
+  nowMs: number = Date.now()
+): { trial_end: number; proration_behavior: 'none' } | Record<string, never> {
+  if (nowMs >= CORE_PROMO_TRIAL_END * 1000) return {}
+  if (productId !== CORE_PRODUCT_ID && productId !== FRIEND_PRODUCT_ID) return {}
+  return { trial_end: CORE_PROMO_TRIAL_END, proration_behavior: 'none' }
+}
+
+const CORE_PRODUCT_ID = 'prod_RpkYg9EMJoi5oi'
+
 export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
   core: {
     id: 'core',
     name: 'Core',
     quarterlyMonthlyCents: 45000,
     monthlyCents: 59500,
-    stripeProductId: 'prod_RpkYg9EMJoi5oi',
+    stripeProductId: CORE_PRODUCT_ID,
     stripeLookupKeys: {
       quarterly: 'membership_core_quarterly',
       monthly: 'membership_core_monthly',

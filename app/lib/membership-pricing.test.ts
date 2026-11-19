@@ -15,6 +15,7 @@ import {
   TRIAL_DAYS,
   checkoutTrial,
   corePromoTrialActive,
+  promoResumeTrial,
 } from './membership-pricing'
 
 describe('membership pricing', () => {
@@ -116,5 +117,29 @@ describe('corePromoTrialActive', () => {
     expect(corePromoTrialActive(Date.parse('2026-11-18T12:00:00-08:00'))).toBe(true)
     expect(corePromoTrialActive(Date.parse('2026-12-29T22:00:00-08:00'))).toBe(true)
     expect(corePromoTrialActive(Date.parse('2026-12-30T00:00:00-08:00'))).toBe(false)
+  })
+})
+
+describe('promoResumeTrial', () => {
+  const during = Date.UTC(2026, 10, 19)
+  const after = Date.UTC(2027, 0, 1, 8)
+
+  it('puts a resumed Core or Friend subscription on the trial to Jan 1', () => {
+    for (const product of ['prod_RpkYg9EMJoi5oi', 'prod_Rq9VzfM9QoJwPD']) {
+      expect(promoResumeTrial(product, during)).toEqual({
+        trial_end: CORE_PROMO_TRIAL_END,
+        proration_behavior: 'none',
+      })
+    }
+  })
+
+  it('leaves other products alone', () => {
+    expect(promoResumeTrial('prod_RpkufjD9E3esG5', during)).toEqual({})
+    expect(promoResumeTrial(null, during)).toEqual({})
+  })
+
+  it('does nothing once the promo has ended', () => {
+    expect(promoResumeTrial('prod_RpkYg9EMJoi5oi', after)).toEqual({})
+    expect(promoResumeTrial('prod_RpkYg9EMJoi5oi', after - 1)).not.toEqual({})
   })
 })

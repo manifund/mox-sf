@@ -3,6 +3,7 @@ import { getRecord, Tables } from '@/app/lib/airtable'
 import { sendChannelMessage, DISCORD_CHANNELS } from '@/app/lib/discord'
 import { stripe } from '@/app/lib/stripe'
 import { sendEmail } from '@/app/lib/email'
+import { promoResumeTrial } from '@/app/lib/membership-pricing'
 
 interface PersonFields {
   Email?: string
@@ -74,7 +75,15 @@ The Mox Team`,
 }
 
 // Send confirmation email to user about subscription resume
-async function notifyUserResume(userEmail: string, userName: string) {
+async function notifyUserResume(
+  userEmail: string,
+  userName: string,
+  freeUntilJan1: boolean
+) {
+  const billingLine = freeUntilJan1
+    ? "You won't be charged until January 1, 2027: membership is free through the end of 2026."
+    : 'Your next billing cycle will begin according to your subscription schedule.'
+
   await sendEmail({
     to: userEmail,
     subject: 'Your Mox Membership Has Been Resumed',
@@ -82,7 +91,7 @@ async function notifyUserResume(userEmail: string, userName: string) {
 
 Your Mox membership has been resumed and is now active again.
 
-Your next billing cycle will begin according to your subscription schedule.
+${billingLine}
 
 If you have any questions, please contact us at team@moxsf.com.
 
@@ -301,17 +310,28 @@ export async function DELETE() {
       )
     }
 
-    // Resume the subscription
+    // Resume the subscription. During the free-through-2026 promo a resumed
+    // Core or Friend subscription also goes on the free trial to Jan 1, so
+    // un-pausing never charges anyone before then.
+    const product = subscription.items.data[0]?.price.product
+    const promoTrial = promoResumeTrial(
+      typeof product === 'string' ? product : product?.id
+    )
     await stripe.subscriptions.update(subscription.id, {
       pause_collection: null,
       metadata: {
         pause_reason: '',
       },
+      ...promoTrial,
     })
 
     // Send notifications
     await notifyStaffResume(userInfo.email, userInfo.name)
-    await notifyUserResume(userInfo.email, userInfo.name)
+    await notifyUserResume(
+      userInfo.email,
+      userInfo.name,
+      'trial_end' in promoTrial
+    )
 
     // If an admin is acting on behalf of another user, notify the admin
     if (session.viewingAsUserId && session.viewingAsUserId === effectiveUserId) {

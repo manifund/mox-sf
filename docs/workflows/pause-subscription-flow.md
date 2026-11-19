@@ -59,7 +59,7 @@ flowchart TD
         BE -->|Yes| BG[Get subscription from Stripe]
         BG --> BH{Subscription<br/>is paused?}
         BH -->|No| BI[400 Bad Request]
-        BH -->|Yes| BJ[Update Stripe subscription<br/>pause_collection: null]
+        BH -->|Yes| BJ[Update Stripe subscription<br/>pause_collection: null<br/>plus trial to Jan 1, 2027 for Core/Friend<br/>while the 2026 promo runs]
     end
 
     subgraph ResumeNotifications["Resume Notifications"]

@@ -226,7 +226,7 @@ Pause subscription.
 Resume paused subscription.
 
 - **Auth:** User
-- **Details:** Sends email notifications
+- **Details:** Sends email notifications. Until Jan 1, 2027 (the free-through-2026 promo), resuming a Core or Friend subscription also sets its `trial_end` to Jan 1, 2027 with no proration, so un-pausing never charges anyone before then (`promoResumeTrial` in `app/lib/membership-pricing.ts`). Without it, Stripe keeps the old billing date and charges full price on it.
 
 #### POST `/portal/api/create-billing-session`
 Create Stripe billing portal session.
