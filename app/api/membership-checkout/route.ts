@@ -1,12 +1,8 @@
 import { stripe } from '@/app/lib/stripe'
 import { env } from '@/app/lib/env'
 import { getRecord, Tables } from '@/app/lib/airtable'
+import { getSession } from '@/app/lib/session'
 import { findExistingMembership } from '@/app/lib/existing-membership'
-
-interface PersonFields {
-  Email?: string
-  'Stripe Customer ID'?: string
-}
 import {
   STRIPE_BILLING_LOGIN_URL,
   MEMBERSHIP_TIERS,
@@ -15,6 +11,28 @@ import {
   isBillingInterval,
   isMembershipTierId,
 } from '@/app/lib/membership-pricing'
+
+interface PersonFields {
+  Email?: string
+  'Stripe Customer ID'?: string
+}
+
+const RECORD_ID = /^rec[A-Za-z0-9]{14}$/
+
+// Whose membership to check: the invite link's record, else the logged-in
+// member's own (e.g. /portal/renew). Never an email from the request body, or
+// this endpoint would tell anyone whether an address belongs to a member.
+async function personForCheckout(clientReferenceId: unknown) {
+  if (typeof clientReferenceId === 'string' && RECORD_ID.test(clientReferenceId)) {
+    return getRecord<PersonFields>(Tables.People, clientReferenceId)
+  }
+  const session = await getSession()
+  if (!session.isLoggedIn) return null
+  return getRecord<PersonFields>(
+    Tables.People,
+    session.viewingAsUserId || session.userId
+  )
+}
 
 // Starts a Stripe Checkout subscription for a membership tier. Unauthenticated
 // on purpose: /join is reached by invite link before the person has a portal
@@ -42,17 +60,15 @@ export async function POST(request: Request) {
   try {
     // Don't start a second subscription for someone who already pays. Tier
     // changes for existing members go through the Stripe billing portal.
-    const record =
-      typeof clientReferenceId === 'string' &&
-      /^rec[A-Za-z0-9]{14}$/.test(clientReferenceId)
-        ? await getRecord<PersonFields>(Tables.People, clientReferenceId)
-        : null
+    const person = await personForCheckout(clientReferenceId)
+    const existing = person
+      ? await findExistingMembership({
+          customerIds: [person.fields['Stripe Customer ID']],
+          email: person.fields.Email,
+        })
+      : { held: false, customerId: null }
     const checkoutEmail =
-      typeof email === 'string' && email ? email : record?.fields.Email
-    const existing = await findExistingMembership({
-      customerIds: [record?.fields['Stripe Customer ID']],
-      email: checkoutEmail,
-    })
+      person?.fields.Email || (typeof email === 'string' && email) || null
     if (existing.held) {
       return Response.json(
         {

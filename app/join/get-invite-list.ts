@@ -16,7 +16,7 @@ interface PersonFields {
 const JOINABLE_STATUSES = ['Invited', 'To Invite', 'Cancelled', 'Joined']
 
 export type JoinLookup =
-  | { kind: 'invited'; name: string; recordId: string; email: string | null }
+  | { kind: 'invited'; name: string; recordId: string }
   | { kind: 'member'; name: string }
   | { kind: 'not-found' }
 
@@ -41,7 +41,6 @@ export async function lookupJoinLink(recordId: string): Promise<JoinLookup> {
       kind: 'invited',
       name,
       recordId: record.id,
-      email: record.fields.Email ?? null,
     }
   } catch (e) {
     console.error('Failed to look up join link:', e)

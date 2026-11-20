@@ -14,7 +14,6 @@ function JoinContent(props: {
   firstName?: string
   specialInvite?: string | null
   airtableRecordId?: string | null
-  customerEmail?: string | null
 }) {
   const { firstName, specialInvite } = props
   return (
@@ -205,7 +204,6 @@ function JoinContent(props: {
         <MembershipPricingTable
           mode={props.checkout ? 'checkout' : 'apply'}
           clientReferenceId={props.airtableRecordId}
-          customerEmail={props.customerEmail}
         />
       </div>
 
@@ -233,7 +231,7 @@ type PageState =
   | { kind: 'loading' }
   | { kind: 'public' }
   | { kind: 'special'; code: string }
-  | { kind: 'invited'; firstName: string; recordId: string; email: string | null }
+  | { kind: 'invited'; firstName: string; recordId: string }
   | { kind: 'member'; firstName: string }
   | { kind: 'not-found' }
 
@@ -257,7 +255,6 @@ export default function JoinPage() {
             kind: 'invited',
             firstName: result.name.split(' ')[0],
             recordId: result.recordId,
-            email: result.email,
           })
         } else if (result.kind === 'member') {
           setState({ kind: 'member', firstName: result.name.split(' ')[0] })
@@ -285,7 +282,6 @@ export default function JoinPage() {
           checkout
           firstName={state.firstName}
           airtableRecordId={state.recordId}
-          customerEmail={state.email}
         />
       )
     case 'member':
