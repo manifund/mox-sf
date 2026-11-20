@@ -116,6 +116,11 @@ export default function MembershipPricingTable({
       })
       // A crashed route returns an HTML error page rather than JSON.
       const data = await res.json().catch(() => ({}))
+      // Already a paying member: tier changes happen in the billing portal.
+      if (res.status === 409 && typeof data.manageUrl === 'string') {
+        window.location.assign(data.manageUrl)
+        return
+      }
       if (!res.ok || typeof data.url !== 'string') {
         throw new Error(
           typeof data.error === 'string'

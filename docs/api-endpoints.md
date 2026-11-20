@@ -74,8 +74,8 @@ Start a Stripe Checkout subscription for a membership tier. Used by the pricing 
 
 - **Auth:** None (reached by invite link before the person has a portal login)
 - **Body:** `{ "tier": "core" | "resident", "interval": "quarterly" | "monthly", "clientReferenceId"?: "rec123", "email"?: "..." }`
-- **Response:** `{ "url": "https://checkout.stripe.com/..." }`
-- **Details:** Looks up the Stripe Price by `lookup_key` (see `app/lib/membership-pricing.ts`), applies the 7-day trial, passes `clientReferenceId` as `client_reference_id`, and warns in logs if the Stripe amount differs from the configured price. Success redirects to `/portal/login?joined=1`.
+- **Response:** `{ "url": "https://checkout.stripe.com/..." }`, or **409** `{ "error", "manageUrl" }` when the person already holds a membership subscription (the pricing table redirects to `manageUrl`, the Stripe billing-portal login)
+- **Details:** First checks Stripe for an existing membership (`app/lib/existing-membership.ts`): the `Stripe Customer ID` on the `clientReferenceId` record plus every Stripe customer with the email. Active, trialing, past-due, unpaid and paused all count; if Stripe can't be reached the check fails open. Otherwise looks up the Stripe Price by `lookup_key` (see `app/lib/membership-pricing.ts`), applies the 7-day trial, passes `clientReferenceId` as `client_reference_id`, reuses the person's existing Stripe customer if they have one (else prefills their email), and warns in logs if the Stripe amount differs from the configured price. Success redirects to `/portal/login?joined=1`.
 
 ### POST `/api/webhooks/stripe`
 Handle Stripe webhook events.

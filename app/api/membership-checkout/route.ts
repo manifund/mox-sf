@@ -1,6 +1,14 @@
 import { stripe } from '@/app/lib/stripe'
 import { env } from '@/app/lib/env'
+import { getRecord, Tables } from '@/app/lib/airtable'
+import { findExistingMembership } from '@/app/lib/existing-membership'
+
+interface PersonFields {
+  Email?: string
+  'Stripe Customer ID'?: string
+}
 import {
+  STRIPE_BILLING_LOGIN_URL,
   MEMBERSHIP_TIERS,
   chargeCents,
   checkoutTrial,
@@ -32,6 +40,30 @@ export async function POST(request: Request) {
   const lookupKey = tier.stripeLookupKeys[interval]
 
   try {
+    // Don't start a second subscription for someone who already pays. Tier
+    // changes for existing members go through the Stripe billing portal.
+    const record =
+      typeof clientReferenceId === 'string' &&
+      /^rec[A-Za-z0-9]{14}$/.test(clientReferenceId)
+        ? await getRecord<PersonFields>(Tables.People, clientReferenceId)
+        : null
+    const checkoutEmail =
+      typeof email === 'string' && email ? email : record?.fields.Email
+    const existing = await findExistingMembership({
+      customerIds: [record?.fields['Stripe Customer ID']],
+      email: checkoutEmail,
+    })
+    if (existing.held) {
+      return Response.json(
+        {
+          error:
+            'You already have a Mox membership. Change your tier from the billing portal instead.',
+          manageUrl: STRIPE_BILLING_LOGIN_URL,
+        },
+        { status: 409 }
+      )
+    }
+
     const prices = await stripe.prices.list({
       lookup_keys: [lookupKey],
       active: true,
@@ -71,7 +103,13 @@ export async function POST(request: Request) {
       ...(typeof clientReferenceId === 'string' && clientReferenceId
         ? { client_reference_id: clientReferenceId }
         : {}),
-      ...(typeof email === 'string' && email ? { customer_email: email } : {}),
+      // Reuse their Stripe customer if they have one (e.g. a lapsed member),
+      // so Stripe doesn't end up with two customers for one person.
+      ...(existing.customerId
+        ? { customer: existing.customerId }
+        : checkoutEmail
+          ? { customer_email: checkoutEmail }
+          : {}),
       success_url: `${baseUrl}/portal/login?joined=1`,
       cancel_url: `${baseUrl}/join`,
     })

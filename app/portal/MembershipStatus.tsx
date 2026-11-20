@@ -7,12 +7,15 @@ import { MEMBERSHIP_TIERS, formatDollars } from '@/app/lib/membership-pricing'
 export default function MembershipStatus({
   status,
   firstName,
+  recordId,
   stripeCustomerId,
   tier,
   orgId,
 }: {
   status?: string | null
   firstName: string
+  /** Airtable People record id; /join?id= links checkout to it. */
+  recordId: string
   stripeCustomerId: string | null
   tier?: string | null
   orgId?: string | null
@@ -108,7 +111,11 @@ export default function MembershipStatus({
       {(isVisitor || displayStatus === 'inactive') && !stripeCustomerId && (
         <p style={{ marginTop: '15px' }}>
           <Link
-            href={`/join?name=${encodeURIComponent(firstName)}`}
+            href={
+              status === 'Cancelled'
+                ? `/join?id=${encodeURIComponent(recordId)}`
+                : '/join'
+            }
             className="btn primary"
           >
             apply for membership
@@ -140,7 +147,7 @@ export default function MembershipStatus({
 
           <p style={{ marginTop: '15px' }}>
             <Link
-              href={`/join?name=${encodeURIComponent(firstName)}`}
+              href={`/join?id=${encodeURIComponent(recordId)}`}
               className="btn primary"
             >
               choose a membership

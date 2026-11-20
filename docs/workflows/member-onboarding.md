@@ -73,6 +73,24 @@ checkout route logs a warning if the two ever disagree.
 
 Private offices are quoted by hand (the Office column links to email).
 
+## Join Links
+
+`/join` shows one of these, depending on the URL:
+
+| URL | Shows |
+|-----|-------|
+| `/join?id=rec…` (the People "Join link" field) | The invite page with checkout buttons, if the record's Status is Invited, To Invite, Cancelled or **Joined** and the person holds no membership subscription in Stripe |
+| same, but they already pay | "You're already a member" with a button to the Stripe billing portal, where they change tier |
+| same, but the record is missing or has another Status | "We couldn't find your invite", with an email to ask for a fresh link |
+| `/join?invite=friend-of-mythos` | The invite page with checkout buttons, no Airtable record |
+| `/join` | The public page; tier buttons go to the application form |
+
+Joined is allowed so people who came in through a program (Tier Program) or
+were marked Joined by hand can start a paid membership from the same link.
+After checkout the Zapier Zap sets their Tier from the price they chose.
+There is no name gate: the record ID in the link identifies the person, and
+`/portal` links invited and cancelled members to `/join?id=<their record>`.
+
 Existing members can move between the two intervals from the portal; see
 `docs/workflows/billing-interval-switch.md`.
 
