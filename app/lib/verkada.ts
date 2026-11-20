@@ -108,7 +108,9 @@ async function templateAccessGroupIds(token: string): Promise<string[]> {
     `/access/v1/access_users/user?user_id=${encodeURIComponent(templateId)}`
   )
   if (!res.ok) {
-    throw new Error(`template user lookup failed: ${await describeFailure(res)}`)
+    throw new Error(
+      `template user lookup failed: ${await describeFailure(res)}`
+    )
   }
   const data = await res.json()
   const groups: { group_id?: string }[] = data.access_groups || []
@@ -135,6 +137,57 @@ export interface GuestAccessUser {
 }
 
 const ENTRY_CODE_ATTEMPTS = 4
+
+/** Tries per setup step when Verkada answers with a server error or 429. */
+const SETUP_ATTEMPTS = 3
+const SETUP_RETRY_BASE_MS = 400
+
+/** Server errors and rate limits are worth another try; 4xx answers aren't. */
+export function isTransientStatus(status: number): boolean {
+  return status === 429 || status >= 500
+}
+
+/**
+ * PUT one setup step for a just-created user. Verkada sometimes answers a
+ * call made right after creating a user with a bare 500 ("Unable to set
+ * start date.") that succeeds when repeated a moment later, so server errors,
+ * rate limits and network failures are retried with a short backoff.
+ */
+async function setupPut(
+  token: string,
+  path: string,
+  body: unknown,
+  step: string
+): Promise<void> {
+  let lastFailure = ''
+  for (let attempt = 1; attempt <= SETUP_ATTEMPTS; attempt++) {
+    try {
+      const res = await verkadaFetch(token, path, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        if (attempt > 1) {
+          console.log(`[verkada] ${step} succeeded on attempt ${attempt}`)
+        }
+        return
+      }
+      lastFailure = await describeFailure(res)
+      if (!isTransientStatus(res.status)) break
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error)
+    }
+    if (attempt < SETUP_ATTEMPTS) {
+      console.warn(
+        `[verkada] ${step} failed (attempt ${attempt}), retrying: ${lastFailure}`
+      )
+      await new Promise((resolve) =>
+        setTimeout(resolve, SETUP_RETRY_BASE_MS * 2 ** (attempt - 1))
+      )
+    }
+  }
+  throw new Error(`${step} failed: ${lastFailure}`)
+}
 
 /**
  * Create a Verkada access user for one guest pass: a user in the day-pass
@@ -170,32 +223,26 @@ export async function createGuestAccessUser(
     const toSeconds = (d: Date) => String(Math.floor(d.getTime() / 1000))
 
     for (const groupId of groupIds) {
-      const res = await verkadaFetch(
+      await setupPut(
         token,
         `/access/v1/access_groups/group/user?group_id=${encodeURIComponent(groupId)}`,
-        { method: 'PUT', body: JSON.stringify({ user_id: userId }) }
+        { user_id: userId },
+        'add to group'
       )
-      if (!res.ok) {
-        throw new Error(`add to group failed: ${await describeFailure(res)}`)
-      }
     }
 
-    const startRes = await verkadaFetch(
+    await setupPut(
       token,
       `/access/v1/access_users/user/start_date?${q}`,
-      { method: 'PUT', body: JSON.stringify({ start_date: toSeconds(input.start) }) }
+      { start_date: toSeconds(input.start) },
+      'set start date'
     )
-    if (!startRes.ok) {
-      throw new Error(`set start date failed: ${await describeFailure(startRes)}`)
-    }
-    const endRes = await verkadaFetch(
+    await setupPut(
       token,
       `/access/v1/access_users/user/end_date?${q}`,
-      { method: 'PUT', body: JSON.stringify({ end_date: toSeconds(input.end) }) }
+      { end_date: toSeconds(input.end) },
+      'set end date'
     )
-    if (!endRes.ok) {
-      throw new Error(`set end date failed: ${await describeFailure(endRes)}`)
-    }
 
     // Entry codes are unique per organization. override=false means a clash
     // with an existing code fails instead of stealing it, so try a few.
@@ -209,8 +256,15 @@ export async function createGuestAccessUser(
       )
       if (res.ok) return { userId, entryCode }
       lastFailure = await describeFailure(res)
-      // Anything other than a clash won't be fixed by trying another code.
-      if (res.status !== 400 && res.status !== 409) break
+      // A clash (400/409) needs another code; a server hiccup or rate limit
+      // needs a pause. Anything else won't be fixed by trying again.
+      if (isTransientStatus(res.status)) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, SETUP_RETRY_BASE_MS * 2 ** attempt)
+        )
+      } else if (res.status !== 400 && res.status !== 409) {
+        break
+      }
     }
     throw new Error(`set entry code failed: ${lastFailure}`)
   } catch (error) {
