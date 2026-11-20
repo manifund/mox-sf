@@ -20,13 +20,14 @@ try {
   const s = String(Math.floor(Date.parse('2026-11-22T16:00:00Z') / 1000))
   const e = String(Math.floor(Date.parse('2026-11-23T07:00:00Z') / 1000))
   const now = String(Math.floor(Date.now() / 1000) + 120)
+  const s21 = String(Math.floor(Date.parse('2026-11-21T16:00:00Z') / 1000))
+  const e21 = String(Math.floor(Date.parse('2026-11-22T07:00:00Z') / 1000))
+  const exact = (ss, ee) => async (id) => { for (const g of groups) await put('group', `/access/v1/access_groups/group/user?group_id=${g}`, { user_id: id }); await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: ss }); await put('end', `/access/v1/access_users/user/end_date?user_id=${id}`, { end_date: ee }) }
   const variants = {
-    exact: async (id) => { for (const g of groups) await put('group', `/access/v1/access_groups/group/user?group_id=${g}`, { user_id: id }); await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: s }); await put('end', `/access/v1/access_users/user/end_date?user_id=${id}`, { end_date: e }) },
-    noGroups: async (id) => { await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: s }) },
-    endFirst: async (id) => { await put('end', `/access/v1/access_users/user/end_date?user_id=${id}`, { end_date: e }); await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: s }) },
-    startSoon: async (id) => { await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: now }) },
-    entryCodeFirst: async (id) => { await put('code', `/access/v1/access_users/user/entry_code?user_id=${id}&override=false`, { entry_code: String(700000 + Math.floor(Math.random() * 299999)) }); await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: s }) },
-    byExternalId: async (id, ext) => { await put('start', `/access/v1/access_users/user/start_date?external_id=${ext}`, { start_date: s }) },
+    exact21: exact(s21, e21),
+    exact22: exact(s, e),
+    start21Plus1: exact(String(Number(s21) + 1), e21),
+    noGroups21: async (id) => { await put('start', `/access/v1/access_users/user/start_date?user_id=${id}`, { start_date: s21 }) },
   }
   for (const [name, run] of Object.entries(variants)) {
     out({ variant: name })
