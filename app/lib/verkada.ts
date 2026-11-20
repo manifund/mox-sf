@@ -38,7 +38,7 @@ async function fetchAdminToken(): Promise<string | null> {
   return token ?? null
 }
 
-export async function getAdminToken(): Promise<string | null> {
+async function getAdminToken(): Promise<string | null> {
   const now = Date.now()
   if (cachedToken && cachedToken.expiresAt > now) {
     return cachedToken.token
@@ -60,7 +60,7 @@ export async function getAdminToken(): Promise<string | null> {
   }
 }
 
-export async function verkadaFetch(
+async function verkadaFetch(
   token: string,
   path: string,
   init: RequestInit = {}

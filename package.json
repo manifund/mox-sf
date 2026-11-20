@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev 2>&1 | tee /tmp/dev-server.log",
-    "build": "node scripts/debug-verkada.mjs; next build",
+    "build": "next build",
     "start": "next start",
     "prettier": "prettier --write .",
     "test": "vitest",
