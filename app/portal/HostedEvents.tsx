@@ -144,8 +144,9 @@ export default function HostedEvents({
                           className="muted"
                           style={{ margin: 0, fontSize: '0.85em' }}
                         >
-                          the code rotates weekly. please share it only with
-                          your attendees.
+                          it works all day and expires at midnight. share it
+                          with registered attendees (e.g. a luma or partiful
+                          blast), not in the public event description.
                         </p>
                       </td>
                     </tr>

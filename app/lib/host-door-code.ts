@@ -1,6 +1,8 @@
 // Today's door code for event hosts. A host of an approved event happening
-// today (Pacific) sees the current shared weekly code under that event in the
-// portal's "events you manage" list. Runs server-side only, so the code is
+// today (Pacific) sees the Verkada "Day User" code under that event in the
+// portal's "events you manage" list. It's the same code, and the same event
+// filter, as the Airtable "Today's Event Code" automation, which emails it to
+// those hosts at 7:15am. Runs server-side only, so the code is
 // never sent to anyone who isn't a host of one of today's events.
 
 import { findRecords, Tables } from './airtable'
@@ -8,13 +10,8 @@ import { ptDateString, MOX_TZ } from './checkins'
 import { env } from './env'
 import { getAccessUserCredentials } from './verkada'
 
-// Statuses that mean the event is approved. Billing stages come after Confirmed.
-export const APPROVED_EVENT_STATUSES = [
-  'Confirmed',
-  'To invoice',
-  'Invoiced',
-  'Paid',
-]
+// Matches the Airtable automation: Confirmed and Recurring events.
+export const APPROVED_EVENT_STATUSES = ['Confirmed', 'Recurring']
 
 interface EventHostFields {
   Status?: string
@@ -56,12 +53,12 @@ export interface HostDoorCode {
 export async function getHostDoorCode(
   userId: string
 ): Promise<HostDoorCode | null> {
-  if (!env.VERKADA_WEEKLY_ACCESS_USER_ID) return null
+  if (!env.VERKADA_DAY_USER_ID) return null
   try {
     const eventIds = await getTodaysHostedEventIds(userId)
     if (eventIds.length === 0) return null
     const creds = await getAccessUserCredentials(
-      env.VERKADA_WEEKLY_ACCESS_USER_ID,
+      env.VERKADA_DAY_USER_ID,
       {
         timeoutMs: 8000,
       }
