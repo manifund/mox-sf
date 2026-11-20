@@ -17,8 +17,12 @@ Automated weekly rotation of the shared door access code.
 > The rotation cron below still runs, the Discord door-code channel is still
 > renamed, and `GET /portal/api/weekly-door-code` still returns the current
 > weekly code. Until the Verkada "Weekly Access" user is retired, the remaining
-> member-facing surfaces of the weekly code are the Discord channel name and
-> the `#packages` post.
+> member-facing surfaces of the weekly code are the Discord channel name,
+> the `#packages` post, and the portal's "events you manage" list: hosts of an
+> approved event (Confirmed or a later billing status) see the weekly code
+> under that event on its date, Pacific time. It is read server-side in
+> [`app/lib/host-door-code.ts`](../../app/lib/host-door-code.ts) and only
+> passed to the page for those hosts.
 
 ## Overview
 

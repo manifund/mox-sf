@@ -1,11 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 
 interface HostedEventsProps {
   userName: string
+  // Today's door code and the events it's for, computed server-side for hosts
+  // of approved events happening today. Null for everyone else.
+  doorCode?: { code: string; eventIds: string[] } | null
 }
 
 interface EventData {
@@ -22,7 +25,10 @@ interface EventData {
   host?: string
 }
 
-export default function HostedEvents({ userName }: HostedEventsProps) {
+export default function HostedEvents({
+  userName,
+  doorCode,
+}: HostedEventsProps) {
   const [events, setEvents] = useState<EventData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -94,32 +100,57 @@ export default function HostedEvents({ userName }: HostedEventsProps) {
               const formattedDate = format(startDate, 'MMM d')
               const formattedTime = format(startDate, 'h:mm a')
 
+              const showDoorCode = doorCode?.eventIds.includes(event.id)
+
               return (
-                <tr key={event.id}>
-                  <td>
-                    {event.name}
-                    {event.assignedRooms && (
-                      <span className="muted">
-                        {' '}
-                        ({event.assignedRooms})
-                      </span>
-                    )}
-                    {event.status && event.status !== 'Confirmed' && (
-                      <span className="muted"> · {event.status.toLowerCase()}</span>
-                    )}
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    {formattedDate}, {formattedTime}
-                  </td>
-                  <td>
-                    <Link
-                      href={`/portal/events/${event.id}/edit`}
-                      className="btn small"
-                    >
-                      edit
-                    </Link>
-                  </td>
-                </tr>
+                <Fragment key={event.id}>
+                  <tr>
+                    <td>
+                      {event.name}
+                      {event.assignedRooms && (
+                        <span className="muted"> ({event.assignedRooms})</span>
+                      )}
+                      {event.status && event.status !== 'Confirmed' && (
+                        <span className="muted">
+                          {' '}
+                          · {event.status.toLowerCase()}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {formattedDate}, {formattedTime}
+                    </td>
+                    <td>
+                      <Link
+                        href={`/portal/events/${event.id}/edit`}
+                        className="btn small"
+                      >
+                        edit
+                      </Link>
+                    </td>
+                  </tr>
+                  {showDoorCode && doorCode && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        style={{ borderTop: 'none', paddingTop: 0 }}
+                      >
+                        <p style={{ margin: 0 }}>
+                          <strong>today&apos;s door code</strong> for your
+                          guests, entered on the front door keypad:
+                        </p>
+                        <div className="pin-display">{doorCode.code}#</div>
+                        <p
+                          className="muted"
+                          style={{ margin: 0, fontSize: '0.85em' }}
+                        >
+                          the code rotates weekly. please share it only with
+                          your attendees.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               )
             })}
           </tbody>

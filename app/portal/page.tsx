@@ -19,6 +19,7 @@ import MyRequests from './MyRequests'
 import { getUserProfile } from './profile'
 import { fetchUserDayPasses } from './dayPasses'
 import { fetchUserRequests, requestFormUrl } from './requests'
+import { getHostDoorCode } from '@/app/lib/host-door-code'
 
 // Disable caching - session data (view-as) must be fresh on every request
 export const dynamic = 'force-dynamic'
@@ -38,12 +39,14 @@ export default async function DashboardPage() {
 
   const effectiveUserId = session.viewingAsUserId || session.userId
   const profile = await getUserProfile(effectiveUserId)
-  const [dayPasses, requests] = profile
+  const [dayPasses, requests, hostDoorCode] = profile
     ? await Promise.all([
         fetchUserDayPasses(profile.email),
         fetchUserRequests(profile.email),
+        // Only resolves to a code when this user hosts an approved event today
+        getHostDoorCode(effectiveUserId),
       ])
-    : [[], []]
+    : [[], [], null]
 
   const activeMember = profile
     ? isActiveMember({ status: profile.status, tier: profile.tier })
@@ -225,7 +228,11 @@ export default async function DashboardPage() {
 
       {/* Events */}
       <section>
-        <HostedEvents key={effectiveUserId} userName={profile.name} />
+        <HostedEvents
+          key={effectiveUserId}
+          userName={profile.name}
+          doorCode={hostDoorCode}
+        />
       </section>
 
       <hr />
