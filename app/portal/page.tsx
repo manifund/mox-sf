@@ -149,6 +149,7 @@ export default async function DashboardPage() {
         <MembershipStatus
           status={profile.status}
           firstName={profile.name.split(' ')[0]}
+          recordId={effectiveUserId}
           stripeCustomerId={profile.stripeCustomerId}
           tier={profile.tier}
           orgId={profile.orgId}

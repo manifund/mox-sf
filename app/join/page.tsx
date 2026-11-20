@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import MembershipPricingTable from '@/app/components/MembershipPricingTable'
-import { corePromoTrialActive } from '@/app/lib/membership-pricing'
 import {
-  getAirtableData,
-  getInviteByRecordId,
-  type InviteEntry,
-} from './get-invite-list'
+  STRIPE_BILLING_LOGIN_URL,
+  corePromoTrialActive,
+} from '@/app/lib/membership-pricing'
+import { lookupJoinLink } from './get-invite-list'
 
 function JoinContent(props: {
+  /** Buttons start Stripe checkout; otherwise they go to the application. */
+  checkout?: boolean
   firstName?: string
   specialInvite?: string | null
   airtableRecordId?: string | null
@@ -19,13 +20,13 @@ function JoinContent(props: {
     <div className="min-h-screen bg-slate-50 text-gray-800">
       <div className="max-w-2xl mx-auto px-6 py-16">
         {/* Main intro */}
-        {firstName ? (
+        {props.checkout ? (
           <div className="mb-16">
             <h1 className="text-4xl font-bold mb-6 font-display text-amber-900">
               Join Mox?
             </h1>
             <p className="text-lg text-gray-700">
-              Hey {firstName}! I'm excited to invite you to Mox. Whether you
+              Hey{firstName ? ` ${firstName}` : ''}! I'm excited to invite you to Mox. Whether you
               decide to make Mox your main workplace or just drop by once in a
               while — please consider joining as a member!
               <br />
@@ -173,7 +174,7 @@ function JoinContent(props: {
               do so here:
             </p>
             <a
-              href="https://billing.stripe.com/p/login/5kAbIOdVF0Oa1vq6oo"
+              href={STRIPE_BILLING_LOGIN_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-6 py-2 bg-amber-800 text-white font-semibold hover:bg-amber-900 transition-colors"
@@ -201,7 +202,7 @@ function JoinContent(props: {
       {/* Pricing Table */}
       <div className="pt-4">
         <MembershipPricingTable
-          mode={firstName ? 'checkout' : 'apply'}
+          mode={props.checkout ? 'checkout' : 'apply'}
           clientReferenceId={props.airtableRecordId}
         />
       </div>
@@ -223,171 +224,116 @@ function JoinContent(props: {
   )
 }
 
-function useInvited() {
-  const [inviteList, setInviteList] = useState<InviteEntry[] | null>(null)
-
-  useEffect(() => {
-    async function fetchInvites() {
-      const entries = await getAirtableData()
-      setInviteList(entries)
-    }
-    fetchInvites()
-  }, [])
-
-  return inviteList
-}
-
 // Whitelist of special invite codes
 const SPECIAL_INVITE_CODES = ['friend-of-mythos']
 
-export default function JoinPage() {
-  const inviteList = useInvited()
-  const [name, setName] = useState('')
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [isAuthorized, setIsAuthorized] = useState(false)
-  const [specialInvite, setSpecialInvite] = useState<string | null>(null)
-  const [airtableRecordId, setAirtableRecordId] = useState<string | null>(null)
+type PageState =
+  | { kind: 'loading' }
+  | { kind: 'public' }
+  | { kind: 'special'; code: string }
+  | { kind: 'invited'; firstName: string; recordId: string }
+  | { kind: 'member'; firstName: string }
+  | { kind: 'not-found' }
 
-  // Check for invite parameter, prefilled name, and record ID in URL
+// Who's here decides what /join shows:
+//   ?id=rec…        their invite (checkout), or the billing portal if they
+//                   already pay, or a "link not found" note
+//   ?invite=<code>  a special invite (checkout, no Airtable record)
+//   nothing         the public page, whose buttons go to the application
+export default function JoinPage() {
+  const [state, setState] = useState<PageState>({ kind: 'loading' })
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const inviteCode = params.get('invite')
-    if (inviteCode && SPECIAL_INVITE_CODES.includes(inviteCode)) {
-      setSpecialInvite(inviteCode)
-    }
-    // Prefill name from query param
-    const nameParam = params.get('name')
-    if (nameParam) {
-      setName(nameParam)
-    }
-    // If record ID is provided, look up the person directly and skip name gate
     const idParam = params.get('id')
+
     if (idParam) {
-      setAirtableRecordId(idParam)
-      getInviteByRecordId(idParam).then((entry) => {
-        if (entry) {
-          setName(entry.name.split(' ')[0])
-          setIsSubmitted(true)
-          setIsAuthorized(true)
+      lookupJoinLink(idParam).then((result) => {
+        if (result.kind === 'invited') {
+          setState({
+            kind: 'invited',
+            firstName: result.name.split(' ')[0],
+            recordId: result.recordId,
+          })
+        } else if (result.kind === 'member') {
+          setState({ kind: 'member', firstName: result.name.split(' ')[0] })
+        } else {
+          setState({ kind: 'not-found' })
         }
       })
+    } else if (inviteCode && SPECIAL_INVITE_CODES.includes(inviteCode)) {
+      setState({ kind: 'special', code: inviteCode })
+    } else {
+      setState({ kind: 'public' })
     }
   }, [])
 
-  // Find matching invite entry by first name
-  function findMatch(firstName: string): InviteEntry | undefined {
-    return inviteList?.find(
-      (entry) =>
-        entry.name.split(' ')[0].trim().toLowerCase() ===
-        firstName.trim().toLowerCase()
-    )
-  }
-
-  // Auto-authorize if name is prefilled from URL and matches invite list
-  useEffect(() => {
-    if (!name || isSubmitted || isAuthorized) return
-    const params = new URLSearchParams(window.location.search)
-    const nameParam = params.get('name')
-    if (!nameParam) return // Only auto-submit if name came from URL
-
-    if (inviteList === null) return // Wait for invite list to load
-
-    const match = findMatch(name)
-    if (match) {
-      // Use URL record ID if provided, otherwise fall back to name-matched record
-      if (!airtableRecordId) {
-        setAirtableRecordId(match.recordId)
-      }
-      setIsSubmitted(true)
-      setIsAuthorized(true)
-    }
-  }, [name, inviteList, isSubmitted, isAuthorized])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitted(true)
-
-    // If using a special invite code, authorize immediately
-    if (specialInvite) {
-      setIsAuthorized(true)
-      return
-    }
-
-    if (inviteList === null) {
-      alert('Still loading invites')
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-    }
-    const match = findMatch(name)
-    if (match) {
-      if (!airtableRecordId) {
-        setAirtableRecordId(match.recordId)
-      }
-      setIsAuthorized(true)
-    } else {
-      setIsAuthorized(false)
-    }
-  }
-  const niceName =
-    name.trim().charAt(0).toUpperCase() + name.trim().slice(1).toLowerCase()
-
-  if (isAuthorized) {
-    return (
-      <>
+  switch (state.kind) {
+    case 'loading':
+      return <div className="min-h-screen bg-[#f9f6f0]" />
+    case 'public':
+      return <JoinContent />
+    case 'special':
+      return <JoinContent checkout specialInvite={state.code} />
+    case 'invited':
+      return (
         <JoinContent
-          firstName={niceName}
-          specialInvite={specialInvite}
-          airtableRecordId={airtableRecordId}
+          checkout
+          firstName={state.firstName}
+          airtableRecordId={state.recordId}
         />
-      </>
-    )
+      )
+    case 'member':
+      return (
+        <Envelope title={`You're already a member, ${state.firstName}!`}>
+          <p className="text-gray-700 mb-6">
+            To change your tier, switch billing, or update your card, sign in
+            to the billing portal with the email you signed up with.
+          </p>
+          <a
+            href={STRIPE_BILLING_LOGIN_URL}
+            className="inline-block w-full px-6 py-2 bg-amber-800 text-white font-semibold hover:bg-amber-900 transition-colors"
+          >
+            Manage your membership
+          </a>
+        </Envelope>
+      )
+    case 'not-found':
+      return (
+        <Envelope title="We couldn't find your invite">
+          <p className="text-gray-700">
+            This join link may be out of date. Email{' '}
+            <a href="mailto:robin@moxsf.com" className="underline text-amber-800">
+              robin@moxsf.com
+            </a>{' '}
+            and we'll send you a fresh one!
+          </p>
+        </Envelope>
+      )
   }
+}
 
+function Envelope({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
   return (
     <div className="min-h-screen bg-[#f9f6f0] flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        {/* Envelope design */}
         <div className="bg-white shadow-xl p-12 relative">
-          {/* Envelope corners */}
           <div className="absolute -top-4 -left-4 w-8 h-8 border-t-2 border-l-2 border-amber-800"></div>
           <div className="absolute -bottom-4 -right-4 w-8 h-8 border-b-2 border-r-2 border-amber-800"></div>
           <div className="absolute -top-4 -right-4 w-8 h-8 border-t-2 border-r-2 border-amber-800"></div>
           <div className="absolute -bottom-4 -left-4 w-8 h-8 border-b-2 border-l-2 border-amber-800"></div>
-
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-8 font-display text-amber-900">
-              You're invited to join Mox
+          <div className="text-center max-w-sm mx-auto">
+            <h1 className="text-3xl font-bold mb-6 font-display text-amber-900">
+              {title}
             </h1>
-
-            <form onSubmit={handleSubmit} className="max-w-sm mx-auto">
-              <input
-                type="text"
-                value={name}
-                name="firstName"
-                autoComplete="given-name"
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your first name"
-                className="w-full px-4 py-2 border border-gray-200 mb-4 focus:outline-none focus:ring-2 focus:ring-red-600"
-              />
-              <button
-                type="submit"
-                className="w-full px-6 py-2 bg-amber-800 text-white font-semibold hover:bg-amber-900 transition-colors"
-              >
-                Submit
-              </button>
-
-              {isSubmitted && !isAuthorized && (
-                <p className="mt-4 text-red-600 text-sm">
-                  Sorry, we might not be ready to onboard you yet — reach out to{' '}
-                  <a
-                    href="mailto:robin@moxsf.com"
-                    className="underline hover:text-red-700"
-                  >
-                    robin@moxsf.com
-                  </a>{' '}
-                  if this seems like a mistake!
-                </p>
-              )}
-            </form>
+            {children}
           </div>
         </div>
       </div>

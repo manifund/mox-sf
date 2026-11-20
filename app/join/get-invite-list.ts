@@ -1,50 +1,49 @@
 'use server'
-import { findRecords, getRecord, Tables } from '@/app/lib/airtable'
+import { getRecord, Tables } from '@/app/lib/airtable'
+import { findExistingMembership } from '@/app/lib/existing-membership'
 
 interface PersonFields {
   Name?: string
+  Email?: string
   Status?: string
+  Tier?: string
+  'Stripe Customer ID'?: string
 }
 
-export interface InviteEntry {
-  name: string
-  recordId: string
-}
+/** Statuses whose /join?id= link opens the checkout page. Joined covers people
+ *  who came in through a program (Tier Program) or by hand and now want a
+ *  paid membership; anyone already paying is caught by the Stripe check. */
+const JOINABLE_STATUSES = ['Invited', 'To Invite', 'Cancelled', 'Joined']
 
-export async function getAirtableData(): Promise<InviteEntry[]> {
-  try {
-    // New formula: anyone invited or to invite
-    const formula = `OR(Status="Invited",Status="To Invite",Status="Cancelled")`
+export type JoinLookup =
+  | { kind: 'invited'; name: string; recordId: string }
+  | { kind: 'member'; name: string }
+  | { kind: 'not-found' }
 
-    const records = await findRecords<PersonFields>(Tables.People, formula, {
-      fields: ['Name'],
-    })
-
-    return records
-      .filter((record) => !!record.fields.Name)
-      .map((record) => ({
-        name: record.fields.Name!,
-        recordId: record.id,
-      }))
-  } catch (e) {
-    console.error('Failed to fetch invite list:', e)
-    return []
-  }
-}
-
-/** Look up a person by Airtable record ID and return their info if they're invited. */
-export async function getInviteByRecordId(
-  recordId: string
-): Promise<InviteEntry | null> {
+/** Resolves a /join?id= link to what the page should show. */
+export async function lookupJoinLink(recordId: string): Promise<JoinLookup> {
+  if (!/^rec[A-Za-z0-9]{14}$/.test(recordId)) return { kind: 'not-found' }
   try {
     const record = await getRecord<PersonFields>(Tables.People, recordId)
-    if (!record || !record.fields.Name) return null
-    const status = record.fields.Status
-    if (status !== 'Invited' && status !== 'To Invite' && status !== 'Cancelled')
-      return null
-    return { name: record.fields.Name, recordId: record.id }
+    const name = record?.fields.Name
+    if (!record || !name) return { kind: 'not-found' }
+    if (!JOINABLE_STATUSES.includes(record.fields.Status ?? '')) {
+      return { kind: 'not-found' }
+    }
+
+    const existing = await findExistingMembership({
+      customerIds: [record.fields['Stripe Customer ID']],
+      email: record.fields.Email,
+    })
+    if (existing.held) return { kind: 'member', name }
+
+    return {
+      kind: 'invited',
+      name,
+      recordId: record.id,
+    }
   } catch (e) {
-    console.error('Failed to fetch invite by record ID:', e)
-    return null
+    console.error('Failed to look up join link:', e)
+    return { kind: 'not-found' }
   }
 }

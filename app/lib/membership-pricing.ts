@@ -110,6 +110,10 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierId, MembershipTier> = {
 // mission-aligned work get a flat discount.
 export const OFFICE_PER_PERSON_MONTHLY_CENTS = 125000
 export const OFFICE_CONTACT_EMAIL = 'robin@moxsf.com'
+// Stripe's email-verified customer-portal login, where members change tier,
+// switch billing interval, update cards, or cancel.
+export const STRIPE_BILLING_LOGIN_URL =
+  'https://billing.stripe.com/p/login/5kAbIOdVF0Oa1vq6oo'
 // Airtable "Mox | New Office - EOI" form; submissions land in the Orgs table.
 export const OFFICE_EOI_FORM_URL =
   'https://airtable.com/appkHZ2UvU6SouT5y/pagUHw8dM9CX2W6h1/form'
