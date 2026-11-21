@@ -163,7 +163,8 @@ This is triggered by `POST /eag26/api/register`.
 
 ### New Member Welcome (#welcomes)
 
-When a membership subscription starts (Stripe `customer.subscription.created`),
+When a membership checkout completes (Stripe `checkout.session.completed`,
+after the People record is marked Joined),
 `app/lib/new-member-announcement.ts` posts to the public #welcomes channel
 (`DISCORD_CHANNELS.WELCOMES`) with the member's Photo attached and the same
 line the homepage directory shows. The name links to their Website field.
@@ -175,9 +176,9 @@ and one with no valid URL is shown unlinked:
 Jay is into [make number go up](<url>) and surprising people
 ```
 
-The person is found by `airtableRecordId` in the subscription metadata (set by
-`/api/membership-checkout`), then Stripe Customer ID, then email. Mentions are
-disabled. This replaced a Zapier step that posted as a "New Members" webhook.
+The person is the checkout's `client_reference_id` (the invite link's record),
+else the People record with that email. Mentions are disabled. This replaced
+the Zapier Zap that posted as a "New Members" webhook.
 
 ## Rate Limiting
 

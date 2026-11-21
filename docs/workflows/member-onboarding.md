@@ -87,7 +87,8 @@ Private offices are quoted by hand (the Office column links to email).
 
 Joined is allowed so people who came in through a program (Tier Program) or
 were marked Joined by hand can start a paid membership from the same link.
-After checkout the Zapier Zap sets their Tier from the price they chose.
+After checkout the Stripe webhook marks them Joined and sets their Tier from
+the product they chose (see `docs/workflows/stripe-airtable-sync.md`).
 There is no name gate: the record ID in the link identifies the person, and
 `/portal` links invited and cancelled members to `/join?id=<their record>`.
 

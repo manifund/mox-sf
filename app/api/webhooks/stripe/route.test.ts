@@ -4,10 +4,11 @@ import { POST } from './route'
 const m = vi.hoisted(() => ({
   event: vi.fn(), lines: vi.fn(), find: vi.fn(), create: vi.fn(), update: vi.fn(),
   magic: vi.fn(), send: vi.fn(), sub: vi.fn(), subs: vi.fn(), discord: vi.fn(),
+  subUpdate: vi.fn(), announce: vi.fn(),
 }))
 vi.mock('@/app/lib/stripe', () => ({ stripe: {
   webhooks: { constructEvent: m.event }, checkout: { sessions: { listLineItems: m.lines } },
-  subscriptions: { retrieve: m.sub, list: m.subs },
+  subscriptions: { retrieve: m.sub, list: m.subs, update: m.subUpdate },
 } }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: m.send } } }))
 vi.mock('@/app/lib/airtable', () => ({
@@ -16,6 +17,7 @@ vi.mock('@/app/lib/airtable', () => ({
   escapeAirtableString: (s: string) => s,
 }))
 vi.mock('@/app/lib/magic-link', () => ({ createMagicLink: m.magic }))
+vi.mock('@/app/lib/new-member-announcement', () => ({ announceNewMember: m.announce }))
 vi.mock('@/app/lib/discord', () => ({ sendChannelMessage: m.discord, DISCORD_CHANNELS: { NOTIFICATIONS: 'staff' } }))
 vi.mock('@/app/lib/forkable', () => ({ addMemberToForkable: vi.fn(), FORKABLE_CLUBS: {}, parseFullName: vi.fn() }))
 const request = () => new Request('https://moxsf.com/api/webhooks/stripe', {
@@ -211,5 +213,67 @@ describe('payment failures and cancellations sync to Airtable', () => {
     member({ Tier: 'Core', Status: 'Joined' })
     m.update.mockRejectedValue(new Error('Airtable 403'))
     expect((await POST(request())).status).toBe(500)
+  })
+})
+
+describe('membership checkout onboarding (was the Zapier Zap)', () => {
+  const checkout = (over = {}) =>
+    m.event.mockReturnValue({ type: 'checkout.session.completed', data: { object: {
+      id: 'cs_sub', mode: 'subscription', subscription: 'sub_1', customer: 'cus_1',
+      client_reference_id: 'recInvite00000001',
+      customer_details: { name: 'New Member', email: 'New@Example.com' }, ...over,
+    } } })
+  const sub = (metadata = {}) => m.sub.mockResolvedValue({
+    id: 'sub_1', metadata, items: { data: [{ price: { product: 'prod_RpkYg9EMJoi5oi' } }] },
+  })
+  beforeEach(() => { checkout(); sub() })
+
+  it('marks the invited record Joined, emails, posts, then marks the subscription done', async () => {
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recInvite00000001', {
+      Status: 'Joined', Tier: 'Core', 'Stripe Customer ID': 'cus_1',
+    })
+    expect(m.send).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'New@Example.com', subject: 'Thanks for joining Mox!', replyTo: 'robin@moxsf.com',
+    }))
+    expect(m.announce).toHaveBeenCalledWith(expect.objectContaining({ recordId: 'recInvite00000001' }))
+    expect(m.subUpdate).toHaveBeenCalledWith('sub_1', { metadata: { onboardedAt: expect.any(String) } })
+    expect(m.lines).not.toHaveBeenCalled()
+  })
+  it('without an invite record, updates the person with that email', async () => {
+    checkout({ client_reference_id: null })
+    m.find.mockResolvedValue({ id: 'recByEmail', fields: {} })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).toHaveBeenCalledWith('People', 'recByEmail', expect.objectContaining({ Status: 'Joined' }))
+    expect(m.create).not.toHaveBeenCalled()
+  })
+  it('creates the person when no record has that email', async () => {
+    checkout({ client_reference_id: null })
+    m.find.mockResolvedValue(null)
+    m.create.mockResolvedValue({ id: 'recNew', fields: {} })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.create).toHaveBeenCalledWith('People', {
+      Name: 'New Member', Email: 'New@Example.com',
+      Status: 'Joined', Tier: 'Core', 'Stripe Customer ID': 'cus_1',
+    })
+    expect(m.announce).toHaveBeenCalledWith(expect.objectContaining({ recordId: 'recNew' }))
+  })
+  it('does nothing twice for an already-onboarded subscription', async () => {
+    sub({ onboardedAt: '2026-11-21T00:00:00Z' })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+    expect(m.send).not.toHaveBeenCalled()
+    expect(m.announce).not.toHaveBeenCalled()
+  })
+  it('skips non-membership subscriptions', async () => {
+    m.sub.mockResolvedValue({ id: 'sub_1', metadata: {}, items: { data: [{ price: { product: 'prod_other' } }] } })
+    expect((await POST(request())).status).toBe(200)
+    expect(m.update).not.toHaveBeenCalled()
+    expect(m.send).not.toHaveBeenCalled()
+  })
+  it('returns 500 without marking done when the email is rejected, so Stripe retries', async () => {
+    m.send.mockResolvedValue({ data: null, error: { message: 'nope' } })
+    expect((await POST(request())).status).toBe(500)
+    expect(m.subUpdate).not.toHaveBeenCalled()
   })
 })
