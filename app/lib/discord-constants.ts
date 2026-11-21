@@ -18,6 +18,9 @@ export const DISCORD_CHANNELS = {
   DOOR_CODE: '1360304053887701092',
   PACKAGES: '1409615290353844397',
   NOTIFICATIONS: '1465054507816980523',
+  // Public #welcomes: "X just started their Mox membership" posts. The Mox
+  // bot needs Send Messages + Attach Files here.
+  WELCOMES: '1339404215700947000',
   ROOM_AVAILABILITY: '1466343013146951774',
   // Task board completions/approvals. The Mox bot (DISCORD_BOT_TOKEN) must have
   // View Channel + Read Message History here for the ✅-approval sweep to work.

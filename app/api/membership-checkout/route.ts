@@ -113,7 +113,12 @@ export async function POST(request: Request) {
       line_items: [{ price: price.id, quantity: 1 }],
       subscription_data: {
         ...checkoutTrial(tierId),
-        metadata: { tier: tier.name, interval },
+        metadata: {
+          tier: tier.name,
+          interval,
+          // Lets the Stripe webhook find the person for the #welcomes post.
+          ...(person ? { airtableRecordId: person.id } : {}),
+        },
       },
       allow_promotion_codes: true,
       ...(typeof clientReferenceId === 'string' && clientReferenceId
