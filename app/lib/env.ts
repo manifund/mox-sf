@@ -78,6 +78,9 @@ export const env = {
   get VERKADA_UUID() { return optional('VERKADA_UUID') },
   get VERKADA_WEEKLY_ACCESS_USER_ID() { return optional('VERKADA_WEEKLY_ACCESS_USER_ID') },
   get VERKADA_OLD_WEEKLY_ACCESS_USER_ID() { return optional('VERKADA_OLD_WEEKLY_ACCESS_USER_ID') },
+  // Verkada "Day User" whose code the Airtable "Today's Event Code" automation
+  // emails to hosts each morning. Same value as that automation's VERKADA_USER_ID secret.
+  get VERKADA_DAY_USER_ID() { return optional('VERKADA_DAY_USER_ID') },
   get VERKADA_GUEST_USER_ID() { return optional('VERKADA_GUEST_USER_ID') },
 
   // Cron

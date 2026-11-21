@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fromZonedTime } from 'date-fns-tz'
 import { findRecords, getRecord, Tables } from '@/app/lib/airtable'
+import { MOX_TZ, ptDateString } from '@/app/lib/checkins'
 
 interface EventFields {
   Name?: string
@@ -46,7 +48,10 @@ export async function GET(request: NextRequest) {
     try {
       const record = await getRecord<EventFields>(Tables.Events, eventId)
       if (!record) {
-        return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+        return NextResponse.json(
+          { message: 'Event not found' },
+          { status: 404 }
+        )
       }
       return NextResponse.json({ event: transformEvent(record) })
     } catch (error) {
@@ -67,9 +72,14 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch events from Airtable where the user is listed in "Hosted by" field
-    // Show future events (including cancelled ones)
-    const today = new Date().toISOString().split('T')[0]
-    const formula = `AND(SEARCH("${userName.replace(/"/g, '\\"')}", ARRAYJOIN({Hosted by}, ", ")), IS_AFTER({Start Date}, "${today}"))`
+    // Show today's and future events (including cancelled ones). "Today"
+    // starts at Pacific midnight, so earlier events today stay listed (and
+    // keep their door code) through the evening.
+    const todayStart = fromZonedTime(
+      `${ptDateString(new Date())}T00:00:00`,
+      MOX_TZ
+    ).toISOString()
+    const formula = `AND(SEARCH("${userName.replace(/"/g, '\\"')}", ARRAYJOIN({Hosted by}, ", ")), IS_AFTER({Start Date}, "${todayStart}"))`
 
     const records = await findRecords<EventFields>(Tables.Events, formula, {
       sort: [{ field: 'Start Date', direction: 'asc' }],
