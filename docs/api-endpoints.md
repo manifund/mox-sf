@@ -24,7 +24,7 @@ Generate iCalendar feed for calendar subscriptions.
 - **Details:** Filters out events with status "idea", "maybe", or "cancelled"
 
 ### GET `/api/cron/rotate-door-code`
-Weekly cron job to rotate Verkada door codes.
+Rotates the shared Verkada door code. **No longer scheduled** (removed from `vercel.json` in November 2026); can still be triggered manually.
 
 - **Auth:** Cron (`CRON_SECRET`)
 - **Response:**
