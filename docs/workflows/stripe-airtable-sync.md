@@ -65,9 +65,12 @@ Everything else is left alone:
 
 ## What it does not do
 
-- **New signups and rejoining.** Setting `Status = Joined` and the
-  `Stripe Customer ID` when someone subscribes is still the Zapier Zap's job.
-  A Cancelled member who subscribes again is not moved back to Joined here.
+- **New signups and rejoining.** Those happen on `checkout.session.completed`
+  for a membership checkout (`handleMembershipCheckout` in the Stripe webhook):
+  it sets `Status = Joined`, `Tier` and `Stripe Customer ID`, sends the
+  "Thanks for joining Mox!" email and posts to #welcomes. This replaced the
+  Zapier "on new Mox subscription" Zap. Subscription updates here never move
+  a Cancelled member back to Joined.
 - **Forkable.** A tier change or cancellation does not change the member's
   Forkable clubs; the Discord message says so.
 - **Unmatched customers.** If no People record has the customer's id, nothing

@@ -3,6 +3,10 @@ import { stripe } from '@/app/lib/stripe';
 import { Resend } from 'resend';
 import { getDayPassActivationEmail } from '@/app/lib/emails/day-pass-activation';
 import {
+  getMembershipWelcomeEmail,
+  MEMBERSHIP_WELCOME_REPLY_TO,
+} from '@/app/lib/emails/membership-welcome';
+import {
   Tables,
   createRecord,
   updateRecord,
@@ -91,11 +95,15 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleDayPassPurchase(
-          event.data.object as Stripe.Checkout.Session
-        );
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode === 'subscription') {
+          await handleMembershipCheckout(session);
+        } else {
+          await handleDayPassPurchase(session);
+        }
         break;
+      }
 
       case 'customer.subscription.created':
         await handleNewSubscription(event.data.object as Stripe.Subscription);
@@ -381,6 +389,106 @@ async function sendActivationEmail({
 }
 
 // ============================================================================
+// Membership checkout -> Airtable, welcome email, #welcomes post
+// ============================================================================
+// Replaces the Zapier "on new Mox subscription" Zap. For a completed
+// membership checkout it:
+//   1. marks the person Joined with their Tier and Stripe Customer ID — the
+//      invite link's record (client_reference_id) if there is one, otherwise
+//      the People record with the checkout email, created if missing;
+//   2. emails them the "Thanks for joining Mox!" welcome;
+//   3. posts them to #welcomes.
+// The subscription's `onboardedAt` metadata marks it done, so a Stripe retry
+// after a partial failure finishes the job without repeating it.
+
+const RECORD_ID = /^rec[A-Za-z0-9]{14}$/;
+
+async function handleMembershipCheckout(session: Stripe.Checkout.Session) {
+  const subscriptionId =
+    typeof session.subscription === 'string'
+      ? session.subscription
+      : session.subscription?.id;
+  const customerId =
+    typeof session.customer === 'string'
+      ? session.customer
+      : session.customer?.id;
+  if (!subscriptionId || !customerId) {
+    console.log('[Stripe Webhook] Subscription checkout missing subscription or customer');
+    return;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const tier = tierNameForProduct(subscriptionProductId(subscription));
+  if (!tier) {
+    console.log('[Stripe Webhook] Not a membership checkout, skipping onboarding');
+    return;
+  }
+  if (subscription.metadata?.onboardedAt) {
+    console.log(`[Stripe Webhook] ${subscriptionId} already onboarded, skipping`);
+    return;
+  }
+
+  const email = session.customer_details?.email || '';
+  const name = session.customer_details?.name || '';
+  const membershipFields = {
+    Status: 'Joined',
+    Tier: tier,
+    'Stripe Customer ID': customerId,
+  };
+
+  const referenceId = session.client_reference_id;
+  let personId: string | null = null;
+  if (referenceId && RECORD_ID.test(referenceId)) {
+    await updateRecord(Tables.People, referenceId, membershipFields);
+    personId = referenceId;
+  } else if (email) {
+    const existing = await findRecord(
+      Tables.People,
+      `LOWER({Email})="${escapeAirtableString(email.toLowerCase())}"`
+    );
+    if (existing) {
+      await updateRecord(Tables.People, existing.id, membershipFields);
+      personId = existing.id;
+    } else {
+      const created = await createRecord(Tables.People, {
+        Name: name,
+        Email: email,
+        ...membershipFields,
+      });
+      personId = created.id;
+    }
+  }
+  console.log(
+    `[Stripe Webhook] ${personId ?? customerId} is now a Joined ${tier} member`
+  );
+
+  if (email) {
+    const { subject, text } = getMembershipWelcomeEmail({ name });
+    const result = await resend.emails.send({
+      from: 'Mox SF <noreply@account.moxsf.com>',
+      replyTo: MEMBERSHIP_WELCOME_REPLY_TO,
+      to: email,
+      subject,
+      text,
+    });
+    if (result.error) {
+      throw new Error(`Welcome email rejected: ${result.error.message}`);
+    }
+  }
+
+  await announceNewMember({
+    recordId: personId,
+    customerId,
+    email,
+    fallbackName: name,
+  });
+
+  await stripe.subscriptions.update(subscriptionId, {
+    metadata: { onboardedAt: new Date().toISOString() },
+  });
+}
+
+// ============================================================================
 // Subscription / Forkable Handlers
 // ============================================================================
 
@@ -431,14 +539,6 @@ async function handleNewSubscription(subscription: Stripe.Subscription) {
   console.log(
     `[Stripe Webhook] Processing new ${membershipConfig.tier} subscription for ${customerEmail}`
   );
-
-  // Public welcome post in #welcomes (photo + "is into A and B").
-  await announceNewMember({
-    recordId: subscription.metadata?.airtableRecordId,
-    customerId,
-    email: customerEmail,
-    fallbackName: customerName,
-  });
 
   // Skip Forkable if no club IDs configured for this tier
   if (membershipConfig.forkableClubIds.length === 0) {

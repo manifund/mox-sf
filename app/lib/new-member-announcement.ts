@@ -13,6 +13,7 @@ import { sendChannelMessageWithFile, DISCORD_CHANNELS } from '@/app/lib/discord'
 
 export interface NewMemberFields {
   Name?: string
+  Website?: string
   Photo?: Array<{
     url?: string
     filename?: string
@@ -27,34 +28,62 @@ export interface NewMemberFields {
 
 const RECORD_ID = /^rec[A-Za-z0-9]{14}$/
 
-// Discord markdown: escape characters that would format or break the line.
+// Discord markdown: escape only what would restyle plain text. Over-escaping
+// shows literal backslashes (Discord doesn't unescape "\-" inside links).
 function escapeMarkdown(text: string) {
-  return text.replace(/([\\*_~`|>\[\]()#-])/g, '\\$1')
+  return text.replace(/([\\*_~`|])/g, '\\$1')
 }
 
-function withProtocol(url: string) {
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+// Link labels can't be escaped reliably, so drop the characters that would
+// restyle the label or close the link early.
+function linkLabel(text: string) {
+  return text.replace(/[\\*_~`|\[\]]/g, '').trim()
+}
+
+// Member-entered URLs are messy ("example.com", or a sentence with a link
+// buried in it). Use the first token that parses as a real http(s) URL with a
+// dotted hostname; otherwise no link.
+export function cleanUrl(raw?: string): string | null {
+  if (!raw) return null
+  for (const token of raw.trim().split(/\s+/)) {
+    const candidate = token.replace(/^[<(]+|[>),.;]+$/g, '')
+    if (!candidate) continue
+    const withProtocol = /^https?:\/\//i.test(candidate)
+      ? candidate
+      : `https://${candidate}`
+    try {
+      const url = new URL(withProtocol)
+      if (!/^https?:$/.test(url.protocol)) continue
+      if (!/\.[a-z]{2,}$/i.test(url.hostname)) continue
+      return url.href
+    } catch {
+      continue
+    }
+  }
+  return null
 }
 
 // Angle brackets stop Discord from unfurling a preview card for each link.
-function interest(text?: string, url?: string) {
-  const label = text?.trim()
-  if (!label) return null
-  const safe = escapeMarkdown(label)
-  const href = url?.trim()
-  return href ? `[${safe}](<${withProtocol(href)}>)` : safe
+function linked(text: string, url?: string) {
+  const href = cleanUrl(url)
+  const label = href ? linkLabel(text) : ''
+  return href && label ? `[${label}](<${href}>)` : escapeMarkdown(text)
 }
 
 export function formatNewMemberMessage(fields: NewMemberFields): string | null {
   const name = fields.Name?.trim()
   if (!name) return null
 
-  const lines = [`**${escapeMarkdown(name)} just started their Mox membership 🎉**`]
+  const lines = [
+    `**${linked(name, fields.Website)} just started their Mox membership 🎉**`,
+  ]
 
   const things = [
-    interest(fields['Work thing'], fields['Work thing URL']),
-    interest(fields['Fun thing'], fields['Fun thing URL']),
-  ].filter(Boolean)
+    [fields['Work thing'], fields['Work thing URL']],
+    [fields['Fun thing'], fields['Fun thing URL']],
+  ]
+    .filter(([text]) => text?.trim())
+    .map(([text, url]) => linked(text!.trim(), url))
   if (things.length) {
     const firstName = escapeMarkdown(name.split(/\s+/)[0])
     lines.push(`${firstName} is into ${things.join(' and ')}`)
