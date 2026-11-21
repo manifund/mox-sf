@@ -376,6 +376,49 @@ export async function sendChannelMessage(
 }
 
 /**
+ * Send a message with one attached file (e.g. a photo). Discord hosts the
+ * upload, so the image keeps working after the source URL expires. Mentions
+ * are disabled: the content may contain member-written text.
+ */
+export async function sendChannelMessageWithFile(
+  channelId: string,
+  content: string,
+  file?: { data: Blob; filename: string }
+): Promise<{ success: boolean; messageId?: string }> {
+  if (!env.DISCORD_BOT_TOKEN) {
+    console.error('[Discord] Bot token not configured')
+    return { success: false }
+  }
+
+  const form = new FormData()
+  form.append(
+    'payload_json',
+    JSON.stringify({ content, allowed_mentions: { parse: [] } })
+  )
+  if (file) form.append('files[0]', file.data, file.filename)
+
+  try {
+    const response = await discordFetch(
+      `https://discord.com/api/v10/channels/${channelId}/messages`,
+      { method: 'POST', body: form }
+    )
+    if (!response.ok) {
+      console.error(
+        '[Discord] Failed to send message with file:',
+        response.status,
+        await response.text()
+      )
+      return { success: false }
+    }
+    const data = await response.json()
+    return { success: true, messageId: data.id }
+  } catch (error) {
+    console.error('[Discord] Send message with file error:', error)
+    return { success: false }
+  }
+}
+
+/**
  * Edit an existing message in a Discord channel
  */
 export async function editChannelMessage(

@@ -161,6 +161,22 @@ When someone registers for an EAG day pass at `/eag26`, a notification is posted
 
 This is triggered by `POST /eag26/api/register`.
 
+### New Member Welcome (#welcomes)
+
+When a membership subscription starts (Stripe `customer.subscription.created`),
+`app/lib/new-member-announcement.ts` posts to the public #welcomes channel
+(`DISCORD_CHANNELS.WELCOMES`) with the member's Photo attached and the same
+line the homepage directory shows:
+
+```
+**Jay Luxeed just started their Mox membership 🎉**
+Jay is into [make number go up](<url>) and surprising people
+```
+
+The person is found by `airtableRecordId` in the subscription metadata (set by
+`/api/membership-checkout`), then Stripe Customer ID, then email. Mentions are
+disabled. This replaced a Zapier step that posted as a "New Members" webhook.
+
 ## Rate Limiting
 
 Built into `discordFetch()`:
@@ -174,6 +190,7 @@ The Discord bot needs:
 - Manage Roles (to assign/remove tier roles)
 - Manage Channels (to rename door code channel)
 - Send Messages (for notifications)
+- Attach Files in #welcomes (for new member photos)
 - View Channel (to access channels)
 
 Bot role must be **higher** than the tier roles it manages.

@@ -11,6 +11,7 @@ import {
 } from '@/app/lib/airtable';
 import { sendChannelMessage, DISCORD_CHANNELS } from '@/app/lib/discord';
 import { createMagicLink } from '@/app/lib/magic-link';
+import { announceNewMember } from '@/app/lib/new-member-announcement';
 import { env } from '@/app/lib/env';
 import {
   addMemberToForkable,
@@ -430,6 +431,14 @@ async function handleNewSubscription(subscription: Stripe.Subscription) {
   console.log(
     `[Stripe Webhook] Processing new ${membershipConfig.tier} subscription for ${customerEmail}`
   );
+
+  // Public welcome post in #welcomes (photo + "is into A and B").
+  await announceNewMember({
+    recordId: subscription.metadata?.airtableRecordId,
+    customerId,
+    email: customerEmail,
+    fallbackName: customerName,
+  });
 
   // Skip Forkable if no club IDs configured for this tier
   if (membershipConfig.forkableClubIds.length === 0) {
