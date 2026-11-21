@@ -166,10 +166,12 @@ This is triggered by `POST /eag26/api/register`.
 When a membership subscription starts (Stripe `customer.subscription.created`),
 `app/lib/new-member-announcement.ts` posts to the public #welcomes channel
 (`DISCORD_CHANNELS.WELCOMES`) with the member's Photo attached and the same
-line the homepage directory shows:
+line the homepage directory shows. The name links to their Website field.
+URLs are cleaned first: a field holding a sentence links its first real URL,
+and one with no valid URL is shown unlinked:
 
 ```
-**Jay Luxeed just started their Mox membership 🎉**
+**[Jay Luxeed](<website>) just started their Mox membership 🎉**
 Jay is into [make number go up](<url>) and surprising people
 ```
 
