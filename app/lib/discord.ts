@@ -460,3 +460,54 @@ export async function editChannelMessage(
     return false
   }
 }
+
+export type GuildJoinResult = 'added' | 'already_member' | 'failed'
+
+/**
+ * Add a user to the Mox server with their own OAuth token (scope guilds.join).
+ * Needs the bot in the server with the Create Invite permission.
+ */
+export async function addGuildMember(
+  discordUserId: string,
+  userAccessToken: string
+): Promise<GuildJoinResult> {
+  if (!env.DISCORD_BOT_TOKEN) return 'failed'
+  try {
+    const response = await discordFetch(
+      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordUserId}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: userAccessToken }),
+      }
+    )
+    if (response.status === 201) return 'added'
+    if (response.status === 204) return 'already_member'
+    console.error(
+      'Discord guild join failed:',
+      response.status,
+      await response.text()
+    )
+    return 'failed'
+  } catch (error) {
+    console.error('Error adding Discord guild member:', error)
+    return 'failed'
+  }
+}
+
+/** Look up a server member by Discord user ID (exact, unlike username search). */
+export async function getGuildMember(
+  discordUserId: string
+): Promise<DiscordMember | null> {
+  if (!env.DISCORD_BOT_TOKEN) return null
+  try {
+    const response = await discordFetch(
+      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordUserId}`
+    )
+    if (!response.ok) return null
+    return (await response.json()) as DiscordMember
+  } catch (error) {
+    console.error('Error fetching Discord guild member:', error)
+    return null
+  }
+}

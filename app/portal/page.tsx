@@ -16,6 +16,7 @@ import MyDayPasses from './MyDayPasses'
 import GuestPasses from './GuestPasses'
 import SubscriptionInfo from './SubscriptionInfo'
 import MyRequests from './MyRequests'
+import DiscordConnect, { DiscordOutcome } from './DiscordConnect'
 import { getUserProfile } from './profile'
 import { fetchUserDayPasses } from './dayPasses'
 import { fetchUserRequests, requestFormUrl } from './requests'
@@ -23,8 +24,15 @@ import { fetchUserRequests, requestFormUrl } from './requests'
 // Disable caching - session data (view-as) must be fresh on every request
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ discord?: string; discord_linked?: string }>
+}) {
   const session = await getSession()
+  const params = await searchParams
+  const discordOutcome =
+    params.discord ?? (params.discord_linked ? 'connected' : undefined)
 
   if (!session.isLoggedIn) {
     redirect('/portal/login')
@@ -102,6 +110,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {discordOutcome && <DiscordOutcome outcome={discordOutcome} />}
+
       {/* Admin tools - collapsible section at top */}
       {isStaff && (
         <details className="admin-section">
@@ -140,6 +150,14 @@ export default async function DashboardPage() {
               <MyDayPasses passes={dayPasses} isActiveMember={activeMember} hideHeading />
             )}
           </section>
+          <hr />
+        </>
+      )}
+
+      {/* Discord nudge — until the member has connected their account */}
+      {activeMember && !profile.discordUsername && (
+        <>
+          <DiscordConnect isViewingAs={!!session.viewingAsUserId} />
           <hr />
         </>
       )}

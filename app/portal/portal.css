@@ -543,3 +543,74 @@ html, body {
 .portal .badge.info {
   background: var(--alert-info-bg);
 }
+
+/* Discord nudge: a dashed frame (a step not done yet) with its heading set
+   into the top border, like a fieldset legend. Disappears once connected. */
+.portal .discord-invite {
+  position: relative;
+  border: 1px dashed var(--border-dark);
+  padding: 22px 18px 14px;
+  margin: 26px 0 16px;
+}
+
+.portal .discord-invite h2 {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0 8px;
+  background: var(--bg-primary);
+  font-size: 1.1em;
+}
+
+.portal .discord-invite h2::before {
+  position: static;
+  margin-right: 1ch;
+}
+
+.portal .discord-invite-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 14px 0;
+}
+
+.portal .discord-invite-action .muted {
+  font-size: 0.85em;
+}
+
+.portal a.discord-connect {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: #5865f2;
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.15s ease;
+}
+
+.portal a.discord-connect:hover {
+  background: #4752c4;
+  color: #fff;
+}
+
+.portal a.discord-connect:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.portal .discord-invite-alt {
+  margin-bottom: 0;
+  font-size: 0.85em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal a.discord-connect {
+    transition: none;
+  }
+}

@@ -78,6 +78,26 @@ Posts message to a channel.
 ### `isDiscordConfigured()`
 Returns true if bot token and guild ID are set.
 
+## Connecting a Member's Discord (portal)
+
+Active members with no `Discord Username` see a "join the mox discord" box on
+`/portal` (`app/portal/DiscordConnect.tsx`). Its "connect discord" button goes
+to `/portal/auth/discord?link=1`, an OAuth flow with scopes
+`identify guilds.join`. The callback (`app/portal/auth/discord/callback/route.ts`,
+link mode):
+
+1. saves the verified Discord username on the logged-in member's People record
+   (refuses if another record already has it);
+2. adds them to the Mox server with `addGuildMember` (no invite needed);
+3. sets their tier and program roles with `syncDiscordRole`;
+4. redirects to `/portal?discord=<outcome>` (`connected`, `connected_no_role`,
+   `join_failed`, `taken`, …), which the portal shows as a short note.
+
+If adding them to the server fails, the username is still saved, so the
+5-minute role sync finishes the job once they join through `/discord`.
+Without `?link=1` the same routes are "login with discord", which only works
+for accounts already connected.
+
 ## API Endpoints
 
 ### POST `/portal/api/sync-discord-role`
@@ -193,6 +213,7 @@ The Discord bot needs:
 - Manage Roles (to assign/remove tier roles)
 - Manage Channels (to rename door code channel)
 - Send Messages (for notifications)
+- Create Invite (to add members to the server from "connect discord")
 - Attach Files in #welcomes (for new member photos)
 - View Channel (to access channels)
 
