@@ -301,7 +301,7 @@ export default function SubscriptionInfo({
           </p>
           <p>
             we'd love to have you back!{' '}
-            <Link href="/portal/renew">renew membership</Link>
+            <Link href="/renew">renew membership</Link>
           </p>
         </div>
       </>
