@@ -70,7 +70,7 @@ The web keypad at `/door`: type any current Verkada entry code to open the front
 - **Details:** Finds the Verkada access user who owns the code, re-reads that user from Verkada to confirm the code and its start/end dates, then calls Verkada `POST /access/v1/door/user_unlock` for `MOX_FRONT_DOOR_ID` as that user. Verkada applies the user's own access rules and logs the unlock against them ("User Unlock API"). `denied` means the code is right but Verkada refused the unlock; `error` (502) means Verkada couldn't be reached or didn't answer in time; `warming` (503) means there is no code index yet, so the code wasn't judged and a rebuild has started in the background. `[door-unlock]` log lines record each attempt (never the code).
 
 ### POST `/api/membership-checkout`
-Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/portal/renew`.
+Start a Stripe Checkout subscription for a membership tier. Used by the pricing table on `/join` and `/renew`.
 
 - **Auth:** None (reached by invite link before the person has a portal login)
 - **Body:** `{ "tier": "core" | "resident", "interval": "quarterly" | "monthly", "clientReferenceId"?: "rec123", "email"?: "..." }`

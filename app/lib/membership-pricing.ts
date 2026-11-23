@@ -1,5 +1,5 @@
 // Single source of truth for membership pricing shown on /join and
-// /portal/renew and transacted by /api/membership-checkout.
+// /renew and transacted by /api/membership-checkout.
 //
 // Stripe side: each tier has two recurring Prices on its existing membership
 // Product (Core: prod_RpkYg9EMJoi5oi, Resident: prod_RpkufjD9E3esG5) so the

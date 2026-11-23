@@ -52,7 +52,7 @@ flowchart TB
 
 Membership prices live in `app/lib/membership-pricing.ts` and are rendered by
 `app/components/MembershipPricingTable.tsx` on `/join` (invited visitors) and
-`/portal/renew` (lapsed members). Each tier has a quarterly rate (billed every
+`/renew` (lapsed members). Each tier has a quarterly rate (billed every
 3 months up front) and a month-to-month rate; the table toggles between them.
 
 Clicking a tier calls `POST /api/membership-checkout`, which finds the Stripe

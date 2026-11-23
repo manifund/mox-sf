@@ -20,7 +20,7 @@ interface PersonFields {
 const RECORD_ID = /^rec[A-Za-z0-9]{14}$/
 
 // Whose membership to check: the invite link's record, else the logged-in
-// member's own (e.g. /portal/renew). Never an email from the request body, or
+// member's own (e.g. /renew). Never an email from the request body, or
 // this endpoint would tell anyone whether an address belongs to a member.
 async function personForCheckout(clientReferenceId: unknown) {
   if (typeof clientReferenceId === 'string' && RECORD_ID.test(clientReferenceId)) {
