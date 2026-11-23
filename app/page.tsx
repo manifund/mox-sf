@@ -5,6 +5,7 @@ import PeopleGallery from './people-gallery'
 import EventsCardCompact from './components/EventsCardCompact'
 import { getEvents } from './lib/events'
 import DonateBanner from './components/DonateBanner'
+import GlitchButton from './components/home/GlitchButton'
 import { getPeople, getOrgs, getPrograms, getStaff, buildDirectoryData } from './people/people'
 import DirectoryClient from './people/DirectoryClient'
 import './people/people.css'
@@ -566,6 +567,7 @@ export default async function Component() {
             Questions? Contact{' '}
             <Link href="mailto:robin@moxsf.com">robin@moxsf.com</Link>
           </p>
+          <GlitchButton />
         </div>
       </footer>
     </div>

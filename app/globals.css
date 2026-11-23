@@ -186,6 +186,128 @@
   }
 }
 
+/* ============================================ */
+/* MEGA GLITCH MODE                              */
+/* Toggled by the tiny square in the homepage    */
+/* footer (GlitchButton). Everything hangs off   */
+/* html[data-glitch] so removing the attribute   */
+/* restores sanity instantly.                    */
+/* ============================================ */
+@keyframes glitch-jitter {
+  0%   { transform: rotate(180deg) translate(0, 0) skew(0deg); }
+  20%  { transform: rotate(180deg) translate(-3px, 2px) skew(0.6deg); }
+  40%  { transform: rotate(179.6deg) translate(3px, -1px) skew(-0.8deg); }
+  60%  { transform: rotate(180.4deg) translate(-1px, 3px) skew(0.3deg); }
+  80%  { transform: rotate(180deg) translate(2px, -2px) skew(-0.4deg); }
+  100% { transform: rotate(180deg) translate(0, 0) skew(0deg); }
+}
+@keyframes glitch-hue {
+  from { filter: hue-rotate(0deg) saturate(1.6) contrast(1.15); }
+  to   { filter: hue-rotate(360deg) saturate(1.6) contrast(1.15); }
+}
+@keyframes glitch-rgb {
+  0%   { text-shadow: -2px 0 #ff00c8, 2px 0 #00fff9; }
+  50%  { text-shadow: 3px 0 #ff00c8, -3px 0 #00fff9, 0 2px #ffe600; }
+  100% { text-shadow: -1px 0 #00fff9, 1px 0 #ff00c8; }
+}
+@keyframes glitch-flicker {
+  0%, 100% { filter: none; }
+  33%      { filter: invert(1) contrast(1.4); }
+  66%      { filter: saturate(8) hue-rotate(90deg); }
+}
+@keyframes glitch-scan {
+  from { background-position: 0 0; }
+  to   { background-position: 0 100vh; }
+}
+@keyframes glitch-blink {
+  0%, 49% { background: #ff00c8; }
+  50%, 100% { background: #00fff9; }
+}
+
+html[data-glitch] {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><text y='32' font-size='32'>🫠</text></svg>") 20 20, auto;
+}
+html[data-glitch] body {
+  transform: rotate(180deg);
+  animation:
+    glitch-jitter 0.45s steps(2, end) infinite,
+    glitch-hue 5s linear infinite;
+  font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', cursive !important;
+}
+html[data-glitch] body * {
+  font-family: inherit !important;
+  transition: none !important;
+}
+html[data-glitch] h1,
+html[data-glitch] h2,
+html[data-glitch] h3,
+html[data-glitch] p,
+html[data-glitch] a,
+html[data-glitch] span {
+  animation: glitch-rgb 0.9s steps(3, end) infinite alternate;
+}
+html[data-glitch] img {
+  animation: glitch-flicker 1.3s steps(1, end) infinite;
+}
+html[data-glitch] section:nth-of-type(odd) {
+  transform: rotate(1.5deg);
+}
+html[data-glitch] section:nth-of-type(even) {
+  transform: rotate(-1.5deg) skewX(2deg);
+}
+html[data-glitch] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.14) 0 2px,
+    transparent 2px 4px
+  );
+  mix-blend-mode: multiply;
+  animation: glitch-scan 6s linear infinite;
+}
+/* The button grows and blinks so you can find your way back. */
+html[data-glitch] .glitch-btn {
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+  animation: glitch-blink 0.3s steps(1, end) infinite;
+}
+/* The one upright thing on the page: the escape hatch. Body is rotated 180°,
+   so rotating this another 180° reads normally. */
+.glitch-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  z-index: 9999;
+  transform: translateX(-50%) rotate(180deg);
+  padding: 6px 12px;
+  background: #000;
+  color: #0f0;
+  font: 12px/1.4 ui-monospace, monospace !important;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: 2px dashed #ff00c8;
+  animation: none !important;
+  text-shadow: none !important;
+}
+.glitch-hint kbd {
+  padding: 0 4px;
+  border: 1px solid #0f0;
+  font: inherit !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-glitch] body,
+  html[data-glitch] body *,
+  html[data-glitch] body::after,
+  html[data-glitch] .glitch-btn {
+    animation: none !important;
+  }
+}
+
 /* Map font-display class to Playfair Display font */
 .font-display {
   font-family: var(--font-playfair);
