@@ -1,5 +1,5 @@
 import { escapeAirtableString, isValidEmail } from '@/app/lib/airtable-helpers'
-import { createRecord, findRecord, Tables } from '@/app/lib/airtable'
+import { createRecord, findRecord, Tables, updateRecord } from '@/app/lib/airtable'
 import { sendEmail } from '@/app/lib/email'
 
 // Both people responsible for GEF admissions receive every website interest.
@@ -66,28 +66,43 @@ export async function POST(request: Request) {
     )
   }
 
-  // A submitted interest form is the pipeline entry point. Avoid creating a
-  // second person if the browser retries the same submission.
+  // A submitted interest form is the pipeline entry point. Field names here
+  // must match the "GEF | Global Experts Fellowship" table exactly (see
+  // docs/airtable-schema.md); Airtable rejects unknown fields outright.
+  //
+  // If Airtable fails, the email still goes out so no applicant is lost. The
+  // failure is logged and flagged in the email so staff can add them by hand.
+  const today = new Date().toISOString().slice(0, 10)
+  let airtableError: string | null = null
   try {
-    const existing = await findRecord(
+    const existing = await findRecord<{ Email?: string; Notes?: string }>(
       Tables.GefPipeline,
       `LOWER({Email}) = LOWER('${escapeAirtableString(values.email)}')`,
-      { fields: ['Email'] }
+      { fields: ['Email', 'Notes'] }
     )
 
-    if (!existing) {
+    if (existing) {
+      // Returning applicant (or a browser retry): note the resubmission on the
+      // existing record instead of creating a second person.
+      const previousNotes = existing.fields.Notes ?? ''
+      await updateRecord(Tables.GefPipeline, existing.id, {
+        'Last contact': today,
+        Notes: `${previousNotes}${previousNotes ? '\n\n' : ''}Resubmitted the moxsf.com/gef interest form on ${today}.`,
+      })
+    } else {
       await createRecord(
         Tables.GefPipeline,
         {
           Name: values.name,
           Email: values.email,
           Country: values.country,
-          Focus: values.focus,
+          'Focus area': values.focus,
           Background: values.background,
-          Proud: values.proud,
+          'Proud of': values.proud,
           Intentions: values.intentions,
           Stage: 'Interest received',
-          'First contact': new Date().toISOString().slice(0, 10),
+          'First contact': today,
+          'Last contact': today,
           Notes: 'Interest submitted via moxsf.com/gef.',
         },
         { typecast: true }
@@ -95,20 +110,26 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('[GEF] Error saving website interest to the GEF pipeline:', error)
-    return Response.json(
-      { error: 'Something went wrong saving your interest. Please try again.' },
-      { status: 502 }
-    )
+    airtableError = error instanceof Error ? error.message : String(error)
   }
 
-  const text = FIELDS.map(({ key, label }) => `${label}:\n${values[key]}`).join(
-    '\n\n'
-  )
+  const airtableWarning = airtableError
+    ? `NOT SAVED TO AIRTABLE - please add this person to the GEF pipeline by hand. Error: ${airtableError}`
+    : ''
+
+  const text =
+    (airtableWarning ? `${airtableWarning}\n\n` : '') +
+    FIELDS.map(({ key, label }) => `${label}:\n${values[key]}`).join('\n\n')
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 640px; margin: 0 auto;">
       <h2 style="margin-bottom: 4px;">New Global Expert Fellowship interest</h2>
       <p style="color: #666; margin-top: 0;">Submitted via moxsf.com/gef</p>
+      ${
+        airtableWarning
+          ? `<p style="color: #b00020; font-weight: 600;">${escapeHtml(airtableWarning)}</p>`
+          : ''
+      }
       ${FIELDS.map(
         ({ key, label }) => `
         <div style="margin: 16px 0;">
@@ -124,7 +145,7 @@ export async function POST(request: Request) {
       to: RECIPIENTS,
       from: 'Mox GEF <portal@account.moxsf.com>',
       replyTo: values.email,
-      subject: `GEF interest: ${values.name}`,
+      subject: `${airtableError ? '[NOT IN AIRTABLE] ' : ''}GEF interest: ${values.name}`,
       text,
       html,
     })
