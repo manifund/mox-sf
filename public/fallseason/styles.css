@@ -1,0 +1,3499 @@
+:root {
+  --ink: #2b1a10;
+  --accent: #b3451c;
+  --text: #1a1411;
+  --muted: #6b5f55;
+  --paper: #faf3e6;
+  --line: #dccbb4;
+  --blue: #1268b3;
+  --purple: #7a4bb1;
+  --green: #2f8b40;
+  --gold: #d79b00;
+  --shadow: 0 18px 48px rgba(43, 26, 16, 0.14);
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 80% 10%, rgba(179, 69, 28, 0.1), transparent 32rem),
+    linear-gradient(180deg, #fffaf2 0%, var(--paper) 42%, #f8ecd9 100%);
+  font-family: "Instrument Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+svg {
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.hero,
+main,
+.site-footer {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.topbar {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 78px;
+}
+
+.brand,
+.site-footer strong,
+.hero h1,
+.about-section h2,
+.subscribe-bar h2 {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  letter-spacing: 0;
+}
+
+.brand {
+  color: var(--ink);
+  font-size: clamp(2rem, 5vw, 5.25rem);
+  line-height: 0.85;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.nav-links a,
+.site-footer a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-links a {
+  text-shadow: 0 1px 10px rgba(255, 253, 248, 0.9);
+}
+
+.nav-links a:hover,
+.site-footer a:hover {
+  color: var(--accent);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.82fr) minmax(420px, 1.18fr);
+  align-items: start;
+  gap: clamp(28px, 5vw, 86px);
+  padding: 12px 0 0;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  padding-top: 8px;
+}
+
+.hero h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(4.8rem, 8.7vw, 8.85rem);
+  font-weight: 500;
+  line-height: 0.78;
+}
+
+.intro {
+  max-width: 27rem;
+  margin: 34px 0 28px;
+  padding-top: 20px;
+  border-top: 1px solid #c9b49a;
+  font-size: clamp(1rem, 1.8vw, 1.22rem);
+  line-height: 1.48;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.season-date,
+.eyebrow,
+.section-title h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.season-date {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.primary-action,
+.secondary-action {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.primary-action {
+  border: 0;
+  color: #fffdf8;
+  background: var(--ink);
+  box-shadow: 0 10px 24px rgba(43, 26, 16, 0.18);
+}
+
+.secondary-action {
+  border: 1px solid #4a2f1f;
+  color: var(--ink);
+  background: transparent;
+}
+
+.primary-action:hover,
+.secondary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(43, 26, 16, 0.16);
+}
+
+.hero-art {
+  position: relative;
+  z-index: 1;
+  margin: clamp(-112px, -8vw, -76px) 0 0;
+  min-height: clamp(560px, 54vw, 760px);
+  overflow: clip;
+}
+
+.hero-layer {
+  position: absolute;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.hero-sea {
+  right: -13%;
+  bottom: 0;
+  z-index: 1;
+  width: min(132%, 980px);
+}
+
+.hero-sun {
+  left: 26%;
+  top: -2%;
+  z-index: 2;
+  width: min(31%, 260px);
+}
+
+.hero-branches {
+  right: -9%;
+  top: -10%;
+  z-index: 3;
+  width: min(61%, 500px);
+}
+
+.channel-band {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  margin-top: clamp(-106px, -6.4vw, -66px);
+  padding: 0 0 42px;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+}
+
+.tv-wrap {
+  position: relative;
+  --pointer-row: 0;
+  width: min(960px, 100%);
+  max-width: 960px;
+  justify-self: center;
+}
+
+.tv-image {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 24px 28px rgba(16, 21, 19, 0.16));
+}
+
+.tv-pointer {
+  position: absolute;
+  z-index: 3;
+  left: 12.45%;
+  top: 30.2%;
+  width: 0;
+  height: 0;
+  border-top: clamp(6px, 0.75vw, 9px) solid transparent;
+  border-bottom: clamp(6px, 0.75vw, 9px) solid transparent;
+  border-left: clamp(10px, 1vw, 14px) solid rgba(232, 228, 174, 0.92);
+  filter: drop-shadow(0 0 5px rgba(242, 237, 190, 0.6));
+  transform: translateY(calc(var(--pointer-row) * clamp(34px, 4.35vw, 43px)));
+  transition: transform 220ms ease;
+  pointer-events: none;
+}
+
+.tv-controls {
+  position: absolute;
+  z-index: 4;
+  left: 15%;
+  top: 27%;
+  width: 53.5%;
+  color: transparent;
+  font-family: "Courier New", monospace;
+  text-align: center;
+}
+
+.tv-controls h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.channel-button {
+  width: 100%;
+  min-height: 36px;
+  margin: 0 0 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: transparent;
+  background: transparent !important;
+  font-size: clamp(0.74rem, 1.45vw, 0.98rem);
+  line-height: 1.05;
+  text-align: left;
+  padding: 6px 16px;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  opacity: 1;
+}
+
+.channel-button span {
+  display: inline-block;
+  width: 3.1rem;
+}
+
+.channel-button.blue,
+.channel-button.purple,
+.channel-button.green,
+.channel-button.gold {
+  background-color: transparent;
+}
+
+.dot.blue,
+.detail-badge.blue {
+  background-color: var(--blue);
+}
+
+.dot.purple,
+.detail-badge.purple {
+  background-color: var(--purple);
+}
+
+.dot.green,
+.detail-badge.green {
+  background-color: var(--green);
+}
+
+.dot.gold,
+.detail-badge.gold {
+  background-color: var(--gold);
+}
+
+.channel-button.is-active {
+  outline: 0;
+  color: transparent;
+  text-shadow: none;
+}
+
+.dial-controls {
+  position: absolute;
+  z-index: 5;
+  left: 83.6%;
+  top: 16.7%;
+  width: 8.3%;
+  height: 36%;
+}
+
+.dial-button {
+  position: absolute;
+  left: 9%;
+  width: 78%;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 999px;
+  color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.dial-button[data-category="ai"] {
+  top: 0;
+}
+
+.dial-button[data-category="vibes"] {
+  top: 27.5%;
+}
+
+.dial-button[data-category="research"] {
+  top: 55.2%;
+}
+
+.dial-button[data-category="social"] {
+  top: 82.5%;
+}
+
+.tv-stage {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  margin-top: clamp(-104px, -6.2vw, -64px);
+}
+
+.custom-tv {
+  width: min(1120px, 100%);
+  max-width: none;
+  justify-self: center;
+  user-select: none;
+}
+
+.tv-cabinet {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 12px;
+  padding: 18px 18px 18px;
+  border: 6px solid #5f351d;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 18%, rgba(0, 0, 0, 0.12) 54%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(135deg, #8a512c 0%, #4d2b18 38%, #9b6034 64%, #3a2013 100%);
+  box-shadow: 0 30px 58px rgba(16, 21, 19, 0.2), inset 0 0 0 2px rgba(255, 225, 170, 0.18);
+}
+
+.tv-cabinet::before,
+.tv-cabinet::after {
+  content: "";
+  position: absolute;
+  bottom: -20px;
+  width: 48px;
+  height: 22px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, #23140d, #5a321d);
+}
+
+.tv-cabinet::before {
+  left: 12%;
+}
+
+.tv-cabinet::after {
+  right: 15%;
+}
+
+.tv-screen {
+  position: relative;
+  min-height: 586px;
+  overflow: hidden;
+  border: 12px solid #111917;
+  border-radius: 26px / 38px;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(61, 122, 92, 0.28), transparent 58%),
+    linear-gradient(180deg, #0d241c, #07140f 58%, #04100c);
+  box-shadow: inset 0 0 0 3px #27332f, inset 0 0 44px rgba(0, 0, 0, 0.86);
+}
+
+.tv-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 20%, rgba(255, 255, 220, 0.12), transparent 44%);
+  pointer-events: none;
+}
+
+.tv-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0.22;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 5px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.tv-screen-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 586px;
+  padding: clamp(18px, 1.7vw, 23px);
+  color: #eff3df;
+}
+
+.tv-screen-top {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.66fr) minmax(390px, 1fr);
+  gap: 16px;
+  align-items: end;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(230, 232, 190, 0.2);
+}
+
+.tv-kicker {
+  margin: 0 0 4px;
+  color: rgba(238, 236, 196, 0.72);
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tv-screen-top h2 {
+  margin: 0;
+  color: #f6f2cd;
+  font-family: "Courier New", monospace;
+  font-size: clamp(1.15rem, 2vw, 1.65rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.custom-tv .tv-controls {
+  position: static;
+  width: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  color: #f8f2d4;
+  font-family: "Courier New", monospace;
+}
+
+.custom-tv .channel-button {
+  min-height: 34px;
+  margin: 0;
+  border: 1px solid rgba(248, 242, 212, 0.26);
+  border-radius: 6px;
+  color: #f8f2d4;
+  background: rgba(255, 255, 255, 0.06) !important;
+  padding: 7px 8px;
+  font-size: clamp(0.64rem, 0.9vw, 0.82rem);
+  line-height: 1.08;
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.04) !important;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.custom-tv .channel-button span {
+  display: block;
+  width: auto;
+  color: rgba(248, 242, 212, 0.65);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+.custom-tv .channel-button.is-active {
+  color: #fffbe6;
+  border-color: rgba(255, 248, 185, 0.78);
+  background: rgba(255, 255, 255, 0.13) !important;
+}
+
+.tv-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(252px, 0.78fr);
+  min-height: 0;
+  gap: 14px;
+}
+
+.custom-tv .calendar-column,
+.custom-tv .detail-panel {
+  min-width: 0;
+}
+
+.custom-tv .section-title {
+  margin-bottom: 8px;
+  color: rgba(248, 242, 212, 0.78);
+}
+
+.custom-tv .section-title span {
+  background: rgba(230, 232, 190, 0.16);
+}
+
+.custom-tv .event-list {
+  max-height: 430px;
+  overflow: auto;
+  border-color: rgba(248, 242, 212, 0.24);
+  background: rgba(2, 16, 12, 0.42);
+  scrollbar-color: rgba(247, 237, 189, 0.4) transparent;
+}
+
+.custom-tv .event-row {
+  grid-template-columns: 44px minmax(0, 1fr) 14px;
+  gap: 10px;
+  color: #f3f1dc;
+  border-bottom-color: rgba(230, 232, 190, 0.15);
+  padding: 10px 10px;
+}
+
+.custom-tv .event-row:hover,
+.custom-tv .event-row.is-selected {
+  background: rgba(247, 237, 189, 0.1);
+  box-shadow: inset 3px 0 0 rgba(247, 237, 189, 0.74);
+}
+
+.custom-tv .event-date,
+.custom-tv .event-place {
+  color: rgba(243, 241, 220, 0.68);
+}
+
+.custom-tv .event-date span:first-child {
+  font-size: 0.56rem;
+}
+
+.custom-tv .event-date span:last-child {
+  margin-top: 3px;
+  font-size: 1.14rem;
+}
+
+.custom-tv .event-name {
+  color: #fffbe7;
+  font-size: clamp(0.84rem, 1vw, 0.95rem);
+  line-height: 1.12;
+}
+
+.custom-tv .event-time {
+  color: #f7edbd;
+  font-size: 0.56rem;
+  letter-spacing: 0.09em;
+}
+
+.custom-tv .event-place {
+  font-size: 0.66rem;
+}
+
+.custom-tv .event-row .tag {
+  display: none;
+}
+
+.custom-tv .detail-panel {
+  position: relative;
+  top: auto;
+  max-height: 430px;
+  overflow: auto;
+  border-color: rgba(248, 242, 212, 0.24);
+  color: #f5f0d4;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(247, 237, 189, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(18, 49, 38, 0.9), rgba(5, 19, 14, 0.94));
+  box-shadow: inset 0 0 28px rgba(255, 248, 202, 0.04);
+  padding: 18px;
+  scrollbar-color: rgba(247, 237, 189, 0.4) transparent;
+}
+
+.custom-tv .detail-badge {
+  color: #fffbe7;
+  border: 1px solid rgba(255, 251, 231, 0.18);
+  box-shadow: 0 0 14px rgba(255, 251, 231, 0.08);
+}
+
+.custom-tv .detail-title {
+  margin: 14px 0 14px;
+  color: #fff8d6;
+  font-size: clamp(1.32rem, 2vw, 1.85rem);
+  line-height: 1.02;
+}
+
+.custom-tv .detail-meta {
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.custom-tv .detail-meta div {
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+}
+
+.custom-tv .detail-meta dt,
+.custom-tv .detail-meta dd,
+.custom-tv .detail-description {
+  color: rgba(245, 240, 212, 0.82);
+}
+
+.custom-tv .detail-meta dt {
+  padding-top: 1px;
+}
+
+.custom-tv .detail-panel .eyebrow {
+  margin-bottom: 10px;
+  color: rgba(247, 237, 189, 0.82);
+  font-size: 0.64rem;
+}
+
+.custom-tv .speaker {
+  margin-bottom: 18px;
+}
+
+.custom-tv .speaker-avatar {
+  width: 42px;
+  height: 42px;
+  border-color: rgba(255, 251, 231, 0.55);
+  box-shadow: 0 0 18px rgba(247, 237, 189, 0.12);
+}
+
+.custom-tv .speaker span {
+  color: rgba(245, 240, 212, 0.6);
+}
+
+.custom-tv .detail-description {
+  margin-bottom: 16px;
+  font-size: 0.84rem;
+  line-height: 1.46;
+}
+
+.custom-tv .close-detail {
+  display: none;
+}
+
+.custom-tv .rsvp-link {
+  min-height: 42px;
+  color: #061b13;
+  background: #f3e7af;
+  box-shadow: 0 0 18px rgba(247, 237, 189, 0.12);
+}
+
+.tv-dial-rail {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 12px;
+  padding: 15px 9px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #151917, #090c0b);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.tv-dial-rail .dial-button {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 60px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 251, 232, 0.8);
+  background:
+    radial-gradient(circle at 50% 50%, #222 0 34%, #0d0e0d 35% 48%, transparent 50%),
+    conic-gradient(var(--dial-color, #2f79bd), transparent 0.78turn, rgba(255, 255, 255, 0.28));
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.12), 0 5px 12px rgba(0, 0, 0, 0.28);
+}
+
+.tv-dial-rail .dial-button span {
+  transform: translateX(-48px);
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+}
+
+.tv-dial-rail .dial-button[data-category="ai"] {
+  --dial-color: var(--blue);
+}
+
+.tv-dial-rail .dial-button[data-category="vibes"] {
+  --dial-color: var(--purple);
+}
+
+.tv-dial-rail .dial-button[data-category="research"] {
+  --dial-color: var(--green);
+}
+
+.tv-dial-rail .dial-button[data-category="social"] {
+  --dial-color: var(--gold);
+}
+
+.tv-dial-rail .dial-button.is-active {
+  outline: 2px solid rgba(255, 248, 185, 0.75);
+  outline-offset: 3px;
+}
+
+.tv-speaker-grille {
+  width: 72px;
+  height: 136px;
+  margin-top: 10px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(180deg, #050706 0 5px, #202320 5px 8px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.events-shell {
+  display: grid;
+  grid-template-columns: 190px minmax(420px, 1fr) 290px;
+  gap: 34px;
+  align-items: start;
+  padding: 22px 0 34px;
+}
+
+.events-shell.detail-hidden {
+  grid-template-columns: 190px minmax(420px, 1fr);
+}
+
+.filters {
+  position: sticky;
+  top: 20px;
+}
+
+.filter-pill {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.filter-pill.is-active {
+  border-color: #1e74bd;
+  background: #fffdf8;
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  border-radius: 999px;
+  background: #87908a;
+}
+
+.dot.all {
+  background: linear-gradient(135deg, var(--blue), var(--purple), var(--green), var(--gold));
+}
+
+.section-title {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.section-title span {
+  height: 1px;
+  background: var(--line);
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+.event-list {
+  border: 1px solid #1e74bd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 253, 248, 0.88);
+}
+
+.event-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto 20px;
+  gap: 16px;
+  align-items: start;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 15px 16px;
+  text-align: left;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+.event-row:last-child {
+  border-bottom: 0;
+}
+
+.event-row:hover,
+.event-row.is-selected {
+  background: #fffdf8;
+}
+
+.event-row.is-selected {
+  box-shadow: inset 3px 0 0 #1e74bd;
+}
+
+.event-date {
+  display: grid;
+  justify-items: center;
+  line-height: 1;
+  color: #2b302d;
+  text-transform: uppercase;
+  padding-top: 1px;
+}
+
+.event-date span:first-child {
+  font-size: 0.72rem;
+}
+
+.event-date span:last-child {
+  margin-top: 4px;
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+.event-summary {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.event-time {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.event-name {
+  display: block;
+  margin: 0;
+  max-width: 42rem;
+  color: #070a09;
+  font-size: clamp(1rem, 1.45vw, 1.16rem);
+  font-weight: 900;
+  line-height: 1.14;
+}
+
+.event-place {
+  display: block;
+  max-width: 38rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #4f5753;
+}
+
+.tag {
+  border-radius: 999px;
+  color: #fff;
+  padding: 5px 10px;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.tag.blue {
+  background: var(--blue);
+}
+
+.tag.purple {
+  background: var(--purple);
+}
+
+.tag.green {
+  background: var(--green);
+}
+
+.tag.gold {
+  background: var(--gold);
+}
+
+.detail-panel {
+  position: sticky;
+  top: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.detail-panel.is-hidden {
+  display: none;
+}
+
+.close-detail {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+}
+
+.detail-badge {
+  display: inline-flex;
+  border-radius: 999px;
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detail-title {
+  margin: 16px 0 18px;
+  color: var(--ink);
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 3.3vw, 2.45rem);
+  font-weight: 500;
+  line-height: 1.02;
+}
+
+.detail-meta {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.detail-meta div {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+}
+
+.detail-meta dt,
+.detail-meta dd {
+  margin: 0;
+}
+
+.speaker {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.speaker-avatar {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 35%, #f1c6a4 0 19%, transparent 20%),
+    radial-gradient(circle at 50% 28%, #2b241f 0 24%, transparent 25%),
+    linear-gradient(135deg, #315f55, #d6b675);
+  border: 2px solid #fff;
+  box-shadow: 0 5px 12px rgba(16, 21, 19, 0.15);
+}
+
+.speaker-avatar.has-photo {
+  background-size: cover;
+  background-position: center;
+}
+
+.speaker strong,
+.speaker span {
+  display: block;
+}
+
+.speaker span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.detail-description {
+  margin: -6px 0 22px;
+  color: #2d3430;
+  line-height: 1.48;
+  white-space: pre-wrap;
+}
+
+.rsvp-link {
+  width: 100%;
+}
+
+.fine-print {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.about-section {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+  margin: 8px 0 30px;
+  padding: 32px 0 34px;
+  border-top: 1px solid rgba(190, 182, 170, 0.74);
+  border-bottom: 1px solid rgba(190, 182, 170, 0.42);
+}
+
+.about-section .eyebrow {
+  margin-top: 8px;
+}
+
+.about-section h2 {
+  max-width: 19ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  line-height: 0.96;
+}
+
+.about-section p:not(.eyebrow) {
+  max-width: 46rem;
+  margin: 18px 0 0;
+  font-size: clamp(1.02rem, 1.55vw, 1.18rem);
+  line-height: 1.55;
+}
+
+.subscribe-bar {
+  display: grid;
+  grid-template-columns: 230px 1fr auto auto;
+  gap: 26px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.74);
+  padding: 22px 26px;
+}
+
+.subscribe-bar h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.55rem;
+  font-weight: 500;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.subscribe-bar p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.site-footer {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 34px;
+  align-items: center;
+  padding: 30px 0 34px;
+}
+
+.site-footer strong {
+  color: var(--ink);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.site-footer span,
+.site-footer a {
+  font-size: 0.86rem;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 10;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  color: #fffdf8;
+  background: var(--ink);
+  padding: 12px 16px;
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 980px) {
+  .hero-grid,
+  .channel-band,
+  .events-shell,
+  .about-section,
+  .subscribe-bar,
+  .site-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-art {
+    margin-top: -72px;
+    min-height: clamp(520px, 92vw, 700px);
+  }
+
+  .hero-sun {
+    left: 25%;
+    top: -1%;
+    width: 32%;
+  }
+
+  .hero-branches {
+    right: -10%;
+    top: -8%;
+    width: 62%;
+  }
+
+  .hero-sea {
+    right: -10%;
+    bottom: -2%;
+    width: 122%;
+  }
+
+  .channel-band {
+    margin-top: clamp(-94px, -10vw, -58px);
+  }
+
+  .about-section {
+    max-width: 38rem;
+  }
+
+  .about-section {
+    margin-top: 6px;
+    gap: 10px;
+  }
+
+  .filters,
+  .detail-panel {
+    position: static;
+  }
+
+  .detail-panel {
+    position: relative;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .filters .eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .subscribe-bar {
+    align-items: stretch;
+  }
+
+  .tv-stage {
+    gap: 22px;
+  }
+
+  .custom-tv {
+    justify-self: stretch;
+  }
+
+  .tv-cabinet {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-dial-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+  }
+
+  .tv-dial-rail .dial-button {
+    width: 58px;
+  }
+
+  .tv-dial-rail .dial-button span,
+  .tv-speaker-grille {
+    display: none;
+  }
+
+  .tv-screen-top,
+  .tv-content {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-tv .event-list,
+  .custom-tv .detail-panel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero,
+  main,
+  .site-footer {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .topbar {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .nav-links {
+    padding-top: 8px;
+    gap: 0.8rem;
+    font-size: 0.92rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(4.2rem, 22vw, 6rem);
+  }
+
+  .hero-art {
+    margin-top: -52px;
+    min-height: 430px;
+  }
+
+  .hero-sea {
+    right: -24%;
+    bottom: -8%;
+    width: 148%;
+  }
+
+  .hero-sun {
+    left: 23%;
+    top: -1%;
+    width: 34%;
+  }
+
+  .hero-branches {
+    right: -11%;
+    top: -6%;
+    width: 62%;
+  }
+
+  .channel-band {
+    margin-top: -44px;
+  }
+
+  .about-section {
+    padding: 26px 0 28px;
+  }
+
+  .season-date {
+    width: 100%;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .tv-controls {
+    left: 15%;
+    top: 26.5%;
+    width: 53.5%;
+  }
+
+  .channel-button {
+    min-height: 27px;
+    margin-bottom: 5px;
+    padding: 4px 9px;
+    font-size: clamp(0.47rem, 2.25vw, 0.72rem);
+  }
+
+  .tv-pointer {
+    top: 29.4%;
+    transform: translateY(calc(var(--pointer-row) * clamp(26px, 8.5vw, 32px)));
+  }
+
+  .channel-button span {
+    width: 2rem;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .event-row {
+    grid-template-columns: 48px minmax(0, 1fr) 18px;
+    gap: 10px;
+  }
+
+  .event-row .tag {
+    grid-column: 2 / 3;
+    justify-self: start;
+    margin-top: 6px;
+  }
+
+  .section-title {
+    gap: 8px;
+  }
+
+  .tv-cabinet {
+    padding: 14px;
+  }
+
+  .tv-screen {
+    min-height: 0;
+    border-width: 8px;
+    border-radius: 18px / 28px;
+  }
+
+  .tv-screen-inner {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .custom-tv .tv-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .custom-tv .channel-button {
+    min-height: 40px;
+    font-size: 0.72rem;
+  }
+
+  .custom-tv .event-row {
+    grid-template-columns: 44px minmax(0, 1fr) 14px;
+  }
+
+  .custom-tv .event-row .tag {
+    grid-column: 2 / 3;
+  }
+
+  .custom-tv .tag {
+    justify-self: start;
+  }
+}
+
+/* Final CRT polish lives last so native button and page-card styles cannot leak into the TV. */
+.custom-tv,
+.custom-tv * {
+  user-select: none;
+}
+
+.custom-tv ::selection {
+  color: inherit;
+  background: transparent;
+}
+
+.custom-tv .event-list {
+  background-color: rgba(2, 16, 12, 0.54);
+}
+
+.custom-tv .event-row,
+.custom-tv .event-row:focus,
+.custom-tv .event-row:active {
+  color: var(--text);
+  background: transparent !important;
+  outline: 0;
+}
+
+.custom-tv .event-row:hover {
+  background: rgba(18, 104, 179, 0.06) !important;
+}
+
+.custom-tv .event-row.is-selected {
+  background: rgba(18, 104, 179, 0.09) !important;
+  box-shadow: inset 3px 0 0 var(--channel-color, var(--blue));
+}
+
+.custom-tv .event-row + .event-row {
+  border-top: 1px solid rgba(230, 232, 190, 0.08);
+}
+
+.custom-tv .detail-panel,
+.custom-tv .detail-panel:focus-within {
+  background: rgba(255, 255, 255, 0.62) !important;
+}
+
+.custom-tv .detail-badge {
+  display: inline-flex;
+}
+
+.custom-tv .detail-title,
+.custom-tv .speaker strong {
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.subscribe-bar {
+  margin-top: 22px;
+  box-shadow: 0 16px 34px rgba(16, 21, 19, 0.06);
+}
+
+.site-footer {
+  margin-top: 6px;
+  border-top: 1px solid rgba(216, 208, 194, 0.72);
+}
+
+/* Designer hardening pass: this is the authoritative responsive composition. */
+.topbar {
+  isolation: isolate;
+}
+
+.nav-links {
+  position: relative;
+  z-index: 10;
+  align-items: center;
+  border: 1px solid rgba(216, 208, 194, 0.54);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.72);
+  box-shadow: 0 10px 28px rgba(16, 21, 19, 0.06);
+  padding: 9px 14px;
+  backdrop-filter: blur(10px);
+}
+
+.nav-links a {
+  line-height: 1;
+  text-shadow: none;
+}
+
+.hero-grid {
+  min-height: clamp(600px, 58vw, 720px);
+  align-items: start;
+}
+
+.hero-art {
+  margin-top: clamp(-54px, -4vw, -28px);
+  min-height: clamp(500px, 48vw, 650px);
+}
+
+.hero-sea {
+  right: -10%;
+  bottom: 3%;
+  width: min(126%, 920px);
+}
+
+.hero-sun {
+  left: 31%;
+  top: 1%;
+  width: min(27%, 230px);
+}
+
+.hero-branches {
+  right: -7%;
+  top: 8%;
+  width: min(54%, 450px);
+}
+
+.channel-band,
+.tv-stage {
+  margin-top: clamp(-112px, -7vw, -72px);
+}
+
+.custom-tv {
+  width: min(1090px, 100%);
+}
+
+.tv-cabinet {
+  grid-template-columns: minmax(0, 1fr) 100px;
+}
+
+.tv-screen,
+.tv-screen-inner {
+  min-height: 560px;
+}
+
+.tv-content {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+}
+
+.custom-tv .event-list,
+.custom-tv .detail-panel {
+  max-height: 404px;
+}
+
+.custom-tv .detail-title {
+  font-size: clamp(1.42rem, 1.8vw, 2rem);
+}
+
+@media (max-width: 1180px) {
+  .hero-grid {
+    min-height: clamp(560px, 56vw, 680px);
+  }
+
+  .hero-art {
+    margin-top: clamp(-36px, -3vw, -18px);
+    min-height: clamp(470px, 48vw, 600px);
+  }
+
+  .custom-tv {
+    width: 100%;
+  }
+
+  .tv-cabinet {
+    grid-template-columns: minmax(0, 1fr) clamp(82px, 8.5vw, 96px);
+  }
+}
+
+@media (max-width: 980px) {
+  .topbar {
+    min-height: 72px;
+  }
+
+  .hero-grid {
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy {
+    max-width: 42rem;
+  }
+
+  .hero-art {
+    margin-top: 18px;
+    min-height: clamp(340px, 58vw, 470px);
+  }
+
+  .hero-sea {
+    right: -9%;
+    bottom: 0;
+    width: min(118%, 860px);
+  }
+
+  .hero-sun {
+    left: 36%;
+    top: 0;
+    width: min(24%, 190px);
+  }
+
+  .hero-branches {
+    right: -5%;
+    top: 0;
+    width: min(44%, 360px);
+  }
+
+  .channel-band,
+  .tv-stage {
+    margin-top: -18px;
+  }
+
+  .tv-cabinet {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-screen {
+    overflow: visible;
+  }
+
+  .tv-screen,
+  .tv-screen-inner {
+    min-height: auto;
+  }
+
+  .tv-content,
+  .tv-screen-top {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-tv .event-list {
+    max-height: 410px;
+  }
+
+  .custom-tv .detail-panel {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    align-items: flex-start;
+    min-height: 62px;
+  }
+
+  .brand {
+    font-size: clamp(2.8rem, 13vw, 4rem);
+  }
+
+  .nav-links {
+    gap: 0.72rem;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(4.3rem, 19vw, 6.7rem);
+  }
+
+  .intro {
+    margin-top: 26px;
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    gap: 14px;
+  }
+
+  .season-date {
+    width: 100%;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .hero-art {
+    margin-top: 10px;
+    min-height: clamp(300px, 72vw, 410px);
+  }
+
+  .hero-sea {
+    right: -19%;
+    bottom: 2%;
+    width: 136%;
+  }
+
+  .hero-sun {
+    left: 37%;
+    top: 2%;
+    width: 30%;
+  }
+
+  .hero-branches {
+    right: -13%;
+    top: 3%;
+    width: 58%;
+  }
+
+  .channel-band,
+  .tv-stage {
+    margin-top: -8px;
+  }
+
+  .tv-cabinet {
+    border-width: 5px;
+    padding: 10px;
+  }
+
+  .tv-screen {
+    border-width: 7px;
+    border-radius: 18px / 26px;
+  }
+
+  .tv-screen-inner {
+    padding: 13px;
+  }
+
+  .custom-tv .tv-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .custom-tv .channel-button {
+    min-height: 42px;
+    font-size: 0.72rem;
+  }
+
+  .custom-tv .event-list {
+    max-height: 360px;
+  }
+
+  .custom-tv .event-row {
+    grid-template-columns: 38px minmax(0, 1fr) 10px;
+  }
+
+  .tv-dial-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tv-dial-rail .dial-button {
+    width: 48px;
+  }
+
+  .tv-dial-rail .dial-button span,
+  .tv-speaker-grille {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero,
+  main,
+  .site-footer {
+    width: calc(100% - 24px);
+  }
+
+  .nav-links {
+    gap: 0.58rem;
+    padding: 7px 8px;
+    font-size: 0.82rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(4rem, 22vw, 5.55rem);
+  }
+
+  .hero-art {
+    min-height: 292px;
+  }
+
+  .hero-sea {
+    right: -25%;
+    width: 148%;
+  }
+
+  .hero-sun {
+    left: 33%;
+    width: 34%;
+  }
+
+  .hero-branches {
+    right: -18%;
+    width: 66%;
+  }
+
+  .custom-tv .event-place {
+    display: none;
+  }
+
+  .custom-tv .event-name {
+    font-size: 0.76rem;
+  }
+}
+
+/* Responsive composition pass */
+html,
+body {
+  overflow-x: clip;
+}
+
+.hero,
+main,
+.site-footer {
+  width: min(1180px, calc(100% - clamp(24px, 5vw, 56px)));
+}
+
+.custom-tv .event-row {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
+.custom-tv .event-row,
+.custom-tv .event-row:hover,
+.custom-tv .event-row:focus,
+.custom-tv .event-row:active,
+.custom-tv .event-row.is-selected {
+  border-left: 0;
+  border-right: 0;
+}
+
+.custom-tv .detail-panel {
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 1181px) {
+  .custom-tv {
+    width: min(1120px, calc(100vw - 96px));
+  }
+
+  .tv-content {
+    grid-template-columns: minmax(0, 1.05fr) minmax(290px, 0.78fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .hero-grid {
+    grid-template-columns: minmax(320px, 0.82fr) minmax(360px, 1.18fr);
+    gap: clamp(24px, 4vw, 56px);
+  }
+
+  .custom-tv {
+    width: 100%;
+  }
+
+  .tv-cabinet {
+    grid-template-columns: minmax(0, 1fr) clamp(82px, 9vw, 104px);
+    gap: clamp(8px, 1.1vw, 12px);
+    padding: clamp(14px, 1.6vw, 18px);
+  }
+
+  .tv-screen {
+    min-height: clamp(500px, 54vw, 586px);
+    border-width: clamp(8px, 1vw, 12px);
+  }
+
+  .tv-screen-inner {
+    min-height: clamp(500px, 54vw, 586px);
+    padding: clamp(16px, 2vw, 22px);
+  }
+
+  .tv-screen-top {
+    grid-template-columns: minmax(190px, 0.7fr) minmax(320px, 1fr);
+  }
+
+  .tv-dial-rail .dial-button {
+    width: clamp(48px, 5.4vw, 60px);
+  }
+
+  .tv-dial-rail .dial-button span {
+    transform: translateX(clamp(-42px, -4vw, -34px));
+  }
+}
+
+@media (max-width: 980px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .hero-copy {
+    max-width: 38rem;
+  }
+
+  .hero-art {
+    margin-top: -42px;
+    min-height: clamp(420px, 72vw, 620px);
+  }
+
+  .hero-sea {
+    right: -16%;
+    bottom: 0;
+    width: min(132%, 920px);
+  }
+
+  .hero-sun {
+    left: 42%;
+    top: -4%;
+    width: min(28%, 230px);
+  }
+
+  .hero-branches {
+    right: -8%;
+    top: -9%;
+    width: min(52%, 440px);
+  }
+
+  .channel-band,
+  .tv-stage {
+    margin-top: clamp(-82px, -8vw, -42px);
+    padding-bottom: 34px;
+  }
+
+  .tv-cabinet {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tv-screen,
+  .tv-screen-inner {
+    min-height: auto;
+  }
+
+  .tv-screen {
+    overflow: visible;
+  }
+
+  .tv-screen-inner {
+    height: auto;
+  }
+
+  .tv-screen-top {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .custom-tv .tv-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .custom-tv .channel-button {
+    min-height: 40px;
+  }
+
+  .tv-content {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .custom-tv .event-list {
+    max-height: 410px;
+    overflow: auto;
+  }
+
+  .custom-tv .detail-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tv-dial-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-items: center;
+    padding: 12px 14px;
+  }
+
+  .tv-dial-rail .dial-button {
+    width: 58px;
+  }
+
+  .tv-dial-rail .dial-button span,
+  .tv-speaker-grille {
+    display: none;
+  }
+
+  .about-section {
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .subscribe-bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .subscribe-bar h2 {
+    grid-column: 1 / -1;
+    max-width: 18rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 64px;
+  }
+
+  .brand {
+    font-size: clamp(2.75rem, 14vw, 4.3rem);
+  }
+
+  .hero h1 {
+    font-size: clamp(4.5rem, 19vw, 7rem);
+  }
+
+  .intro {
+    max-width: 100%;
+    margin-top: 26px;
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .season-date {
+    width: 100%;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .hero-art {
+    min-height: clamp(360px, 88vw, 500px);
+  }
+
+  .hero-sea {
+    right: -32%;
+    bottom: -4%;
+    width: 156%;
+  }
+
+  .hero-sun {
+    left: 38%;
+    width: 34%;
+  }
+
+  .hero-branches {
+    right: -18%;
+    width: 68%;
+  }
+
+  .tv-cabinet {
+    border-width: 5px;
+    padding: 10px;
+  }
+
+  .tv-cabinet::before,
+  .tv-cabinet::after {
+    width: 38px;
+    height: 16px;
+    bottom: -15px;
+  }
+
+  .tv-screen {
+    border-width: 7px;
+    border-radius: 18px / 26px;
+  }
+
+  .tv-screen-inner {
+    gap: 12px;
+    padding: 13px;
+  }
+
+  .tv-kicker {
+    font-size: 0.58rem;
+  }
+
+  .tv-screen-top h2 {
+    font-size: 1.12rem;
+  }
+
+  .custom-tv .tv-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .custom-tv .channel-button {
+    min-height: 42px;
+    padding: 7px 6px;
+    font-size: 0.72rem;
+  }
+
+  .custom-tv .event-list {
+    max-height: 360px;
+  }
+
+  .custom-tv .event-row {
+    grid-template-columns: 38px minmax(0, 1fr) 10px;
+    gap: 8px;
+    padding: 10px 8px;
+  }
+
+  .custom-tv .event-date span:first-child {
+    font-size: 0.5rem;
+  }
+
+  .custom-tv .event-date span:last-child {
+    font-size: 1rem;
+  }
+
+  .custom-tv .event-time {
+    font-size: 0.5rem;
+    letter-spacing: 0.07em;
+  }
+
+  .custom-tv .event-name {
+    font-size: 0.82rem;
+  }
+
+  .custom-tv .event-place {
+    font-size: 0.62rem;
+  }
+
+  .custom-tv .detail-panel {
+    padding: 14px;
+  }
+
+  .custom-tv .detail-title {
+    font-size: clamp(1.35rem, 9vw, 2rem);
+  }
+
+  .custom-tv .detail-meta dd,
+  .custom-tv .detail-description {
+    font-size: 0.88rem;
+  }
+
+  .tv-dial-rail .dial-button {
+    width: 48px;
+  }
+
+  .about-section h2 {
+    font-size: clamp(2rem, 12vw, 3.2rem);
+  }
+
+  .subscribe-bar {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .site-footer {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero,
+  main,
+  .site-footer {
+    width: calc(100% - 24px);
+  }
+
+  .topbar {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .nav-links {
+    gap: 0.68rem;
+    padding-top: 10px;
+    font-size: 0.86rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(4.15rem, 23vw, 5.9rem);
+  }
+
+  .hero-art {
+    margin-top: -32px;
+    min-height: 350px;
+  }
+
+  .channel-band,
+  .tv-stage {
+    margin-top: -36px;
+  }
+
+  .tv-cabinet {
+    border-width: 4px;
+    padding: 8px;
+  }
+
+  .tv-screen-inner {
+    padding: 10px;
+  }
+
+  .custom-tv .tv-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .custom-tv .channel-button {
+    min-height: 38px;
+    font-size: 0.66rem;
+  }
+
+  .custom-tv .event-row {
+    grid-template-columns: 34px minmax(0, 1fr) 8px;
+  }
+
+  .custom-tv .event-name {
+    font-size: 0.76rem;
+  }
+
+  .custom-tv .event-place {
+    display: none;
+  }
+
+  .custom-tv .detail-panel {
+    border-radius: 6px;
+  }
+
+  .custom-tv .speaker-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Final lock: keep navigation readable above watercolor art at every breakpoint. */
+.nav-links {
+  background: rgba(255, 253, 248, 0.9);
+  border: 1px solid rgba(216, 208, 194, 0.58);
+  box-shadow: 0 10px 28px rgba(16, 21, 19, 0.07);
+  backdrop-filter: blur(10px);
+}
+
+.topbar {
+  padding-top: clamp(8px, 1vw, 14px);
+}
+
+@media (max-width: 430px) {
+  .nav-links {
+    padding: 7px 8px;
+  }
+}
+
+/* Desktop authority: the large-screen page is the primary experience. */
+@media (min-width: 981px) {
+  .hero,
+  main,
+  .site-footer {
+    width: min(1600px, calc(100% - clamp(72px, 7vw, 132px)));
+  }
+
+  .topbar {
+    min-height: 82px;
+  }
+
+  .hero-grid {
+    grid-template-columns: minmax(450px, 0.88fr) minmax(620px, 1.12fr);
+    gap: clamp(48px, 5vw, 104px);
+    min-height: clamp(570px, 48vw, 710px);
+    padding-top: 16px;
+  }
+
+  .hero-copy {
+    max-width: none;
+  }
+
+  .hero h1 {
+    font-size: clamp(6.8rem, 8.1vw, 10.25rem);
+  }
+
+  .intro {
+    max-width: 34rem;
+    margin-top: 38px;
+    font-size: clamp(1.05rem, 1.15vw, 1.3rem);
+  }
+
+  .hero-art {
+    margin-top: clamp(-72px, -4.5vw, -42px);
+    min-height: clamp(560px, 44vw, 720px);
+  }
+
+  .hero-sea {
+    right: -5%;
+    bottom: 3%;
+    width: min(120%, 1050px);
+  }
+
+  .hero-sun {
+    left: 28%;
+    top: 2%;
+    width: min(25%, 250px);
+  }
+
+  .hero-branches {
+    right: -4%;
+    top: 9%;
+    width: min(50%, 500px);
+  }
+
+  .channel-band,
+  .tv-stage {
+    margin-top: clamp(-96px, -5vw, -72px);
+    padding-bottom: 56px;
+  }
+
+  .custom-tv {
+    width: min(1480px, 100%);
+  }
+
+  .tv-cabinet {
+    grid-template-columns: minmax(0, 1fr) clamp(112px, 7.6vw, 132px);
+    gap: 16px;
+    padding: clamp(20px, 1.6vw, 28px);
+    border-width: 7px;
+  }
+
+  .tv-screen {
+    min-height: clamp(640px, 40vw, 720px);
+    border-width: 14px;
+  }
+
+  .tv-screen-inner {
+    min-height: clamp(640px, 40vw, 720px);
+    gap: 18px;
+    padding: clamp(22px, 1.7vw, 30px);
+  }
+
+  .tv-screen-top {
+    grid-template-columns: minmax(310px, 0.62fr) minmax(520px, 1fr);
+    gap: 22px;
+    padding-bottom: 16px;
+  }
+
+  .tv-kicker {
+    font-size: 0.82rem;
+  }
+
+  .tv-screen-top h2 {
+    font-size: clamp(1.55rem, 1.85vw, 2.15rem);
+  }
+
+  .custom-tv .tv-controls {
+    gap: 12px;
+  }
+
+  .custom-tv .channel-button {
+    min-height: 46px;
+    font-size: clamp(0.76rem, 0.9vw, 0.96rem);
+  }
+
+  .tv-content {
+    grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.78fr);
+    gap: 18px;
+  }
+
+  .custom-tv .event-list,
+  .custom-tv .detail-panel {
+    max-height: clamp(470px, 29vw, 540px);
+  }
+
+  .custom-tv .event-row {
+    grid-template-columns: 52px minmax(0, 1fr) 16px;
+    gap: 12px;
+    padding: 12px 12px;
+  }
+
+  .custom-tv .event-date span:last-child {
+    font-size: 1.28rem;
+  }
+
+  .custom-tv .event-name {
+    font-size: clamp(0.94rem, 0.9vw, 1.08rem);
+  }
+
+  .custom-tv .event-time {
+    font-size: 0.62rem;
+  }
+
+  .custom-tv .event-place {
+    font-size: 0.72rem;
+  }
+
+  .custom-tv .detail-panel {
+    padding: clamp(20px, 1.45vw, 26px);
+  }
+
+  .custom-tv .detail-title {
+    font-size: clamp(1.8rem, 2.3vw, 2.8rem);
+  }
+
+  .custom-tv .detail-description {
+    font-size: 0.95rem;
+  }
+
+  .tv-dial-rail {
+    gap: 16px;
+    padding: 20px 12px;
+  }
+
+  .tv-dial-rail .dial-button {
+    width: clamp(66px, 4.7vw, 78px);
+  }
+
+  .tv-dial-rail .dial-button span {
+    transform: translateX(clamp(-58px, -3.8vw, -50px));
+    font-size: 1.05rem;
+  }
+
+  .tv-speaker-grille {
+    width: clamp(80px, 5vw, 94px);
+    height: clamp(150px, 10vw, 190px);
+  }
+
+  .about-section {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .subscribe-bar {
+    grid-template-columns: 300px 1fr auto auto;
+  }
+}
+
+/* Color-coded rows, TBD slots, and event sharing inside the TV */
+.custom-tv .event-row .dot {
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.22);
+}
+
+.dot.tbd,
+.detail-badge.tbd {
+  background-color: #87908a;
+}
+
+.tag.tbd {
+  color: #515a54;
+  background: rgba(135, 144, 138, 0.18);
+}
+
+.custom-tv .event-row.is-tbd .event-name {
+  color: rgba(255, 251, 231, 0.62);
+  font-style: italic;
+}
+
+.custom-tv .rsvp-link[hidden] {
+  display: none;
+}
+
+.custom-tv .share-event {
+  min-height: 42px;
+  width: 100%;
+  margin-top: 10px;
+  border-color: rgba(248, 242, 212, 0.38);
+  color: #f3e7af;
+  background: transparent;
+}
+
+.custom-tv .share-event:hover {
+  box-shadow: 0 0 18px rgba(247, 237, 189, 0.16);
+}
+
+.custom-tv .rsvp-link + .share-event {
+  margin-top: 10px;
+}
+
+/* TV control refinements: color-coded channels, machined dials, nameplate */
+.custom-tv .channel-button {
+  position: relative;
+  overflow: hidden;
+  --channel-color: #f8f2d4;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.custom-tv .channel-button.blue {
+  --channel-color: #66adde;
+}
+
+.custom-tv .channel-button.purple {
+  --channel-color: #ab8ade;
+}
+
+.custom-tv .channel-button.green {
+  --channel-color: #67bd77;
+}
+
+.custom-tv .channel-button.gold {
+  --channel-color: #e6b54e;
+}
+
+.custom-tv .channel-button span {
+  color: var(--channel-color);
+  opacity: 0.92;
+}
+
+.custom-tv .channel-button::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--channel-color);
+  opacity: 0.45;
+  transition: opacity 180ms ease, width 220ms ease, box-shadow 220ms ease;
+}
+
+.custom-tv .channel-button:hover {
+  border-color: rgba(248, 242, 212, 0.52);
+}
+
+.custom-tv .channel-button:hover::after {
+  opacity: 0.8;
+}
+
+.custom-tv .channel-button.is-active {
+  color: #fffbe6;
+  border-color: var(--channel-color);
+  background: color-mix(in srgb, var(--channel-color) 13%, rgba(255, 255, 255, 0.04)) !important;
+  box-shadow:
+    inset 0 0 18px color-mix(in srgb, var(--channel-color) 24%, transparent),
+    0 0 14px color-mix(in srgb, var(--channel-color) 30%, transparent) !important;
+}
+
+.custom-tv .channel-button.is-active span {
+  opacity: 1;
+}
+
+.custom-tv .channel-button.is-active::after {
+  width: 72%;
+  opacity: 1;
+  box-shadow: 0 0 10px var(--channel-color);
+}
+
+.tv-dial-rail {
+  align-content: start;
+  gap: 28px;
+  padding: 20px 10px 16px;
+}
+
+.tv-dial-rail .dial-button {
+  margin-bottom: 16px;
+  border: 0;
+  background:
+    radial-gradient(circle at 38% 30%, #4b544d 0%, #262c28 46%, #161a18 64%, transparent 66%),
+    repeating-conic-gradient(rgba(255, 255, 255, 0.09) 0deg 5deg, rgba(0, 0, 0, 0.22) 5deg 10deg),
+    radial-gradient(circle, #1a1f1c 0%, #0c0f0d 100%);
+  box-shadow:
+    0 0 0 3px var(--dial-color, #5a615c),
+    0 0 0 4.5px rgba(0, 0, 0, 0.6),
+    0 6px 14px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.14),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 220ms ease;
+}
+
+.tv-dial-rail .dial-button[data-category="ai"] {
+  --dial-color: #5494c4;
+}
+
+.tv-dial-rail .dial-button[data-category="vibes"] {
+  --dial-color: #9678c6;
+}
+
+.tv-dial-rail .dial-button[data-category="research"] {
+  --dial-color: #55a866;
+}
+
+.tv-dial-rail .dial-button[data-category="social"] {
+  --dial-color: #d3a544;
+}
+
+.tv-dial-rail .dial-button::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 1.5px);
+  top: 10%;
+  width: 3px;
+  height: 40%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #f7f2d2, rgba(247, 242, 210, 0.25));
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transform-origin: 50% 100%;
+  transition: transform 340ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.tv-dial-rail .dial-button.is-active {
+  outline: 0;
+  box-shadow:
+    0 0 0 3px var(--dial-color, #5a615c),
+    0 0 0 4.5px rgba(0, 0, 0, 0.6),
+    0 0 20px 3px color-mix(in srgb, var(--dial-color) 52%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.14),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tv-dial-rail .dial-button.is-active::after {
+  transform: rotate(135deg);
+}
+
+.tv-dial-rail .dial-button span {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(248, 242, 212, 0.55);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  transition: color 180ms ease, text-shadow 180ms ease;
+}
+
+.tv-dial-rail .dial-button.is-active span {
+  color: #fff8d6;
+  text-shadow: 0 0 8px var(--dial-color);
+}
+
+.custom-tv .event-row .dot.blue {
+  background-color: #5ea7dc;
+}
+
+.custom-tv .event-row .dot.purple {
+  background-color: #a685d8;
+}
+
+.custom-tv .event-row .dot.green {
+  background-color: #63b873;
+}
+
+.custom-tv .event-row .dot.gold {
+  background-color: #e2b14d;
+}
+
+.tv-cabinet {
+  padding-bottom: 46px;
+}
+
+.tv-nameplate {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 3px 16px;
+  border-radius: 3px;
+  color: rgba(38, 23, 11, 0.88);
+  background: linear-gradient(180deg, #ecd49a 0%, #c89e5e 55%, #a87f43 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.45);
+  font-family: "Courier New", monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (min-width: 981px) {
+  .tv-dial-rail {
+    gap: 32px;
+    padding: 22px 12px 18px;
+  }
+
+  .tv-dial-rail .dial-button span {
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+  }
+
+  .tv-cabinet {
+    padding-bottom: clamp(48px, 3.6vw, 56px);
+  }
+}
+
+@media (max-width: 760px) {
+  .tv-dial-rail {
+    gap: 12px;
+    padding: 14px 10px;
+  }
+
+  .tv-dial-rail .dial-button {
+    margin-bottom: 0;
+  }
+
+  .tv-cabinet {
+    padding-bottom: 40px;
+  }
+
+  .tv-nameplate {
+    bottom: 10px;
+    font-size: 0.54rem;
+    letter-spacing: 0.26em;
+    text-indent: 0.26em;
+  }
+}
+
+/* Summery refresh: sunnier palette, Fraunces display type, logo, all-channels */
+body {
+  background: #fdf8ec;
+}
+
+.hero h1 {
+  font-weight: 700;
+  font-variation-settings: "wght" 700, "SOFT" 100, "WONK" 1;
+}
+
+.about-section h2 {
+  font-variation-settings: "wght" 500, "SOFT" 100, "WONK" 1;
+}
+
+.subscribe-bar h2,
+.detail-title {
+  font-variation-settings: "wght" 500, "SOFT" 100;
+}
+
+.intro {
+  border-top-color: rgba(222, 178, 92, 0.66);
+}
+
+.subscribe-bar {
+  background: linear-gradient(135deg, rgba(255, 244, 209, 0.92), rgba(255, 253, 246, 0.78));
+  border-color: rgba(222, 188, 116, 0.55);
+}
+
+.site-footer {
+  margin-top: 38px;
+  border-top: 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: clamp(52px, 5.4vw, 68px);
+  overflow: visible;
+}
+
+.brand-logo text {
+  letter-spacing: -0.02em;
+}
+
+.footer-logo {
+  height: 44px;
+}
+
+.custom-tv .channel-button.all {
+  --channel-color: #f6e7b2;
+}
+
+@media (min-width: 981px) {
+  .custom-tv .tv-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .brand-logo {
+    height: 48px;
+  }
+
+  .footer-logo {
+    height: 38px;
+  }
+}
+
+.footer-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Screen-only event calendar: the TV interior, spanning the full page width */
+.tv-sizer {
+  width: 100%;
+  justify-self: center;
+}
+
+.tv-sizer .tv-wrap {
+  width: 100%;
+  max-width: none;
+}
+
+/* Jun 15 review with Robin: larger bottom-section type, tighter spacing,
+   muted past events, moxsf link */
+.about-section .eyebrow {
+  font-size: 0.9rem;
+}
+
+.about-section p:not(.eyebrow) {
+  font-size: clamp(1.1rem, 1.7vw, 1.32rem);
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.about-link svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.about-link:hover {
+  text-decoration: underline;
+}
+
+.subscribe-bar {
+  gap: 20px;
+  margin-top: 14px;
+  margin-bottom: 18px;
+}
+
+.subscribe-bar h2 {
+  font-size: 1.7rem;
+}
+
+.subscribe-bar p {
+  font-size: 1rem;
+}
+
+.site-footer {
+  margin-top: 18px;
+}
+
+.site-footer span,
+.site-footer a {
+  font-size: 0.96rem;
+}
+
+@media (min-width: 981px) {
+  .subscribe-bar {
+    grid-template-columns: minmax(220px, 0.7fr) 1fr auto auto;
+  }
+}
+
+/* Past events: still listed, but muted and pushed below upcoming ones */
+.custom-tv .event-row.is-past {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
+.custom-tv .event-row.is-past:hover,
+.custom-tv .event-row.is-past.is-selected {
+  opacity: 0.85;
+  filter: none;
+}
+
+.custom-tv .event-list .past-divider {
+  display: block;
+  margin: 6px 12px 2px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Remove the TV / CRT skin: the calendar is now a light
+   "watercolor paper" card. Same layout, filtering, color coding.
+   (Per-theme watercolor washes layer in once assets arrive.)
+   ============================================================ */
+.custom-tv .tv-screen {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 253, 246, 0.9);
+  box-shadow: 0 20px 48px rgba(16, 21, 19, 0.1);
+}
+
+.custom-tv .tv-screen::after,
+.custom-tv .tv-scanlines {
+  display: none;
+}
+
+.custom-tv .tv-screen-inner {
+  min-height: 0;
+  color: var(--text);
+}
+
+.custom-tv .tv-screen-top {
+  border-bottom-color: var(--line);
+}
+
+.custom-tv .tv-kicker {
+  color: var(--muted);
+  font-family: inherit;
+}
+
+.custom-tv .tv-screen-top h2 {
+  color: var(--ink);
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  font-variation-settings: "wght" 600, "SOFT" 100;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Channel filter buttons: light pills with their brand-color accent */
+.custom-tv .tv-controls {
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.custom-tv .channel-button {
+  color: var(--text);
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.custom-tv .channel-button span {
+  color: var(--muted);
+}
+
+.custom-tv .channel-button.blue {
+  --channel-color: #1268b3;
+}
+
+.custom-tv .channel-button.purple {
+  --channel-color: #7a4bb1;
+}
+
+.custom-tv .channel-button.green {
+  --channel-color: #2f8b40;
+}
+
+.custom-tv .channel-button.gold {
+  --channel-color: #d79b00;
+}
+
+.custom-tv .channel-button:hover {
+  border-color: var(--channel-color);
+}
+
+.custom-tv .channel-button.is-active {
+  color: var(--ink);
+  border-color: var(--channel-color);
+  background: color-mix(in srgb, var(--channel-color) 12%, #fff) !important;
+  box-shadow: inset 0 0 0 1px var(--channel-color) !important;
+}
+
+.custom-tv .channel-button.is-active span {
+  color: var(--channel-color);
+}
+
+/* Event list */
+.custom-tv .section-title {
+  color: var(--muted);
+}
+
+.custom-tv .section-title span {
+  background: var(--line);
+}
+
+.custom-tv .event-list {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  scrollbar-color: rgba(120, 120, 110, 0.4) transparent;
+}
+
+.custom-tv .event-row {
+  color: var(--text);
+  border-bottom-color: var(--line);
+}
+
+.custom-tv .event-row:hover,
+.custom-tv .event-row.is-selected {
+  background: rgba(18, 104, 179, 0.07);
+  box-shadow: inset 3px 0 0 var(--channel-color, var(--blue));
+}
+
+.custom-tv .event-date,
+.custom-tv .event-place,
+.custom-tv .event-time {
+  color: var(--muted);
+}
+
+.custom-tv .event-name {
+  color: var(--ink);
+}
+
+.custom-tv .event-row .dot.blue {
+  background-color: #1268b3;
+}
+
+.custom-tv .event-row .dot.purple {
+  background-color: #7a4bb1;
+}
+
+.custom-tv .event-row .dot.green {
+  background-color: #2f8b40;
+}
+
+.custom-tv .event-row .dot.gold {
+  background-color: #d79b00;
+}
+
+.custom-tv .event-row .dot {
+  box-shadow: none;
+}
+
+.custom-tv .past-divider {
+  border-top-color: var(--line);
+  color: var(--muted);
+}
+
+/* Detail panel */
+.custom-tv .detail-panel {
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: none;
+}
+
+.custom-tv .detail-badge {
+  color: #fffdf8;
+  border: 0;
+  box-shadow: none;
+}
+
+.custom-tv .detail-title {
+  color: var(--ink);
+}
+
+.custom-tv .detail-meta dt,
+.custom-tv .detail-meta dd,
+.custom-tv .detail-description {
+  color: var(--text);
+}
+
+.custom-tv .detail-panel .eyebrow {
+  color: var(--muted);
+}
+
+.custom-tv .speaker span {
+  color: var(--muted);
+}
+
+.custom-tv .speaker-avatar {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.custom-tv .rsvp-link {
+  color: #fffdf8;
+  background: var(--ink);
+  box-shadow: 0 10px 24px rgba(43, 26, 16, 0.18);
+}
+
+.custom-tv .share-event {
+  color: var(--ink);
+  border-color: #4a2f1f;
+  background: transparent;
+}
+
+/* drop the CRT text-shadow halo now that the panel is light */
+.custom-tv .detail-title,
+.custom-tv .speaker strong {
+  text-shadow: none;
+}
+
+/* ============================================================
+   Watercolor washes per channel. The active channel's wash tints
+   the calendar panel and deepens when a single channel is tuned
+   ("the watercolor gets stronger"). Each channel button carries
+   its own wash, intensifying when active.
+   NOTE: assets/wash-*.png are PLACEHOLDER blobs - drop in the real
+   watercolor PNGs at the same paths for a zero-code swap.
+   ============================================================ */
+.custom-tv .tv-screen {
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-tv .tv-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--wash, url("assets/wash-all.png"));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.14;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+
+.custom-tv .tv-screen[data-channel]:not([data-channel="all"])::before {
+  opacity: 0.28;
+}
+
+.custom-tv .tv-screen-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.custom-tv .channel-button.blue {
+  --btn-wash: url("assets/wash-ai.png");
+}
+
+.custom-tv .channel-button.purple {
+  --btn-wash: url("assets/wash-vibes.png");
+}
+
+.custom-tv .channel-button.green {
+  --btn-wash: url("assets/wash-research.png");
+}
+
+.custom-tv .channel-button.gold {
+  --btn-wash: url("assets/wash-social.png");
+}
+
+.custom-tv .channel-button.all {
+  --btn-wash: url("assets/wash-all.png");
+}
+
+.custom-tv .channel-button {
+  background:
+    linear-gradient(rgba(255, 253, 246, 0.82), rgba(255, 253, 246, 0.82)),
+    var(--btn-wash, none) center/cover no-repeat,
+    rgba(255, 255, 255, 0.55) !important;
+  transition: background 0.3s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.custom-tv .channel-button.is-active {
+  background:
+    linear-gradient(rgba(255, 253, 246, 0.48), rgba(255, 253, 246, 0.48)),
+    var(--btn-wash, none) center/cover no-repeat,
+    #fff !important;
+}
+
+/* ============================================================
+   Jun 16: watercolor blobs ARE the channel buttons (poster style).
+   The blob is the control; label sits beneath. Selecting a theme
+   emphasizes its blob and dims the others. All fonts here are
+   Instrument Sans (body) or Fraunces Bold (display) - no monospace.
+   ============================================================ */
+.custom-tv .tv-screen::before { display: none; }   /* drop the panel wash; blobs carry the watercolor */
+
+.custom-tv .tv-controls {
+  display: block;
+  font-family: inherit;
+}
+
+.custom-tv .all-toggle {
+  display: block;
+  margin: 0 auto 16px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.custom-tv .all-toggle::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 2px;
+  margin: 6px auto 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #1268b3, #7a4bb1, #2f8b40, #d79b00);
+  transition: width 0.28s ease;
+}
+
+.custom-tv .all-toggle.is-active { color: var(--ink); }
+.custom-tv .all-toggle.is-active::after { width: 100%; }
+
+.custom-tv .theme-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.custom-tv .channel-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  padding: 4px 2px;
+  border-radius: 12px;
+}
+
+.custom-tv .channel-button::before,
+.custom-tv .channel-button::after { display: none !important; }
+
+.custom-tv .channel-button .blob {
+  width: clamp(60px, 7.6vw, 100px);
+  height: clamp(60px, 7.6vw, 100px);
+  object-fit: contain;
+  transform: scale(0.9);
+  opacity: 0.85;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.custom-tv .theme-row:has(.channel-button:not(.all).is-active) .channel-button:not(.is-active) .blob {
+  opacity: 0.4;
+}
+
+.custom-tv .channel-button.is-active .blob {
+  opacity: 1;
+  transform: scale(1.12);
+}
+
+.custom-tv .channel-button .blob-label {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: clamp(0.72rem, 0.95vw, 0.9rem);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.12;
+  transition: color 0.2s ease;
+}
+
+.custom-tv .channel-button.is-active .blob-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Fonts: Fraunces Bold for the panel title, Instrument Sans elsewhere */
+.custom-tv .tv-screen-top h2 {
+  font-weight: 700;
+  font-variation-settings: "wght" 700, "SOFT" 100;
+}
+
+.custom-tv .past-divider {
+  font-family: inherit;
+  letter-spacing: 0.12em;
+}
+
+@media (max-width: 560px) {
+  .custom-tv .theme-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+/* Give the screen interior an opaque cream backdrop so the blob
+   multiply blends against cream (not the transparent -> black backdrop) */
+.custom-tv .tv-screen-inner {
+  background: #fdf8ec;
+}
+
+/* Final cleanups: kill the Courier on the past divider (specificity), and
+   hide the boxy mouse-click focus ring on blob buttons (keep keyboard focus) */
+.custom-tv .event-list .past-divider {
+  font-family: "Instrument Sans", Inter, ui-sans-serif, sans-serif;
+}
+
+.custom-tv .channel-button:focus:not(:focus-visible),
+.custom-tv .all-toggle:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================================
+   Jun 16 round 2: All-channels as a multicolor blob button,
+   full-width 5-blob row, no outer card, bigger "What is Mox?",
+   flat subscribe bar.
+   ============================================================ */
+/* Title above, blob row full-width below */
+.custom-tv .tv-screen-top {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.custom-tv .theme-row {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.custom-tv .channel-button .blob {
+  width: clamp(50px, 6vw, 84px);
+  height: clamp(50px, 6vw, 84px);
+}
+
+/* No card around the Event Calendar - let it sit open on the page */
+.custom-tv .tv-screen {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.custom-tv .tv-screen-inner {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Bigger "What is Mox?" / section eyebrows */
+.about-section .eyebrow {
+  font-size: 1.05rem;
+  letter-spacing: 0.13em;
+}
+
+/* Flat subscribe bar (the gradient left a visible seam beside the button) */
+.subscribe-bar {
+  background: rgba(255, 247, 228, 0.66);
+  box-shadow: none;
+  border: 1px solid rgba(222, 188, 116, 0.5);
+}
+
+/* Active blob signals via the blob itself - drop the old pill box/border */
+.custom-tv .theme-row .channel-button.is-active {
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.about-section .eyebrow {
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+/* Mobile: 5 blobs wrap to 3 columns (2 rows) so labels don't overlap */
+@media (max-width: 640px) {
+  .custom-tv .theme-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 4px;
+    max-width: 340px;
+  }
+}
+
+/* ============================================================
+   Jun 16 round 3: align Event Calendar (left) with the blob row
+   (right) on one axis; all Fraunces -> Bold; clean subscribe bar.
+   ============================================================ */
+/* Title left, blob row right, vertically centered on the same axis */
+.custom-tv .tv-screen-top {
+  grid-template-columns: minmax(160px, auto) 1fr;
+  align-items: center;
+  gap: clamp(16px, 3vw, 52px);
+}
+
+.custom-tv .theme-row {
+  max-width: none;
+  margin: 0;
+}
+
+/* Every Fraunces heading is Fraunces BOLD (700) */
+.about-section h2 {
+  font-weight: 700;
+  font-variation-settings: "wght" 700, "SOFT" 100, "WONK" 1;
+}
+
+.subscribe-bar h2,
+.detail-title,
+.custom-tv .detail-title {
+  font-weight: 700;
+  font-variation-settings: "wght" 700, "SOFT" 100;
+}
+
+/* Clean subscribe bar: flex (no empty stretch column), no button halo */
+.subscribe-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  background: rgba(255, 247, 228, 0.66);
+  border: 1px solid rgba(222, 188, 116, 0.5);
+  box-shadow: none;
+}
+
+.subscribe-bar h2 {
+  flex: 1 1 240px;
+  margin: 0;
+}
+
+.subscribe-bar .primary-action,
+.subscribe-bar .secondary-action {
+  flex: 0 0 auto;
+  box-shadow: none;
+}
+
+.subscribe-bar .primary-action:hover,
+.subscribe-bar .secondary-action:hover {
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .custom-tv .tv-screen-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Jun 16 review: event rows should never dip below 16px. */
+.custom-tv .event-row {
+  grid-template-columns: 70px minmax(0, 1fr) auto 24px;
+  gap: 18px;
+  padding: 18px;
+}
+
+.custom-tv .event-date span:first-child,
+.custom-tv .event-time,
+.custom-tv .event-place,
+.custom-tv .event-row > span:last-child {
+  font-size: 1rem;
+}
+
+.custom-tv .event-date span:last-child {
+  font-size: 1.9rem;
+}
+
+.custom-tv .event-time {
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+}
+
+.custom-tv .event-name {
+  font-size: clamp(1.15rem, 1.45vw, 1.35rem);
+  line-height: 1.18;
+}
+
+.custom-tv .event-place {
+  line-height: 1.35;
+}
+
+.custom-tv .tag {
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  padding: 7px 12px;
+}
+
+@media (max-width: 760px) {
+  .custom-tv .event-row {
+    grid-template-columns: 60px minmax(0, 1fr) 22px;
+  }
+
+  .custom-tv .event-row .tag {
+    display: none;
+  }
+}
+
+/* Align the About copy block to the right side of its desktop row. */
+@media (min-width: 981px) {
+  .about-section {
+    grid-template-columns: 260px minmax(0, 1fr) minmax(0, 620px);
+  }
+
+  .about-section > .eyebrow {
+    grid-column: 1;
+  }
+
+  .about-section > div {
+    grid-column: 3;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+
+/* ============================================================
+   Fall Season: the hero reuses the summer watercolor layers,
+   tinted into late autumn - a hazy bay, a low amber sun, and a
+   branch of turning leaves. Drop real fall watercolors in at the
+   same asset paths and delete these filters for a zero-code swap.
+   ============================================================ */
+.hero-sea {
+  filter: saturate(0.55) sepia(0.32) brightness(1.03);
+}
+
+.hero-sun {
+  filter: sepia(0.55) saturate(1.8) hue-rotate(-16deg) brightness(1.02);
+}
+
+.hero-branches {
+  filter: sepia(1) saturate(2.4) hue-rotate(-30deg) brightness(1.08) contrast(1.06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-layer {
+    transition: filter 0.4s ease;
+  }
+}
