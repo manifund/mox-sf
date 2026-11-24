@@ -1,0 +1,219 @@
+# Mox TV displays
+
+(This readme was AI generated and, while helpful, pretty verbose. Left for
+agents to read more than humans.)
+
+The HTML/CSS/JavaScript display currently used on the 1F and 3F Raspberry Pi
+Zero 2 W devices. This is a separate app from the Next.js website. Cog/WPE
+WebKit renders one local page at 1920×1080; no Node server or build is needed
+on the TVs.
+
+| Device | Tailscale IP | Page |
+| --- | --- | --- |
+| 1F | `100.75.230.87` | `web/index.html?floor=1` |
+| 3F | `100.114.127.4` | `web/index.html?floor=3` |
+
+Source was imported from the working `moxscreens-htmldesign` deployment.
+Both Pis were migrated to `/home/mox/production` on November 6, 2026.
+`web/events.js` in Git is an empty preview placeholder, never uploaded to a TV.
+
+## Events
+
+`update_events.sh` reads the Mox Airtable base `appkHZ2UvU6SouT5y`, Events
+table `tblqzGMNypqO3jftS`. It writes `web/events.js` atomically. The existing
+`mox-html-events.timer` refreshes it every minute; the page rereads it every
+minute and recalculates “On now”/“Up next” every 30 seconds.
+
+The feed includes ongoing events and events starting before midnight Pacific.
+Idea, Maybe, Cancelled, and Declined statuses are hidden. Room rollups assign
+events to floors 1–4; **Floor TBD events are not displayed**. A missing end
+time defaults to two hours. Failed API refreshes retain the last good file.
+
+GitHub Actions environment `tvs` supplies `TVS_AIRTABLE_TOKEN` on every
+deployment. Each Pi keeps the deployed copy at
+`/home/mox/production/auth/airtable.com.txt` (mode 0600) for minute-by-minute
+refreshes. The PAT needs
+`data.records:read` and access to the base. It is stored in GitHub Actions secrets, never in Git or the deployment archive.
+The runner transfers it over SSH stdin into a private temporary file, then
+removes that upload directory when deployment finishes. The browser only sees the generated feed.
+
+## Local preview and checks
+
+```sh
+python3 -m http.server 8766 --bind 127.0.0.1 --directory tvs/web
+# Open http://127.0.0.1:8766/index.html?floor=3
+
+bash -n tvs/update_events.sh
+node --check tvs/web/screen.js
+python3 -m unittest discover -s tvs/tests -v
+```
+
+The preview initially has no events. `update_events.sh` requires GNU `date`,
+`curl`, and `jq` (as installed on the Pis/Linux); the deploy tooling requires
+Python 3.12+ and OpenSSH. Keep fictional preview data out of commits.
+
+## Automatic deployment
+
+[`TV displays`](../.github/workflows/tvs.yml) validates PRs without secrets.
+Pushes to **`main` in `manifund/mox-sf`** trigger deployment after checks
+only when files under `tvs/` change. A manual workflow run on main
+can retry a failed rollout. PRs do not deploy. The `clayjonesthomas/mox-sf`
+fork also permits manual deployments from `tvs-deployment`, using its own
+`tvs` environment and the same four secret names. Fork pushes never deploy.
+The workflow must be registered on the fork default branch before dispatching
+it with `gh workflow run tvs.yml --repo clayjonesthomas/mox-sf --ref tvs-deployment`.
+Do not run fork and upstream rollouts simultaneously; GitHub concurrency
+groups are scoped to each repository.
+
+The runner joins Tailscale, authenticates with ordinary SSH, then deploys 1F
+and 3F sequentially.
+
+For each Pi the deploy script:
+
+1. Uploads `update_events.sh`, `network_watchdog.sh`, the HTML/CSS/JS source,
+   `web/assets/`, recovery provisioning, and the display/event-refresh/watchdog systemd units.
+2. Validates the archive, shell syntax, and rendered systemd units, preserving
+   the existing floor and resolving the local `mox` UID. Pauses the refresh timer and
+   installs the runner-supplied credential into the staged app with private permissions and
+   generates fresh events using that copy. API failure
+   aborts before changing the visible display.
+3. Stops Cog, moves the current app into `~/deploy-backups/html-…`, and swaps
+   the staged app into the same deployed path.
+4. Installs changed display/event service and timer units, saves the previous
+   units in `~/deploy-backups/units-…`, and runs `daemon-reload` only if needed.
+   Runs the installed event service, starts Cog, and waits up to 90 seconds
+   for its successful page-load log. A failure restores both the app and units.
+5. Provisions the Wi-Fi watchdog and RAM-only journald storage, verifies the watchdog,
+   resumes the refresh timer and records the Git SHA in `DEPLOYED_REVISION`.
+
+Deployment manages `mox-display.service`, `mox-html-events.service`, and
+`mox-html-events.timer`. It also installs/enables `tessavision-network-watchdog.timer`
+and its service on **both** TVs, selecting the interface configured/active for the
+existing `Mox-dongle` connection. Ambiguous or missing interfaces fail deployment.
+It preserves floor configuration and does not change Wi-Fi profiles, restart
+NetworkManager, install packages, or reboot.
+
+Recovery provisioning is idempotent and remains installed after a display rollback.
+It uses the existing recovery script in `/home/mox/production`, including after rollback.
+Routine journals use RAM only (`Storage=volatile`, 16 MB cap, syslog forwarding off).
+The watchdog monitor saves only Wi-Fi disconnected/unavailable/recovered transitions
+in `/var/log/mox-tv-recovery/events.log`. Identical states cause no writes; healthy
+checks produce no persistent record. Transition state and rate limits live in `/run`.
+At most eight records per hour are persisted (additional transitions are suppressed),
+with one rotated backup and approximately 128 KB total storage. A reboot resets the
+RAM state/rate limit; a healthy boot creates no record. This is Wi-Fi diagnostics,
+not persistent logging of every application failure.
+Existing archived journals are left intact; the new configuration stops ongoing
+journal writes to the SD card. Journald restarts only when its configuration changes.
+The watchdog retries a disconnected interface; it does not detect broken DNS or
+internet access when NetworkManager still reports the interface connected.
+Each successful deployment replaces the Airtable credential with the supplied
+GitHub secret; rollback restores the previous credential with the old app. The existing services
+must already be active and enabled. Both TVs were provisioned this way on
+November 2, 2026. A fresh/reimaged Pi needs separate provisioning before this
+workflow can target it. Keep the current Cog, `libgles2`, GNU `date`, `curl`,
+`jq`, and systemd setup in place.
+
+Backups are retained under `~/deploy-backups/` for manual recovery; there is
+no automatic pruning. Backups now include the private `auth/` directory; do not
+copy them into Git. Failed replacement apps are retained as `failed-html-…`.
+Health verification confirms page loading, not physical TV appearance.
+
+## One-time maintainer setup (required before deployment works)
+
+The PR supplies code, not production credentials. Create a GitHub environment
+named **`tvs`** in `manifund/mox-sf`, restrict deployments to `main`, and add:
+
+| Environment secret | Value |
+| --- | --- |
+| `TVS_TS_OAUTH_CLIENT_ID` | Tailscale OAuth client ID |
+| `TVS_TS_OAUTH_SECRET` | OAuth client secret with auth-key write access for `tag:mox-tv-deploy` |
+| `TVS_SSH_PRIVATE_KEY` | Dedicated unencrypted Ed25519 deployment private key, multiline OpenSSH format |
+| `TVS_AIRTABLE_TOKEN` | Airtable PAT with `data.records:read` access to the Mox base; installed on both TVs |
+
+Use the **tailnet that owns the TVs**, not merely a personal tailnet to which
+the TVs have been shared. Configure `tag:mox-tv-deploy` ownership and grant
+that tag access to TCP port 22 on the two IPs above. See the official
+[Tailscale GitHub Action setup](https://tailscale.com/docs/integrations/github/github-action).
+An approval rule on the GitHub environment will pause deployment for approval;
+omit required reviewers if matching main pushes should deploy unattended.
+
+A repository admin can seed the GitHub environment secret from the existing
+TV credential without displaying it (create the `tvs` environment first):
+
+```sh
+set -o pipefail
+ssh mox_1f 'cat /home/mox/production/auth/airtable.com.txt' | gh secret set TVS_AIRTABLE_TOKEN --repo manifund/mox-sf --env tvs
+```
+
+Updating that GitHub secret rotates the deployed token on the next successful
+rollout. Old backups and legacy directories retain older credential copies.
+
+Generate a dedicated deployment key on a trusted admin computer and append
+its public key to `/home/mox/.ssh/authorized_keys` on both Pis. The
+workflow runs as `mox`, whose current configuration permits
+passwordless sudo for managing services. Treat this deployment credential as
+privileged: do not reuse a personal SSH key. Ordinary SSH is used; Tailscale
+SSH need not be enabled. Never commit private keys or PATs.
+
+`known_hosts` contains **public** Ed25519 host keys obtained over authenticated
+SSH from both Pis on November 3, 2026. Strict host verification is enabled.
+After a reimage, verify the new key through a trusted channel and update this
+file; do not disable host checking or blindly trust `ssh-keyscan` in CI.
+
+## Manual rollout and recovery
+
+On a trusted machine with Tailscale access, an authorized SSH identity, and
+the checked-in host keys installed in `~/.ssh/known_hosts`, and
+`TVS_AIRTABLE_TOKEN` supplied in the environment by your secret manager:
+
+```sh
+python3 tvs/scripts/deploy.py 100.75.230.87 "$(git rev-parse HEAD)"
+python3 tvs/scripts/deploy.py 100.114.127.4 "$(git rev-parse HEAD)"
+```
+
+If manually restoring a backup, stop `mox-html-events.timer`,
+`mox-html-events.service`, and `mox-display.service` first. Move the failed
+app aside and move the selected backup to `~/production`. If that deployment
+changed units, restore the files from its matching `units-…` backup to
+`/etc/systemd/system/` using `sudo install -m 644`, then run
+`sudo systemctl daemon-reload`. Start `mox-display.service` and
+`mox-html-events.timer` again. This preserves the
+floor-specific service URL and the Airtable credential in the restored app's `auth/` directory.
+
+Read-only status commands on a Pi:
+
+```sh
+systemctl is-active mox-display.service mox-html-events.timer
+cat /home/mox/production/DEPLOYED_REVISION
+journalctl _COMM=cog -n 20 --no-pager
+```
+
+`DEPLOYED_REVISION` is created by the first automated/manual rollout, so it
+will be absent on the initial hand-deployed installation.
+
+## Display account migration
+
+Both TVs now run the display and event updater as `mox`, with their own
+`/home/mox` and app at `/home/mox/production`. Existing authorized keys and
+the password credential were copied locally from `tessavision`, along with
+supplementary groups and passwordless sudo access. Existing `tessavision`
+logins remain available. Future key changes should target `/home/mox/.ssh/authorized_keys`.
+
+Both one-time migrations are complete. Their scripts were removed from the
+working tree and remain available in commit `7592056`:
+
+```sh
+git show 7592056:tvs/scripts/migrate_pi.py
+git show 7592056:tvs/scripts/migrate_user.py
+```
+
+Original account-migration unit files remain in `/home/mox/account-migration/`
+on each Pi. The unused legacy event/ticker and display fallback timers are
+disabled. The Wi-Fi watchdog runs from `/home/mox/production/network_watchdog.sh`
+on both TVs. Before the November 10 recovery fix, only 1F had its service/timer installed.
+
+`systemd/` contains the deployed display and refresh units. Deployment renders
+`@FLOOR@` and `@UID@` in `mox-display.service.in` from the existing TV setup.
+Deployments also provision the watchdog units and their `device.conf` override
+using the actual `Mox-dongle` interface rather than the script’s fallback device.
